@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace PayBridge\Plaid\Persistence;
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; compare-and-set locking must bypass object caches.
+
 /**
  * Durable, database-backed fence around Transfer Intent creation for one order.
  *
@@ -18,14 +20,14 @@ final class PaymentLockStore
     public function acquire(int $order_id, string $environment, string $attempt_id): PaymentReservation
     {
         global $wpdb;
-        $table = Installer::locks_table();
         $token = bin2hex(random_bytes(32));
         $lease = gmdate('Y-m-d H:i:s', time() + self::LEASE_SECONDS);
         // INSERT IGNORE turns only the expected primary-key collision into a
         // deterministic branch; a real DB error returns false and fails closed.
         $inserted = $wpdb->query($wpdb->prepare(
-            "INSERT IGNORE INTO {$table} (order_id, environment, status, owner_token, lease_expires_at, attempts, attempt_id, created_at, updated_at)
-             VALUES (%d, %s, %s, %s, %s, 1, %s, UTC_TIMESTAMP(), UTC_TIMESTAMP())",
+            'INSERT IGNORE INTO %i (order_id, environment, status, owner_token, lease_expires_at, attempts, attempt_id, created_at, updated_at)
+             VALUES (%d, %s, %s, %s, %s, 1, %s, UTC_TIMESTAMP(), UTC_TIMESTAMP())',
+            Installer::locks_table(),
             $order_id,
             $environment,
             PaymentLockStatus::PREPARING,
@@ -43,11 +45,12 @@ final class PaymentLockStore
             return new PaymentReservation(PaymentReservation::ERROR);
         }
         $claimed = $wpdb->query($wpdb->prepare(
-            "UPDATE {$table}
+            'UPDATE %i
              SET environment = %s, status = %s, owner_token = %s, lease_expires_at = %s, attempt_id = %s,
                  snapshot_hash = NULL, transfer_intent_id = NULL, transfer_id = NULL, reconcile_after = NULL, error_code = NULL, attempts = attempts + 1, updated_at = UTC_TIMESTAMP()
              WHERE order_id = %d
-               AND (status IN (%s, %s, %s) OR (status = %s AND lease_expires_at < UTC_TIMESTAMP()))",
+               AND (status IN (%s, %s, %s) OR (status = %s AND lease_expires_at < UTC_TIMESTAMP()))',
+            Installer::locks_table(),
             $environment,
             PaymentLockStatus::PREPARING,
             $token,
@@ -73,8 +76,9 @@ final class PaymentLockStore
     {
         global $wpdb;
         return 1 === $wpdb->query($wpdb->prepare(
-            'UPDATE ' . Installer::locks_table() . ' SET status = %s, snapshot_hash = %s, lease_expires_at = %s, updated_at = UTC_TIMESTAMP()
+            'UPDATE %i SET status = %s, snapshot_hash = %s, lease_expires_at = %s, updated_at = UTC_TIMESTAMP()
              WHERE order_id = %d AND status = %s AND owner_token = %s',
+            Installer::locks_table(),
             PaymentLockStatus::CREATING,
             $snapshot_hash,
             gmdate('Y-m-d H:i:s', time() + self::LEASE_SECONDS),
@@ -89,8 +93,9 @@ final class PaymentLockStore
     {
         global $wpdb;
         return 1 === $wpdb->query($wpdb->prepare(
-            'UPDATE ' . Installer::locks_table() . ' SET status = %s, transfer_intent_id = %s, owner_token = NULL, lease_expires_at = NULL, reconcile_after = %s, updated_at = UTC_TIMESTAMP()
+            'UPDATE %i SET status = %s, transfer_intent_id = %s, owner_token = NULL, lease_expires_at = NULL, reconcile_after = %s, updated_at = UTC_TIMESTAMP()
              WHERE order_id = %d AND status = %s AND owner_token = %s',
+            Installer::locks_table(),
             PaymentLockStatus::CREATED,
             $intent_id,
             gmdate('Y-m-d H:i:s', time() + self::RECONCILE_FIRST_CHECK_SECONDS),
@@ -107,7 +112,7 @@ final class PaymentLockStore
 
     public function mark_uncertain(int $order_id, string $owner_token, string $error_code): bool
     {
-        return $this->finish($order_id, $owner_token, array(PaymentLockStatus::CREATING), PaymentLockStatus::UNCERTAIN, $error_code);
+        return $this->finish($order_id, $owner_token, array(PaymentLockStatus::CREATING, PaymentLockStatus::CREATING), PaymentLockStatus::UNCERTAIN, $error_code);
     }
 
     /** Retire the active intent so exactly one new attempt may reserve the order. */
@@ -115,8 +120,9 @@ final class PaymentLockStore
     {
         global $wpdb;
         $updated = $wpdb->query($wpdb->prepare(
-            'UPDATE ' . Installer::locks_table() . ' SET status = %s, owner_token = NULL, lease_expires_at = NULL, reconcile_after = NULL, updated_at = UTC_TIMESTAMP()
+            'UPDATE %i SET status = %s, owner_token = NULL, lease_expires_at = NULL, reconcile_after = NULL, updated_at = UTC_TIMESTAMP()
              WHERE order_id = %d AND status = %s AND transfer_intent_id = %s',
+            Installer::locks_table(),
             PaymentLockStatus::RETIRED,
             $order_id,
             PaymentLockStatus::CREATED,
@@ -133,8 +139,9 @@ final class PaymentLockStore
     {
         global $wpdb;
         $updated = $wpdb->query($wpdb->prepare(
-            'UPDATE ' . Installer::locks_table() . ' SET transfer_id = %s, updated_at = UTC_TIMESTAMP()
+            'UPDATE %i SET transfer_id = %s, updated_at = UTC_TIMESTAMP()
              WHERE order_id = %d AND transfer_intent_id = %s AND (transfer_id IS NULL OR transfer_id = %s)',
+            Installer::locks_table(),
             $transfer_id,
             $order_id,
             $intent_id,
@@ -144,7 +151,8 @@ final class PaymentLockStore
             return false;
         }
         return $transfer_id === (string) $wpdb->get_var($wpdb->prepare(
-            'SELECT transfer_id FROM ' . Installer::locks_table() . ' WHERE order_id = %d AND transfer_intent_id = %s',
+            'SELECT transfer_id FROM %i WHERE order_id = %d AND transfer_intent_id = %s',
+            Installer::locks_table(),
             $order_id,
             $intent_id
         ));
@@ -172,9 +180,10 @@ final class PaymentLockStore
     {
         global $wpdb;
         $ids = $wpdb->get_col($wpdb->prepare(
-            'SELECT order_id FROM ' . Installer::locks_table() . '
+            'SELECT order_id FROM %i
              WHERE environment = %s AND status = %s AND reconcile_after IS NOT NULL AND reconcile_after <= UTC_TIMESTAMP()
              ORDER BY reconcile_after ASC LIMIT %d',
+            Installer::locks_table(),
             $environment,
             PaymentLockStatus::CREATED,
             max(1, min(100, $limit))
@@ -186,9 +195,19 @@ final class PaymentLockStore
     public function schedule_reconciliation(int $order_id, ?int $delay_seconds): void
     {
         global $wpdb;
+        if (null === $delay_seconds) {
+            $wpdb->query($wpdb->prepare(
+                'UPDATE %i SET reconcile_after = NULL, updated_at = UTC_TIMESTAMP() WHERE order_id = %d',
+                Installer::locks_table(),
+                $order_id
+            ));
+            return;
+        }
         $wpdb->query($wpdb->prepare(
-            'UPDATE ' . Installer::locks_table() . ' SET reconcile_after = ' . (null === $delay_seconds ? 'NULL' : '%s') . ', updated_at = UTC_TIMESTAMP() WHERE order_id = %d',
-            ...(null === $delay_seconds ? array($order_id) : array(gmdate('Y-m-d H:i:s', time() + $delay_seconds), $order_id))
+            'UPDATE %i SET reconcile_after = %s, updated_at = UTC_TIMESTAMP() WHERE order_id = %d',
+            Installer::locks_table(),
+            gmdate('Y-m-d H:i:s', time() + $delay_seconds),
+            $order_id
         ));
     }
 
@@ -200,7 +219,9 @@ final class PaymentLockStore
             return null;
         }
         $rows = $wpdb->get_results($wpdb->prepare(
-            'SELECT order_id, status FROM ' . Installer::locks_table() . " WHERE {$column} = %s LIMIT 2",
+            'SELECT order_id, status FROM %i WHERE %i = %s LIMIT 2',
+            Installer::locks_table(),
+            $column,
             $value
         ), ARRAY_A);
         if (! is_array($rows) || 1 !== count($rows)) {
@@ -218,7 +239,8 @@ final class PaymentLockStore
             return null;
         }
         $row = $wpdb->get_row($wpdb->prepare(
-            'SELECT status, transfer_intent_id, snapshot_hash, environment FROM ' . Installer::locks_table() . ' WHERE order_id = %d',
+            'SELECT status, transfer_intent_id, snapshot_hash, environment FROM %i WHERE order_id = %d',
+            Installer::locks_table(),
             $order_id
         ), ARRAY_A);
         if (! is_array($row)) {
@@ -247,23 +269,29 @@ final class PaymentLockStore
     {
         global $wpdb;
         return false !== $wpdb->query($wpdb->prepare(
-            'UPDATE ' . Installer::locks_table() . " SET status = %s, owner_token = NULL, lease_expires_at = NULL, error_code = 'lease_expired', updated_at = UTC_TIMESTAMP()
+            "UPDATE %i SET status = %s, owner_token = NULL, lease_expires_at = NULL, error_code = 'lease_expired', updated_at = UTC_TIMESTAMP()
              WHERE order_id = %d AND status = %s AND lease_expires_at < UTC_TIMESTAMP()",
+            Installer::locks_table(),
             PaymentLockStatus::UNCERTAIN,
             $order_id,
             PaymentLockStatus::CREATING
         ));
     }
 
-    /** @param list<string> $from */
+    /** @param array{string, string} $from The two statuses the owner may finish from (repeat one to allow a single status). */
     private function finish(int $order_id, string $owner_token, array $from, string $to, string $error_code): bool
     {
         global $wpdb;
-        $placeholders = implode(', ', array_fill(0, count($from), '%s'));
         return 1 === $wpdb->query($wpdb->prepare(
-            'UPDATE ' . Installer::locks_table() . " SET status = %s, error_code = %s, owner_token = NULL, lease_expires_at = NULL, updated_at = UTC_TIMESTAMP()
-             WHERE order_id = %d AND owner_token = %s AND status IN ({$placeholders})",
-            array_merge(array($to, substr($error_code, 0, 64), $order_id, $owner_token), $from)
+            'UPDATE %i SET status = %s, error_code = %s, owner_token = NULL, lease_expires_at = NULL, updated_at = UTC_TIMESTAMP()
+             WHERE order_id = %d AND owner_token = %s AND status IN (%s, %s)',
+            Installer::locks_table(),
+            $to,
+            substr($error_code, 0, 64),
+            $order_id,
+            $owner_token,
+            $from[0],
+            $from[1]
         ));
     }
 }

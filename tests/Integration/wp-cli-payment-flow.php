@@ -398,4 +398,42 @@ pbfp_c()->synchronizer()->sync(pbfp_reload($manual));
 pbfp_assert_same($manual_transfer, pbfp_meta($manual, OrderMeta::TRANSFER_ID), 'Manual Sync with Plaid binds the transfer.');
 pbfp_assert_same('on-hold', pbfp_reload($manual)->get_status(), 'Manual sync projects on-hold.');
 
+WP_CLI::log('Foreign transfers on a shared Plaid account are ignored, not retried');
+$shared = pbfp_order('11.11');
+pbfp_checkout($shared);
+$shared_snapshot = json_decode(pbfp_meta($shared, OrderMeta::PAYMENT_SNAPSHOT), true);
+$foreign = array(
+    'foreign_transfer' => $mock::foreign_transfer(null),
+    'foreign_site' => $mock::foreign_transfer(array('pbfp_order_id' => (string) $shared->get_id(), 'pbfp_attempt_id' => $shared_snapshot['attempt_id'], 'pbfp_environment' => 'sandbox', 'pbfp_site' => 'another-store-000')),
+    'order_missing' => $mock::foreign_transfer(array('pbfp_order_id' => '999999', 'pbfp_attempt_id' => str_repeat('a', 32), 'pbfp_environment' => 'sandbox')),
+    'unknown_attempt' => $mock::foreign_transfer(array('pbfp_order_id' => (string) $shared->get_id(), 'pbfp_attempt_id' => str_repeat('b', 32), 'pbfp_environment' => 'sandbox')),
+);
+pbfp_sync_events();
+foreach ($foreign as $code => $foreign_transfer) {
+    $row = $wpdb->get_row($wpdb->prepare("SELECT status, error_code FROM {$wpdb->prefix}paybridge_plaid_events WHERE transfer_id = %s", $foreign_transfer), ARRAY_A);
+    pbfp_assert('ignored' === $row['status'] && $code === $row['error_code'], 'Foreign transfer classified as ' . $code . ' (got ' . wp_json_encode($row) . ').');
+}
+pbfp_assert_same(PaymentState::INTENT_CREATED, pbfp_meta($shared, OrderMeta::PAYMENT_STATE), 'Foreign transfers never touch a local order with the same number.');
+// History of the shared Plaid account from before this store's first intent is ignored without API calls.
+pbfp_assert(null !== \PayBridge\Plaid\Persistence\PaymentEpoch::get('sandbox'), 'The first Transfer Intent recorded the payment epoch.');
+$history_gets = count($mock::calls('/transfer/get'));
+$history_transfer = $mock::foreign_transfer(array('pbfp_order_id' => (string) $shared->get_id(), 'pbfp_attempt_id' => str_repeat('c', 32), 'pbfp_environment' => 'sandbox'), '5.00', \PayBridge\Plaid\Persistence\PaymentEpoch::get('sandbox') - 2 * HOUR_IN_SECONDS);
+pbfp_sync_events();
+$history_row = $wpdb->get_row($wpdb->prepare("SELECT status, error_code FROM {$wpdb->prefix}paybridge_plaid_events WHERE transfer_id = %s", $history_transfer), ARRAY_A);
+pbfp_assert('ignored' === $history_row['status'] && 'before_first_payment' === $history_row['error_code'], 'Pre-epoch history is ignored (got ' . wp_json_encode($history_row) . ').');
+pbfp_assert_same($history_gets, count($mock::calls('/transfer/get')), 'Pre-epoch history costs no /transfer/get call.');
+
+// Rate limiting (HTTP 429) on /transfer/get is retried later, never a final classification.
+$limited_transfer = $mock::foreign_transfer(null);
+$mock::fail_next('/transfer/get', 'rate_limit');
+pbfp_sync_events();
+$limited_row = $wpdb->get_row($wpdb->prepare("SELECT status, error_code FROM {$wpdb->prefix}paybridge_plaid_events WHERE transfer_id = %s", $limited_transfer), ARRAY_A);
+pbfp_assert('unmatched' === $limited_row['status'], 'A rate-limited transfer lookup keeps the event retryable (got ' . wp_json_encode($limited_row) . ').');
+$wpdb->query($wpdb->prepare("UPDATE {$wpdb->prefix}paybridge_plaid_events SET lease_expires_at = %s WHERE transfer_id = %s", gmdate('Y-m-d H:i:s', time() - 60), $limited_transfer));
+pbfp_sync_events();
+$limited_row = $wpdb->get_row($wpdb->prepare("SELECT status, error_code FROM {$wpdb->prefix}paybridge_plaid_events WHERE transfer_id = %s", $limited_transfer), ARRAY_A);
+pbfp_assert('ignored' === $limited_row['status'] && 'foreign_transfer' === $limited_row['error_code'], 'After the rate limit clears the event is classified (got ' . wp_json_encode($limited_row) . ').');
+$site_marker = (string) ($mock::calls('/transfer/intent/create')[count($mock::calls('/transfer/intent/create')) - 1]['body']['metadata']['pbfp_site'] ?? '');
+pbfp_assert(1 === preg_match('/^[a-f0-9]{16}$/', $site_marker), 'Intents carry the store marker.');
+
 WP_CLI::success('PayBridge payment flow suite passed (HPOS=' . (getenv('PAYBRIDGE_PLAID_EXPECT_HPOS') ?: '?') . ').');

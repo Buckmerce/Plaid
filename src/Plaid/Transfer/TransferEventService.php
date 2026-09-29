@@ -29,7 +29,7 @@ final class TransferEventService
         $events = array();
         foreach ($response->list('transfer_events') as $item) {
             if (! is_array($item)) {
-                throw new PlaidMalformedResponseException('Plaid transfer event is not an object.', $response->request_id);
+                throw new PlaidMalformedResponseException('Plaid transfer event is not an object.', esc_html($response->request_id));
             }
             $events[] = TransferEvent::from_array($item, $response->request_id);
         }

@@ -85,22 +85,24 @@ final class PayBridgeGateway extends \WC_Payment_Gateway
     {
         $stored = get_option($this->get_option_key(), array());
         $field = $this->get_field_key('secret');
-        $reset = isset($_POST['save']) && is_string($_POST['save']) && self::RESET_SECRET_VALUE === wp_unslash($_POST['save']); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- WooCommerce verifies the settings nonce before calling this method.
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- WooCommerce verifies the settings nonce before calling this method.
+        $reset = isset($_POST['save']) && self::RESET_SECRET_VALUE === sanitize_text_field(wp_unslash($_POST['save']));
         if ($reset) {
             $_POST[$field] = '';
-        } elseif (isset($_POST[$field]) && '' === trim((string) wp_unslash($_POST[$field])) && is_array($stored) && is_string($stored['secret'] ?? null)) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
+        } elseif (isset($_POST[$field]) && '' === sanitize_text_field(wp_unslash($_POST[$field])) && is_array($stored) && is_string($stored['secret'] ?? null)) {
             $_POST[$field] = $stored['secret'];
         }
         $client_field = $this->get_field_key('client_id');
-        if (isset($_POST[$client_field]) && is_string($_POST[$client_field])) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
-            $_POST[$client_field] = preg_replace('/[^A-Za-z0-9]/', '', wp_unslash($_POST[$client_field])); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+        if (isset($_POST[$client_field])) {
+            $_POST[$client_field] = preg_replace('/[^A-Za-z0-9]/', '', sanitize_text_field(wp_unslash($_POST[$client_field])));
         }
         foreach (array('funding_account_id', 'link_customization_name') as $key) {
             $key_field = $this->get_field_key($key);
-            if (isset($_POST[$key_field]) && is_string($_POST[$key_field])) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
-                $_POST[$key_field] = substr(preg_replace('/[^A-Za-z0-9 _\-]/', '', wp_unslash($_POST[$key_field])) ?? '', 0, 100); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+            if (isset($_POST[$key_field])) {
+                $_POST[$key_field] = substr(preg_replace('/[^A-Za-z0-9 _\-]/', '', sanitize_text_field(wp_unslash($_POST[$key_field]))) ?? '', 0, 100);
             }
         }
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
         $saved = parent::process_admin_options();
         delete_transient(ConnectionTester::TRANSIENT_PREFIX . get_current_user_id());
         return $saved;

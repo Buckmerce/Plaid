@@ -25,6 +25,16 @@ final class PlaidApiException extends PlaidException
         return $this->http_status >= 500 || 'API_ERROR' === $this->error_type;
     }
 
+    /**
+     * Worth retrying later: ambiguous failures and rate limiting (HTTP 429,
+     * RATE_LIMIT_EXCEEDED). A rate-limited request was not performed, but it
+     * says nothing about the object it asked for.
+     */
+    public function is_transient(): bool
+    {
+        return $this->is_ambiguous() || 429 === $this->http_status || 'RATE_LIMIT_EXCEEDED' === $this->error_type;
+    }
+
     public function safe_code(): string
     {
         return strtolower(preg_replace('/[^A-Za-z0-9_]/', '', $this->error_code) ?? 'plaid_api_error');

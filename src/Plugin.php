@@ -51,6 +51,9 @@ final class Plugin
         ( new DiagnosticsPage() )->register();
         ( new SiteHealth() )->register();
         ( new AdminNotices() )->register();
+        if (defined('WP_CLI') && WP_CLI && class_exists('WP_CLI')) {
+            \WP_CLI::add_command('paybridge-plaid', CLI\Command::class);
+        }
     }
 
     /** @param object $registry Automattic\WooCommerce\Blocks\Payments\PaymentMethodRegistry */

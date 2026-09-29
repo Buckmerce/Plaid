@@ -36,6 +36,10 @@ foreach (
         'paybridge_plaid_last_reconciliation_error',
         'paybridge_plaid_last_connection_test',
         'paybridge_plaid_payment_alerts',
+        'paybridge_plaid_last_webhook',
+        'paybridge_plaid_last_webhook_rejection',
+        'paybridge_plaid_first_intent_at_sandbox',
+        'paybridge_plaid_first_intent_at_production',
     ) as $pbfp_option
 ) {
     delete_option($pbfp_option);
@@ -43,12 +47,15 @@ foreach (
 
 global $wpdb;
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Opt-in uninstall cleanup of plugin-owned data only.
+
 // Transients created by PayBridge use the plugin-owned "pbfp_" prefix. Resolve exact
 // names first so delete_transient() also clears any persistent object cache.
 foreach (array('_transient_pbfp_', '_transient_timeout_pbfp_') as $pbfp_prefix) {
     $pbfp_names = $wpdb->get_col(
         $wpdb->prepare(
-            "SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s",
+            'SELECT option_name FROM %i WHERE option_name LIKE %s',
+            $wpdb->options,
             $wpdb->esc_like($pbfp_prefix) . '%'
         )
     );
@@ -61,6 +68,6 @@ foreach (array('_transient_pbfp_', '_transient_timeout_pbfp_') as $pbfp_prefix) 
 
 // Table names derive only from the trusted WordPress prefix and fixed PayBridge suffixes.
 foreach (array('paybridge_plaid_events', 'paybridge_plaid_payment_locks') as $pbfp_table_suffix) {
-    $pbfp_table = $wpdb->prefix . $pbfp_table_suffix;
-    $wpdb->query("DROP TABLE IF EXISTS {$pbfp_table}"); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange -- Merchant opted in to removing PayBridge-owned tables.
+    $wpdb->query($wpdb->prepare('DROP TABLE IF EXISTS %i', $wpdb->prefix . $pbfp_table_suffix));
 }

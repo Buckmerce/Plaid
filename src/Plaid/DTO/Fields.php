@@ -14,7 +14,7 @@ final class Fields
     {
         $value = $data[$key] ?? null;
         if (! is_string($value) || '' === $value) {
-            throw new PlaidMalformedResponseException(sprintf('Plaid object is missing "%s".', $key), $request_id);
+            throw new PlaidMalformedResponseException(sprintf('Plaid object is missing "%s".', esc_html($key)), esc_html($request_id));
         }
         return $value;
     }
@@ -55,7 +55,7 @@ final class Fields
     public static function enum(string $value, array $allowed, string $field, string $request_id): string
     {
         if (! in_array($value, $allowed, true)) {
-            throw new PlaidMalformedResponseException(sprintf('Plaid object has an unexpected "%s" value.', $field), $request_id);
+            throw new PlaidMalformedResponseException(sprintf('Plaid object has an unexpected "%s" value.', esc_html($field)), esc_html($request_id));
         }
         return $value;
     }

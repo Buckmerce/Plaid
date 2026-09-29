@@ -106,8 +106,32 @@ pbfp_assert(! array_key_exists('directions', $data) && ! str_contains((string) w
 ( new Scheduler(new PayBridge\Plaid\Container()) )->ensure_recurring();
 pbfp_assert(as_has_scheduled_action(Scheduler::RECONCILE_HOOK, array(), 'paybridge-for-plaid'), 'Reconciliation must be scheduled in the paybridge-for-plaid group.');
 
-// No legacy identity was created.
-foreach (array('woocommerce_paykassa_settings', 'paykassa_schema_version') as $legacy) {
-    pbfp_assert(false === get_option($legacy), 'Legacy option must not exist: ' . $legacy);
+// Operational WP-CLI commands.
+$cli_commands = WP_CLI::get_root_command()->get_subcommands();
+pbfp_assert(isset($cli_commands['paybridge-plaid']), 'wp paybridge-plaid is registered.');
+$sub = array_keys($cli_commands['paybridge-plaid']->get_subcommands());
+foreach (array('status', 'test-connection', 'sync-events', 'reconcile', 'sync-order', 'fire-sandbox-webhook') as $command) {
+    pbfp_assert(in_array($command, $sub, true), 'Missing CLI subcommand ' . $command);
 }
+
+// Only documented PayBridge options exist (docs/DATA_MODEL.md §9).
+global $wpdb;
+$documented_options = array(
+    'woocommerce_paybridge_plaid_settings',
+    'paybridge_plaid_schema_version',
+    'paybridge_plaid_event_cursor_sandbox',
+    'paybridge_plaid_event_cursor_production',
+    'paybridge_plaid_last_event_sync',
+    'paybridge_plaid_last_event_sync_error',
+    'paybridge_plaid_last_reconciliation',
+    'paybridge_plaid_last_reconciliation_error',
+    'paybridge_plaid_last_connection_test',
+    'paybridge_plaid_payment_alerts',
+    'paybridge_plaid_last_webhook',
+    'paybridge_plaid_last_webhook_rejection',
+    'paybridge_plaid_first_intent_at_sandbox',
+    'paybridge_plaid_first_intent_at_production',
+);
+$paybridge_options = $wpdb->get_col($wpdb->prepare("SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s", 'paybridge%', 'woocommerce_paybridge%'));
+pbfp_assert(array() === array_diff($paybridge_options, $documented_options), 'Undocumented PayBridge options: ' . implode(', ', array_diff($paybridge_options, $documented_options)));
 WP_CLI::success('PayBridge smoke test passed (HPOS=' . ($expect_hpos ? 'yes' : 'no') . ').');

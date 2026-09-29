@@ -37,11 +37,11 @@ final class TransferIntent
         $status = Fields::enum(Fields::required_string($data, 'status', $request_id), array(self::PENDING, self::SUCCEEDED, self::FAILED), 'status', $request_id);
         $amount = Fields::required_string($data, 'amount', $request_id);
         if ('' === Decimal::normalise($amount)) {
-            throw new PlaidMalformedResponseException('Plaid transfer intent amount is not a decimal string.', $request_id);
+            throw new PlaidMalformedResponseException('Plaid transfer intent amount is not a decimal string.', esc_html($request_id));
         }
         $transfer_id = Fields::optional_string($data, 'transfer_id');
         if (self::SUCCEEDED === $status && '' === $transfer_id) {
-            throw new PlaidMalformedResponseException('A succeeded Plaid transfer intent has no transfer_id.', $request_id);
+            throw new PlaidMalformedResponseException('A succeeded Plaid transfer intent has no transfer_id.', esc_html($request_id));
         }
         $rationale = Fields::optional_object($data, 'authorization_decision_rationale');
         $failure = Fields::optional_object($data, 'failure_reason');

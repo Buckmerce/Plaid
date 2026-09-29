@@ -41,13 +41,13 @@ jobs:
           fi
 
           PLUGIN_VERSION="$(
-            grep -m1 '^ \* Version:' paykassa.php |
+            grep -m1 '^ \* Version:' paybridge-for-plaid.php |
             sed -E 's/^ \* Version:[[:space:]]*//'
           )"
 
           CONSTANT_VERSION="$(
-            grep -m1 "define( 'PAYKASSA_VERSION'" paykassa.php |
-            sed -E "s/.*'PAYKASSA_VERSION',[[:space:]]*'([^']+)'.*/\1/"
+            grep -m1 "define( 'PAYBRIDGE_PLAID_VERSION'" paybridge-for-plaid.php |
+            sed -E "s/.*'PAYBRIDGE_PLAID_VERSION',[[:space:]]*'([^']+)'.*/\1/"
           )"
 
           STABLE_TAG="$(
@@ -61,7 +61,7 @@ jobs:
           fi
 
           if [[ "$VERSION" != "$CONSTANT_VERSION" ]]; then
-            echo "Tag version $VERSION != PAYKASSA_VERSION $CONSTANT_VERSION"
+            echo "Tag version $VERSION != PAYBRIDGE_PLAID_VERSION $CONSTANT_VERSION"
             exit 1
           fi
 
@@ -90,27 +90,27 @@ jobs:
       - name: Verify production ZIP
         shell: bash
         run: |
-          ZIP="dist/paykassa-${{ steps.version.outputs.version }}.zip"
+          ZIP="dist/paybridge-for-plaid-${{ steps.version.outputs.version }}.zip"
 
           test -f "$ZIP"
 
-          unzip -Z1 "$ZIP" > /tmp/paykassa-zip-files.txt
-          cat /tmp/paykassa-zip-files.txt
+          unzip -Z1 "$ZIP" > /tmp/paybridge-for-plaid-zip-files.txt
+          cat /tmp/paybridge-for-plaid-zip-files.txt
 
           REQUIRED_FILES=(
-            "paykassa/paykassa.php"
-            "paykassa/readme.txt"
-            "paykassa/uninstall.php"
+            "paybridge-for-plaid/paybridge-for-plaid.php"
+            "paybridge-for-plaid/readme.txt"
+            "paybridge-for-plaid/uninstall.php"
           )
 
           for REQUIRED in "${REQUIRED_FILES[@]}"; do
-            grep -Fxq "$REQUIRED" /tmp/paykassa-zip-files.txt || {
+            grep -Fxq "$REQUIRED" /tmp/paybridge-for-plaid-zip-files.txt || {
               echo "Missing required release file: $REQUIRED"
               exit 1
             }
           done
 
-          if grep -Eq '(^|/)(\.git|\.github|\.idea|\.playwright-cli|tests|docs|scripts|tools|node_modules|vendor|dist)(/|$)|(^|/)(composer\.(json|lock)|package(-lock)?\.json|README\.md|phpunit\.xml\.dist|phpstan\.neon|phpcs\.xml\.dist)$' /tmp/paykassa-zip-files.txt; then
+          if grep -Eq '(^|/)(\.git|\.github|\.idea|\.playwright-cli|tests|docs|scripts|tools|node_modules|vendor|dist)(/|$)|(^|/)(composer\.(json|lock)|package(-lock)?\.json|README\.md|phpunit\.xml\.dist|phpstan\.neon|phpcs\.xml\.dist)$' /tmp/paybridge-for-plaid-zip-files.txt; then
             echo "Development-only files found in release ZIP."
             exit 1
           fi
@@ -120,7 +120,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "$GITHUB_REF_NAME" \
-            "dist/paykassa-${{ steps.version.outputs.version }}.zip" \
-            --title "PayKassa for WooCommerce ${{ steps.version.outputs.version }}" \
+            "dist/paybridge-for-plaid-${{ steps.version.outputs.version }}.zip" \
+            --title "PayBridge for Plaid ${{ steps.version.outputs.version }}" \
             --generate-notes \
             --verify-tag

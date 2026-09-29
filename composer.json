@@ -60,6 +60,9 @@
     "sort-packages": true,
     "allow-plugins": {
       "brianhenryie/strauss": false
+    },
+    "platform": {
+      "php": "8.1.0"
     }
   }
 }

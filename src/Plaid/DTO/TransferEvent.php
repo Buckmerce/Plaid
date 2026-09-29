@@ -32,7 +32,7 @@ final class TransferEvent
         $raw_id = $data['event_id'] ?? null;
         $event_id = is_int($raw_id) ? (string) $raw_id : (is_string($raw_id) ? $raw_id : '');
         if (! preg_match('/^(?:0|[1-9][0-9]{0,19})$/', $event_id)) {
-            throw new PlaidMalformedResponseException('Plaid transfer event has an invalid event_id.', $request_id);
+            throw new PlaidMalformedResponseException('Plaid transfer event has an invalid event_id.', esc_html($request_id));
         }
         $failure = Fields::optional_object($data, 'failure_reason');
         return new self(

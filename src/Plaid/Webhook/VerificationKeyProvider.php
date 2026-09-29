@@ -65,7 +65,7 @@ final class VerificationKeyProvider
         try {
             $response = $this->client->post('/webhook_verification_key/get', array('key_id' => $key_id));
         } catch (PlaidApiException $exception) {
-            if (! $exception->is_ambiguous()) {
+            if (! $exception->is_transient()) {
                 ($this->cache_set)($cache_key, array('unknown' => true), self::NEGATIVE_CACHE_SECONDS);
                 throw new WebhookVerificationException('unknown_key');
             }

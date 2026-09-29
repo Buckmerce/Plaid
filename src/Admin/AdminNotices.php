@@ -50,7 +50,7 @@ final class AdminNotices
             wp_die(esc_html__('You are not allowed to do this.', 'paybridge-for-plaid'), '', array('response' => 403));
         }
         check_admin_referer(self::DISMISS_ACTION);
-        $key = isset($_GET['alert']) && is_string($_GET['alert']) ? sanitize_text_field(rawurldecode(wp_unslash($_GET['alert']))) : '';
+        $key = isset($_GET['alert']) ? sanitize_text_field(wp_unslash($_GET['alert'])) : '';
         if ('' !== $key) {
             $this->alerts->dismiss($key);
         }

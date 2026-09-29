@@ -32,7 +32,7 @@ final class OrderPersistence
             $want = (null === $value || '' === $value) ? null : $value;
             $have = (null === $actual || '' === $actual) ? null : $actual;
             if ($want !== $have) {
-                throw new PersistenceException(sprintf('Order %d metadata %s was not persisted.', $order->get_id(), $key));
+                throw new PersistenceException(sprintf('Order %d metadata %s was not persisted.', (int) $order->get_id(), esc_html($key)));
             }
         }
     }

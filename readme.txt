@@ -125,4 +125,4 @@ PayBridge sends only the data needed to create the payment (amount, description,
 == Changelog ==
 
 = 0.1.0 =
-* Initial release: Pay by Bank with Plaid Transfer UI, verified webhooks, transfer event sync, reconciliation, HPOS and Checkout block support.
+* Initial release: Pay by Bank with Plaid Transfer UI, verified webhooks, transfer event sync, reconciliation, HPOS and Checkout block support, diagnostics, Site Health checks and WP-CLI commands.

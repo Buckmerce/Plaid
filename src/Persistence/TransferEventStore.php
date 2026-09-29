@@ -7,6 +7,8 @@ namespace PayBridge\Plaid\Persistence;
 use PayBridge\Plaid\Exception\PersistenceException;
 use PayBridge\Plaid\Plaid\DTO\TransferEvent;
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; lease claims must bypass object caches.
+
 /**
  * Durable idempotency store for Plaid transfer events.
  *
@@ -45,8 +47,9 @@ final class TransferEventStore
         ));
         $timestamp = strtotime($event->timestamp);
         $result = $wpdb->query($wpdb->prepare(
-            'INSERT IGNORE INTO ' . Installer::events_table() . ' (environment, event_id, event_type, transfer_id, event_data, status, attempts, provider_created_at, created_at, updated_at)
+            'INSERT IGNORE INTO %i (environment, event_id, event_type, transfer_id, event_data, status, attempts, provider_created_at, created_at, updated_at)
              VALUES (%s, %s, %s, %s, %s, %s, 0, %s, UTC_TIMESTAMP(), UTC_TIMESTAMP())',
+            Installer::events_table(),
             $environment,
             $event->event_id,
             substr($event->event_type, 0, 64),
@@ -68,16 +71,16 @@ final class TransferEventStore
     public function claim_batch(string $environment, int $limit): array
     {
         global $wpdb;
-        $table = Installer::events_table();
         $candidates = $wpdb->get_col($wpdb->prepare(
-            "SELECT id FROM {$table}
+            'SELECT id FROM %i
              WHERE environment = %s AND attempts < %d
                AND (
                     status = %s
                  OR (status IN (%s, %s) AND lease_expires_at < UTC_TIMESTAMP())
                  OR (status = %s AND lease_expires_at < UTC_TIMESTAMP())
                )
-             ORDER BY event_id ASC LIMIT %d",
+             ORDER BY event_id ASC LIMIT %d',
+            Installer::events_table(),
             $environment,
             self::MAX_ATTEMPTS,
             self::RECEIVED,
@@ -93,9 +96,10 @@ final class TransferEventStore
         foreach ($candidates as $id) {
             $token = bin2hex(random_bytes(32));
             $updated = $wpdb->query($wpdb->prepare(
-                "UPDATE {$table} SET status = %s, owner_token = %s, lease_expires_at = %s, attempts = attempts + 1, updated_at = UTC_TIMESTAMP()
+                'UPDATE %i SET status = %s, owner_token = %s, lease_expires_at = %s, attempts = attempts + 1, updated_at = UTC_TIMESTAMP()
                  WHERE id = %d AND attempts < %d
-                   AND (status = %s OR (status IN (%s, %s, %s) AND lease_expires_at < UTC_TIMESTAMP()))",
+                   AND (status = %s OR (status IN (%s, %s, %s) AND lease_expires_at < UTC_TIMESTAMP()))',
+                Installer::events_table(),
                 self::PROCESSING,
                 $token,
                 gmdate('Y-m-d H:i:s', time() + self::LEASE_SECONDS),
@@ -109,7 +113,7 @@ final class TransferEventStore
             if (1 !== $updated) {
                 continue;
             }
-            $row = $wpdb->get_row($wpdb->prepare("SELECT event_data, attempts FROM {$table} WHERE id = %d AND owner_token = %s", (int) $id, $token), ARRAY_A);
+            $row = $wpdb->get_row($wpdb->prepare('SELECT event_data, attempts FROM %i WHERE id = %d AND owner_token = %s', Installer::events_table(), (int) $id, $token), ARRAY_A);
             $data = is_array($row) ? json_decode((string) $row['event_data'], true) : null;
             if (! is_array($data)) {
                 $this->finish((int) $id, $token, self::ABANDONED, 'unreadable_event_data');
@@ -134,9 +138,10 @@ final class TransferEventStore
     {
         global $wpdb;
         return 1 === $wpdb->query($wpdb->prepare(
-            'UPDATE ' . Installer::events_table() . " SET status = %s, error_code = NULLIF(%s, ''), order_id = NULLIF(%d, 0), owner_token = NULL,
+            "UPDATE %i SET status = %s, error_code = NULLIF(%s, ''), order_id = NULLIF(%d, 0), owner_token = NULL,
                     lease_expires_at = NULL, processed_at = UTC_TIMESTAMP(), updated_at = UTC_TIMESTAMP()
              WHERE id = %d AND owner_token = %s AND status = %s",
+            Installer::events_table(),
             $status,
             substr($error_code, 0, 64),
             $order_id,
@@ -155,8 +160,9 @@ final class TransferEventStore
         }
         $delay = min(6 * HOUR_IN_SECONDS, 60 * (2 ** min(8, max(0, $attempts - 1))));
         return 1 === $wpdb->query($wpdb->prepare(
-            'UPDATE ' . Installer::events_table() . ' SET status = %s, error_code = %s, owner_token = NULL, lease_expires_at = %s, updated_at = UTC_TIMESTAMP()
+            'UPDATE %i SET status = %s, error_code = %s, owner_token = NULL, lease_expires_at = %s, updated_at = UTC_TIMESTAMP()
              WHERE id = %d AND owner_token = %s AND status = %s',
+            Installer::events_table(),
             $status,
             substr($error_code, 0, 64),
             gmdate('Y-m-d H:i:s', time() + $delay),
@@ -169,14 +175,15 @@ final class TransferEventStore
     public function count_by_status(string $status): int
     {
         global $wpdb;
-        return (int) $wpdb->get_var($wpdb->prepare('SELECT COUNT(*) FROM ' . Installer::events_table() . ' WHERE status = %s', $status));
+        return (int) $wpdb->get_var($wpdb->prepare('SELECT COUNT(*) FROM %i WHERE status = %s', Installer::events_table(), $status));
     }
 
     public function has_processable(string $environment): bool
     {
         global $wpdb;
         return (bool) $wpdb->get_var($wpdb->prepare(
-            'SELECT 1 FROM ' . Installer::events_table() . ' WHERE environment = %s AND attempts < %d AND (status = %s OR (status IN (%s, %s, %s) AND lease_expires_at < UTC_TIMESTAMP())) LIMIT 1',
+            'SELECT 1 FROM %i WHERE environment = %s AND attempts < %d AND (status = %s OR (status IN (%s, %s, %s) AND lease_expires_at < UTC_TIMESTAMP())) LIMIT 1',
+            Installer::events_table(),
             $environment,
             self::MAX_ATTEMPTS,
             self::RECEIVED,

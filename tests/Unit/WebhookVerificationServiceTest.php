@@ -129,6 +129,21 @@ final class WebhookVerificationServiceTest extends TestCase
         self::assertCount(1, $client->calls, 'Unknown key IDs are negatively cached.');
     }
 
+    public function test_rate_limited_key_lookup_is_retryable_and_not_negatively_cached(): void
+    {
+        $limited = true;
+        [$service, $client] = $this->service(null, static function () use (&$limited): void {
+            if ($limited) {
+                throw new PlaidApiException(429, 'RATE_LIMIT_EXCEEDED', 'RATE_LIMIT', 'rate limit exceeded', '', 'r');
+            }
+        });
+        $jwt = self::jwt(self::BODY);
+        $this->assertRejected('key_unavailable', $service, self::BODY, $jwt);
+        $limited = false;
+        self::assertSame('TRANSFER', $service->verify(self::BODY, $jwt)['webhook_type'], 'A genuine key is fetched again once Plaid stops rate limiting.');
+        self::assertCount(2, $client->calls);
+    }
+
     public function test_key_retrieval_failure_is_rejected_not_skipped(): void
     {
         [$service] = $this->service(null, static function (): void {

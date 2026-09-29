@@ -32,7 +32,7 @@ final class Transfer
     {
         $amount = Fields::required_string($data, 'amount', $request_id);
         if ('' === Decimal::normalise($amount)) {
-            throw new PlaidMalformedResponseException('Plaid transfer amount is not a decimal string.', $request_id);
+            throw new PlaidMalformedResponseException('Plaid transfer amount is not a decimal string.', esc_html($request_id));
         }
         $failure = Fields::optional_object($data, 'failure_reason');
         return new self(

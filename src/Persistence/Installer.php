@@ -6,6 +6,8 @@ namespace PayBridge\Plaid\Persistence;
 
 use PayBridge\Plaid\Exception\PersistenceException;
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema introspection of plugin-owned tables must read the live database.
+
 /**
  * Creates and verifies the PayBridge-owned schema. PayBridge never reads,
  * migrates or deletes tables owned by any other plugin.
@@ -116,11 +118,11 @@ final class Installer
             if ($table !== $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table))) {
                 return false;
             }
-            $columns = $wpdb->get_col("SHOW COLUMNS FROM {$table}", 0);
+            $columns = $wpdb->get_col($wpdb->prepare('SHOW COLUMNS FROM %i', $table), 0);
             if (! is_array($columns) || array() !== array_diff($spec['columns'], $columns)) {
                 return false;
             }
-            $indexes = $wpdb->get_results("SHOW INDEX FROM {$table}", ARRAY_A);
+            $indexes = $wpdb->get_results($wpdb->prepare('SHOW INDEX FROM %i', $table), ARRAY_A);
             if (! is_array($indexes)) {
                 return false;
             }

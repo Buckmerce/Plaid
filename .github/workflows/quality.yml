@@ -7,14 +7,73 @@ on:
   pull_request:
     branches:
       - master
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PAYBRIDGE_PLAID_TEST_DB_HOST: 127.0.0.1:3306
+  PAYBRIDGE_PLAID_TEST_DB_USER: root
+  # Throwaway password of the CI-only MySQL service container; not a secret.
+  PAYBRIDGE_PLAID_TEST_DB_PASSWORD: paybridge-ci-only
+
 jobs:
-  test:
+  static:
+    name: Static analysis and front-end
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: composer:v2
+          coverage: none
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Validate Composer
+        run: composer validate --strict
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Prefixed runtime dependencies are committed and current
+        # installed.php embeds the root commit hash, which changes with every commit.
+        run: git diff --exit-code -- vendor-prefixed ':!vendor-prefixed/composer/installed.php'
+
+      - name: PHP syntax
+        run: composer syntax
+
+      - name: PHPCS
+        run: composer lint
+
+      - name: PHPStan
+        run: composer stan
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Build, typecheck and JavaScript tests
+        run: npm test
+
+  phpunit:
+    name: PHPUnit (PHP ${{ matrix.php }})
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         php: ['8.1', '8.2', '8.3', '8.4']
 
@@ -27,18 +86,7 @@ jobs:
         with:
           php-version: '${{ matrix.php }}'
           tools: composer:v2
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Install npm dependencies
-        run: npm ci
-
-      - name: Validate Composer
-        run: composer validate --strict
+          coverage: none
 
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist
@@ -49,19 +97,50 @@ jobs:
       - name: PHPUnit
         run: composer test
 
-      - name: PHPCS
-        run: composer lint
+  package:
+    name: Package
+    runs-on: ubuntu-latest
 
-      - name: PHPStan
-        run: composer stan
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: JavaScript tests
-        run: npm run test
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
 
-      - name: Build plugin ZIP
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Build release ZIP
         run: npm run plugin-zip
 
+      - name: Verify ZIP contents
+        shell: bash
+        run: |
+          ZIP="dist/paybridge-for-plaid-$(grep -m1 '^ \* Version:' paybridge-for-plaid.php | sed -E 's/^ \* Version:[[:space:]]*//').zip"
+          unzip -Z1 "$ZIP" > "$RUNNER_TEMP/zip-files.txt"
+          if grep -Eq '(^|/)(\.git|\.github|tests|docs|scripts|node_modules|vendor|dist|resources)(/|$)|(^|/)(composer\.(json|lock)|package(-lock)?\.json|phpunit\.xml\.dist|phpstan\.neon|phpcs\.xml\.dist|\.env.*)$' "$RUNNER_TEMP/zip-files.txt"; then
+            echo "Development-only files found in release ZIP."
+            exit 1
+          fi
+          mkdir "$RUNNER_TEMP/extract"
+          unzip -q "$ZIP" -d "$RUNNER_TEMP/extract"
+          find "$RUNNER_TEMP/extract" -name '*.php' -print0 | xargs -0 -n1 php -l > /dev/null
+
+      - name: Upload release ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: paybridge-for-plaid-zip
+          path: dist/paybridge-for-plaid-*.zip
+          if-no-files-found: error
+          retention-days: 7
+
   integration:
+    name: Integration (WP ${{ matrix.wordpress }}, WC ${{ matrix.woocommerce }}, PHP ${{ matrix.php }})
+    needs: package
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -73,12 +152,15 @@ jobs:
           - php: '8.2'
             wordpress: '7.1'
             woocommerce: '11.1.0'
+          - php: '8.4'
+            wordpress: '7.1'
+            woocommerce: '11.1.0'
 
     services:
       mysql:
         image: mysql:8.0
         env:
-          MYSQL_ROOT_PASSWORD: paykassa-ci-only
+          MYSQL_ROOT_PASSWORD: paybridge-ci-only
         ports:
           - 3306:3306
         options: >-
@@ -88,11 +170,8 @@ jobs:
           --health-retries=10
 
     env:
-      PAYKASSA_TEST_DB_HOST: 127.0.0.1:3306
-      PAYKASSA_TEST_DB_USER: root
-      PAYKASSA_TEST_DB_PASSWORD: paykassa-ci-only
-      PAYKASSA_TEST_WP_VERSION: '${{ matrix.wordpress }}'
-      PAYKASSA_TEST_WC_VERSION: '${{ matrix.woocommerce }}'
+      PAYBRIDGE_PLAID_TEST_WP_VERSION: '${{ matrix.wordpress }}'
+      PAYBRIDGE_PLAID_TEST_WC_VERSION: '${{ matrix.woocommerce }}'
 
     steps:
       - name: Checkout
@@ -104,30 +183,27 @@ jobs:
           php-version: '${{ matrix.php }}'
           extensions: mysqli, mbstring, dom, gd
           tools: wp-cli
+          coverage: none
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Download release ZIP
+        uses: actions/download-artifact@v4
         with:
-          node-version: 22
-          cache: npm
+          name: paybridge-for-plaid-zip
+          path: dist
 
-      - name: Install npm dependencies
-        run: npm ci
-
-      - name: Build plugin ZIP
-        run: npm run plugin-zip
-
-      - name: Clean ZIP installation, schema v2 to v3 and payment smoke
+      - name: Clean ZIP install, HPOS on/off, payment flow, webhooks, concurrency, uninstall
         run: bash scripts/test-integration.sh
 
-  browser:
+  plugin-check:
+    name: WordPress Plugin Check
+    needs: package
     runs-on: ubuntu-latest
 
     services:
       mysql:
         image: mysql:8.0
         env:
-          MYSQL_ROOT_PASSWORD: paykassa-ci-only
+          MYSQL_ROOT_PASSWORD: paybridge-ci-only
         ports:
           - 3306:3306
         options: >-
@@ -135,13 +211,6 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=10
-
-    env:
-      PAYKASSA_TEST_DB_HOST: 127.0.0.1:3306
-      PAYKASSA_TEST_DB_USER: root
-      PAYKASSA_TEST_DB_PASSWORD: paykassa-ci-only
-      PAYKASSA_TEST_WP_VERSION: '7.1'
-      PAYKASSA_TEST_WC_VERSION: '11.1.0'
 
     steps:
       - name: Checkout
@@ -153,31 +222,165 @@ jobs:
           php-version: '8.2'
           extensions: mysqli, mbstring, dom, gd
           tools: wp-cli
+          coverage: none
+
+      - name: Download release ZIP
+        uses: actions/download-artifact@v4
+        with:
+          name: paybridge-for-plaid-zip
+          path: dist
+
+      - name: Plugin Check
+        run: bash scripts/test-plugin-check.sh
+
+  browser:
+    name: Browser E2E (Classic + Blocks)
+    needs: package
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: paybridge-ci-only
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      PAYBRIDGE_PLAID_TEST_WP_VERSION: '7.1'
+      PAYBRIDGE_PLAID_TEST_WC_VERSION: '11.1.0'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mysqli, mbstring, dom, gd
+          tools: wp-cli
+          coverage: none
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
 
-      - name: Install npm dependencies
-        run: npm ci
-
-      - name: Build plugin ZIP
-        run: npm run plugin-zip
+      - name: Download release ZIP
+        uses: actions/download-artifact@v4
+        with:
+          name: paybridge-for-plaid-zip
+          path: dist
 
       - name: Install Chromium
         run: npx --yes --package @playwright/cli playwright-cli install-browser chromium
 
       - name: Browser E2E
-        run: npm run test:e2e
+        run: bash scripts/test-browser-e2e.sh
+
+      - name: Upload browser artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-output
+          path: output/playwright
+          if-no-files-found: ignore
+          retention-days: 7
+
+  sandbox:
+    name: Real Plaid Sandbox (optional)
+    needs: package
+    # Secrets are never exposed to forked pull requests.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: paybridge-ci-only
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      PAYBRIDGE_PLAID_SANDBOX_CLIENT_ID: ${{ secrets.PAYBRIDGE_PLAID_SANDBOX_CLIENT_ID }}
+      PAYBRIDGE_PLAID_SANDBOX_SECRET: ${{ secrets.PAYBRIDGE_PLAID_SANDBOX_SECRET }}
+      PAYBRIDGE_PLAID_SANDBOX_USERNAME: ${{ secrets.PAYBRIDGE_PLAID_SANDBOX_USERNAME }}
+      PAYBRIDGE_PLAID_SANDBOX_PASSWORD: ${{ secrets.PAYBRIDGE_PLAID_SANDBOX_PASSWORD }}
+      # Optional public-HTTPS webhook gate (genuine Plaid-signed webhooks through ngrok).
+      NGROK_AUTHTOKEN: ${{ secrets.NGROK_AUTHTOKEN }}
+      PAYBRIDGE_PLAID_NGROK_DOMAIN: ${{ vars.PAYBRIDGE_PLAID_NGROK_DOMAIN }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mysqli, mbstring, dom, gd
+          tools: wp-cli
+          coverage: none
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Download release ZIP
+        uses: actions/download-artifact@v4
+        with:
+          name: paybridge-for-plaid-zip
+          path: dist
+
+      - name: Install Chromium
+        run: npx --yes --package @playwright/cli playwright-cli install-browser chromium
+
+      - name: Install ngrok
+        if: env.NGROK_AUTHTOKEN != '' && env.PAYBRIDGE_PLAID_NGROK_DOMAIN != ''
+        run: |
+          curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
+          echo "deb https://ngrok-agent.s3.amazonaws.com bookworm main" | sudo tee /etc/apt/sources.list.d/ngrok.list >/dev/null
+          sudo apt-get update -qq && sudo apt-get install -y -qq ngrok
+
+      - name: Real Plaid Sandbox E2E
+        shell: bash
+        run: |
+          set +e
+          mode=''
+          if [[ -n "$NGROK_AUTHTOKEN" && -n "$PAYBRIDGE_PLAID_NGROK_DOMAIN" ]]; then
+            mode='--ngrok'
+          fi
+          bash scripts/test-sandbox-e2e.sh $mode
+          status=$?
+          if [[ "$status" -eq 78 ]]; then
+            echo "::notice::Plaid Sandbox secrets are not configured; the real Sandbox gate was skipped."
+            exit 0
+          fi
+          exit "$status"
 
   quality-gate:
     name: Quality Gate
     needs:
-      - test
+      - static
+      - phpunit
+      - package
       - integration
+      - plugin-check
       - browser
+      - sandbox
     if: always()
     runs-on: ubuntu-latest
 
@@ -185,6 +388,11 @@ jobs:
       - name: Verify quality jobs
         shell: bash
         run: |
-          test "${{ needs.test.result }}" = "success"
+          test "${{ needs.static.result }}" = "success"
+          test "${{ needs.phpunit.result }}" = "success"
+          test "${{ needs.package.result }}" = "success"
           test "${{ needs.integration.result }}" = "success"
+          test "${{ needs.plugin-check.result }}" = "success"
           test "${{ needs.browser.result }}" = "success"
+          # The Sandbox gate is skipped for forks; when it runs it must pass.
+          test "${{ needs.sandbox.result }}" = "success" -o "${{ needs.sandbox.result }}" = "skipped"

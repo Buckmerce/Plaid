@@ -45,7 +45,7 @@ final class PaymentStateMachine
     public static function assert_transition(string $from, string $to): void
     {
         if (self::APPLY !== self::decide($from, $to)) {
-            throw new InvalidPaymentStateTransition(sprintf('Payment state transition %s -> %s is not allowed.', '' === $from ? 'new' : $from, $to));
+            throw new InvalidPaymentStateTransition(sprintf('Payment state transition %s -> %s is not allowed.', esc_html('' === $from ? 'new' : $from), esc_html($to)));
         }
     }
 }
