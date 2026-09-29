@@ -4,7 +4,7 @@
     'name' => 'al5dy/paybridge-for-plaid',
     'pretty_version' => 'dev-master',
     'version' => 'dev-master',
-    'reference' => '10e30111557b58f7028ac2a881e28e3e11a4823e',
+    'reference' => '0f1c8ddc0453c0385ccb98c747064cf222287c2b',
     'type' => 'wordpress-plugin',
     'install_path' => __DIR__ . '/../',
     'aliases' => 

@@ -19,7 +19,7 @@ final class PlaidResponse
     {
         $value = $this->data[$key] ?? null;
         if (! is_array($value)) {
-            throw new PlaidMalformedResponseException(sprintf('Plaid response is missing object "%s".', $key), $this->request_id);
+            throw new PlaidMalformedResponseException(sprintf('Plaid response is missing object "%s".', esc_html($key)), esc_html($this->request_id));
         }
         return $value;
     }
@@ -29,7 +29,7 @@ final class PlaidResponse
     {
         $value = $this->data[$key] ?? null;
         if (! is_array($value) || ! array_is_list($value)) {
-            throw new PlaidMalformedResponseException(sprintf('Plaid response is missing list "%s".', $key), $this->request_id);
+            throw new PlaidMalformedResponseException(sprintf('Plaid response is missing list "%s".', esc_html($key)), esc_html($this->request_id));
         }
         return $value;
     }
@@ -38,7 +38,7 @@ final class PlaidResponse
     {
         $value = $this->data[$key] ?? null;
         if (! is_string($value) || '' === $value) {
-            throw new PlaidMalformedResponseException(sprintf('Plaid response is missing string "%s".', $key), $this->request_id);
+            throw new PlaidMalformedResponseException(sprintf('Plaid response is missing string "%s".', esc_html($key)), esc_html($this->request_id));
         }
         return $value;
     }

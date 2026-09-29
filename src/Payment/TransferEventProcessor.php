@@ -6,13 +6,16 @@ namespace PayBridge\Plaid\Payment;
 
 use PayBridge\Plaid\Logging\Logger;
 use PayBridge\Plaid\Persistence\DatabaseMutex;
+use PayBridge\Plaid\Persistence\PaymentEpoch;
 use PayBridge\Plaid\Persistence\TransferEventStore;
 use PayBridge\Plaid\Plaid\DTO\TransferEvent;
 use PayBridge\Plaid\Plaid\DTO\TransferIntent;
+use PayBridge\Plaid\Plaid\Exception\PlaidApiException;
 use PayBridge\Plaid\Plaid\Exception\PlaidException;
 use PayBridge\Plaid\Plaid\Transfer\TransferService;
 use PayBridge\Plaid\Plaid\TransferIntent\TransferIntentService;
 use PayBridge\Plaid\Support\Money;
+use PayBridge\Plaid\Support\SiteMarker;
 
 /**
  * Applies one durable Plaid transfer event (fetched via /transfer/event/sync)
@@ -95,13 +98,19 @@ final class TransferEventProcessor
 
     /**
      * The transfer is not yet bound (the customer closed the page before the
-     * completion check). Correlate through data PayBridge itself wrote at intent
-     * creation, then confirm with the authoritative intent before binding.
+     * completion check), or it does not belong to this store at all.
+     *
+     * Correlation only uses data PayBridge itself wrote at intent creation
+     * (intent metadata copied to the transfer) and is confirmed with the
+     * authoritative intent before binding. Transfers of other stores or
+     * integrations sharing the Plaid account are ignored explicitly instead of
+     * being retried; only ambiguous situations are retried.
      *
      * @return \WC_Order|array{status:string, order_id:int, error_code:string}|null
      */
     private function adopt(TransferEvent $event, string $environment): \WC_Order|array|null
     {
+        $ignore = static fn (string $code, int $order_id = 0): array => array('status' => TransferEventStore::IGNORED, 'order_id' => $order_id, 'error_code' => $code);
         try {
             $candidate = null;
             $attempt_id = '';
@@ -110,16 +119,46 @@ final class TransferEventProcessor
                 $candidate = null !== $match && OrderLocator::MATCH_ACTIVE === $match['match'] ? $match['order'] : null;
             }
             if (null === $candidate) {
-                $transfer = $this->transfers->get($event->transfer_id);
-                $order_id = (int) ($transfer->metadata['pbfp_order_id'] ?? 0);
-                $attempt_id = (string) ($transfer->metadata['pbfp_attempt_id'] ?? '');
-                $candidate = $order_id > 0 ? $this->locator->paybridge_order($order_id) : null;
+                if (PaymentEpoch::predates($environment, $event->timestamp)) {
+                    // Older than this store's first Transfer Intent: never ours, no API call needed.
+                    return $ignore('before_first_payment');
+                }
+                try {
+                    $transfer = $this->transfers->get($event->transfer_id);
+                } catch (PlaidApiException $exception) {
+                    if ($exception->is_transient()) {
+                        return null;
+                    }
+                    return $ignore('transfer_unreadable');
+                }
+                $metadata = $transfer->metadata;
+                $order_id = (int) ($metadata['pbfp_order_id'] ?? 0);
+                $attempt_id = (string) ($metadata['pbfp_attempt_id'] ?? '');
+                if ($order_id < 1 || '' === $attempt_id) {
+                    return $ignore('foreign_transfer');
+                }
+                if (isset($metadata['pbfp_site']) && ! hash_equals(SiteMarker::current(), (string) $metadata['pbfp_site'])) {
+                    return $ignore('foreign_site');
+                }
+                if (isset($metadata['pbfp_environment']) && $environment !== $metadata['pbfp_environment']) {
+                    return $ignore('environment_mismatch');
+                }
+                $candidate = $this->locator->paybridge_order($order_id);
+                if (null === $candidate) {
+                    $this->logger->log('warning', 'transfer_event_order_missing', array('order_id' => $order_id, 'transfer_id' => $event->transfer_id, 'event_id' => $event->event_id));
+                    return $ignore('order_missing');
+                }
             }
-            if (null === $candidate || $environment !== (string) $candidate->get_meta(OrderMeta::ENVIRONMENT, true)) {
-                return null;
+            if ($environment !== (string) $candidate->get_meta(OrderMeta::ENVIRONMENT, true)) {
+                return $ignore('environment_mismatch', $candidate->get_id());
             }
             if ('' !== $attempt_id && self::is_retired_attempt($candidate, $attempt_id)) {
-                return array('status' => TransferEventStore::IGNORED, 'order_id' => $candidate->get_id(), 'error_code' => 'retired_attempt');
+                return $ignore('retired_attempt', $candidate->get_id());
+            }
+            $snapshot = PaymentSnapshot::from_json((string) $candidate->get_meta(OrderMeta::PAYMENT_SNAPSHOT, true));
+            if ('' !== $attempt_id && (null === $snapshot || ! hash_equals($snapshot->attempt_id, $attempt_id))) {
+                $this->logger->log('warning', 'transfer_event_unknown_attempt', array('order_id' => $candidate->get_id(), 'transfer_id' => $event->transfer_id, 'event_id' => $event->event_id));
+                return $ignore('unknown_attempt', $candidate->get_id());
             }
             $intent_id = (string) $candidate->get_meta(OrderMeta::TRANSFER_INTENT_ID, true);
             if ('' === $intent_id) {

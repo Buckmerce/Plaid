@@ -59,7 +59,7 @@ final class PayBridge_Test_Plaid_Mock
         wp_cache_delete(self::STATE, 'options');
     }
 
-    /** Queue a failure for the next call to $path: timeout|timeout_after_create|server_error|reject|delay:<seconds>|key_fail|amount:<value>. */
+    /** Queue a failure for the next call to $path: timeout|timeout_after_create|server_error|rate_limit|reject|delay:<seconds>|key_fail|amount:<value>. */
     public static function fail_next(string $path, string $mode): void
     {
         $state = self::state();
@@ -114,6 +114,9 @@ final class PayBridge_Test_Plaid_Mock
         }
         if ('server_error' === $failure) {
             return self::error(500, 'API_ERROR', 'INTERNAL_SERVER_ERROR', 'an unexpected error occurred');
+        }
+        if ('rate_limit' === $failure) {
+            return self::error(429, 'RATE_LIMIT_EXCEEDED', 'RATE_LIMIT', 'rate limit exceeded for this endpoint');
         }
         if ('reject' === $failure) {
             return self::error(400, 'INVALID_REQUEST', 'INVALID_FIELD', 'rejected by test fixture');
@@ -250,6 +253,21 @@ final class PayBridge_Test_Plaid_Mock
         return $transfer_id;
     }
 
+    /**
+     * A transfer created outside this store (another store or integration on the same Plaid account).
+     *
+     * @param array<string, string>|null $metadata
+     */
+    public static function foreign_transfer(?array $metadata, string $amount = '5.00', ?int $timestamp = null): string
+    {
+        $state = self::state();
+        $transfer_id = wp_generate_uuid4();
+        $state['transfers'][$transfer_id] = array('id' => $transfer_id, 'type' => 'debit', 'amount' => $amount, 'iso_currency_code' => 'USD', 'status' => 'pending', 'failure_reason' => null, 'metadata' => $metadata, 'network' => 'ach', 'ach_class' => 'web');
+        self::save($state);
+        self::add_event($transfer_id, 'pending', '', $timestamp);
+        return $transfer_id;
+    }
+
     /** Appends the remaining Plaid Sandbox automatic-simulation events for the transfer amount. */
     public static function advance(string $transfer_id): void
     {
@@ -264,7 +282,7 @@ final class PayBridge_Test_Plaid_Mock
         }
     }
 
-    public static function add_event(string $transfer_id, string $type, string $code = ''): void
+    public static function add_event(string $transfer_id, string $type, string $code = '', ?int $timestamp = null): void
     {
         $state = self::state();
         $transfer = $state['transfers'][$transfer_id];
@@ -276,7 +294,7 @@ final class PayBridge_Test_Plaid_Mock
         }
         $event_id = (int) $state['next_event_id'];
         $state['events'][] = array(
-            'event_id' => $event_id, 'event_type' => $type, 'timestamp' => gmdate('Y-m-d\TH:i:s\Z'), 'transfer_id' => $transfer_id, 'transfer_type' => 'debit',
+            'event_id' => $event_id, 'event_type' => $type, 'timestamp' => gmdate('Y-m-d\TH:i:s\Z', $timestamp ?? time()), 'transfer_id' => $transfer_id, 'transfer_type' => 'debit',
             'transfer_amount' => $transfer['amount'], 'intent_id' => null, 'failure_reason' => $failure, 'account_id' => 'acc', 'funding_account_id' => '', 'ledger_id' => 'ledger-test',
             'originator_client_id' => null, 'refund_id' => null, 'sweep_amount' => null, 'sweep_id' => null,
         );

@@ -49,8 +49,12 @@
     "watch": "parcel watch",
     "typecheck": "tsc --noEmit",
     "lint": "npm run typecheck && node --check assets/build/blocks.js && node --check assets/build/payment-page.js && node --check assets/build/admin-settings.js",
-    "test": "npm run build && npm run lint && node --test tests/js/",
+    "test": "npm run build && npm run lint && node --test tests/js/*.test.mjs",
     "test:e2e": "bash scripts/test-browser-e2e.sh",
+    "test:integration": "bash scripts/test-integration.sh",
+    "test:plugin-check": "bash scripts/test-plugin-check.sh",
+    "test:sandbox": "bash scripts/test-sandbox-e2e.sh",
+    "test:sandbox:ngrok": "bash scripts/test-sandbox-e2e.sh --ngrok",
     "plugin-zip": "npm run build && bash scripts/package.sh"
   },
   "devDependencies": {

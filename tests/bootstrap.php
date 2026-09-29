@@ -45,6 +45,12 @@ if (! function_exists('__')) {
         return $text;
     }
 }
+if (! function_exists('esc_html')) {
+    function esc_html(string $text): string
+    {
+        return htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
+    }
+}
 if (! function_exists('esc_html__')) {
     function esc_html__(string $text, string $domain = 'default'): string
     {
@@ -60,6 +66,16 @@ if (! function_exists('get_option')) {
 if (! function_exists('update_option')) {
     function update_option(string $name, $value, $autoload = null): bool
     {
+        PayBridgeTestStore::$options[$name] = $value;
+        return true;
+    }
+}
+if (! function_exists('add_option')) {
+    function add_option(string $name, $value = '', string $deprecated = '', $autoload = null): bool
+    {
+        if (array_key_exists($name, PayBridgeTestStore::$options)) {
+            return false;
+        }
         PayBridgeTestStore::$options[$name] = $value;
         return true;
     }

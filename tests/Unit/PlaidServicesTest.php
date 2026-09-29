@@ -44,6 +44,9 @@ final class PlaidServicesTest extends TestCase
         }
         $legacy = TransferIntentRequest::build($snapshot, '1001', array('legal_name' => 'A'), 'ach', 'ppd', 'fa-1');
         self::assertSame('fa-1', $legacy['funding_account_id']);
+        $marked = TransferIntentRequest::build($snapshot, '1001', array('legal_name' => 'A'), 'ach', 'web', '', 'abcdef0123456789');
+        self::assertSame('abcdef0123456789', $marked['metadata']['pbfp_site'], 'Site marker distinguishes stores sharing a Plaid account.');
+        self::assertCount(4, $marked['metadata']);
     }
 
     public function test_description_is_ascii_and_at_most_15_characters(): void

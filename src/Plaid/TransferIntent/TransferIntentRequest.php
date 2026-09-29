@@ -16,7 +16,7 @@ final class TransferIntentRequest
      * @param array{legal_name:string, email_address?:string, phone_number?:string} $user
      * @return array<string, mixed>
      */
-    public static function build(PaymentSnapshot $snapshot, string $order_number, array $user, string $network, string $ach_class, string $funding_account_id): array
+    public static function build(PaymentSnapshot $snapshot, string $order_number, array $user, string $network, string $ach_class, string $funding_account_id, string $site_marker = ''): array
     {
         $body = array(
             'mode' => 'PAYMENT',
@@ -33,6 +33,9 @@ final class TransferIntentRequest
                 'pbfp_environment' => $snapshot->environment,
             ),
         );
+        if ('' !== $site_marker) {
+            $body['metadata']['pbfp_site'] = $site_marker;
+        }
         if ('' !== $funding_account_id) {
             // Only valid for accounts without Plaid Ledger (ADR-0007).
             $body['funding_account_id'] = $funding_account_id;

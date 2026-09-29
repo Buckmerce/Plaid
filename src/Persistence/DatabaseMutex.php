@@ -6,6 +6,8 @@ namespace PayBridge\Plaid\Persistence;
 
 use PayBridge\Plaid\Exception\PersistenceException;
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Advisory locks are connection state and must never be cached.
+
 /**
  * Connection-bound advisory lock (MySQL GET_LOCK). Unlike a TTL lease, a slow
  * but live worker cannot lose it to a timer; it is released automatically if

@@ -10,6 +10,7 @@ use PayBridge\Plaid\Exception\PaymentException;
 use PayBridge\Plaid\Exception\PersistenceException;
 use PayBridge\Plaid\Logging\Logger;
 use PayBridge\Plaid\Persistence\DatabaseMutex;
+use PayBridge\Plaid\Persistence\PaymentEpoch;
 use PayBridge\Plaid\Persistence\PaymentLockStatus;
 use PayBridge\Plaid\Persistence\PaymentLockStore;
 use PayBridge\Plaid\Persistence\PaymentReservation;
@@ -21,6 +22,7 @@ use PayBridge\Plaid\Plaid\TransferIntent\TransferIntentRequest;
 use PayBridge\Plaid\Plaid\TransferIntent\TransferIntentService;
 use PayBridge\Plaid\Settings\Settings;
 use PayBridge\Plaid\Support\Money;
+use PayBridge\Plaid\Support\SiteMarker;
 
 /**
  * Creates, reuses or safely replaces the single active Plaid Transfer Intent
@@ -99,6 +101,7 @@ final class PaymentAttemptService
                     $this->settings->link_customization_name()
                 );
             } catch (PlaidException $exception) {
+                // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Chained previous exception for diagnostics; the message is a fixed string.
                 throw new PaymentException('Plaid Link could not be started.', 0, $exception);
             }
             $expires = strtotime($token->expiration);
@@ -216,6 +219,7 @@ final class PaymentAttemptService
             $intent = $this->intents->get($intent_id);
         } catch (PlaidException $exception) {
             // Without authoritative state never create another intent.
+            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Chained previous exception for diagnostics; the message is a fixed string.
             throw new PaymentException('The bank payment status could not be verified. Please retry shortly.', 0, $exception);
         }
         if ($intent->id !== $intent_id || ! TransferBinder::intent_matches_snapshot($intent, $snapshot)) {
@@ -295,12 +299,16 @@ final class PaymentAttemptService
             ));
         } catch (\Throwable $exception) {
             $this->locks->mark_failed($order->get_id(), $token, 'order_save_failed');
+            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Chained previous exception for diagnostics; the message is a fixed string.
             throw new PersistenceException('The payment attempt could not be saved.', 0, $exception);
         }
 
         // Last local checks before the remote side effect; any failure here fails closed.
         try {
             $mutex->assert_owned();
+            if (! PaymentEpoch::mark($snapshot->environment)) {
+                throw new PersistenceException('The payment epoch could not be recorded.');
+            }
             if (! $this->locks->begin_creation($order->get_id(), $token, $snapshot->fingerprint())) {
                 throw new PersistenceException('The payment reservation changed before creation.');
             }
@@ -308,6 +316,7 @@ final class PaymentAttemptService
         } catch (\Throwable $exception) {
             $this->locks->mark_failed($order->get_id(), $token, 'reservation_lost');
             $this->record_state($order->get_id(), PaymentState::INTENT_FAILED, 'reservation_lost');
+            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Chained previous exception for diagnostics; the message is a fixed string.
             throw new PaymentException('The payment could not be reserved safely. Please retry.', 0, $exception);
         }
 
@@ -318,7 +327,8 @@ final class PaymentAttemptService
                 TransferIntentRequest::user_from_order($order),
                 $this->settings->network(),
                 $this->settings->ach_class(),
-                $this->settings->funding_account_id()
+                $this->settings->funding_account_id(),
+                SiteMarker::current()
             );
             $intent = $this->intents->create($request);
         } catch (PlaidException $exception) {
@@ -335,6 +345,7 @@ final class PaymentAttemptService
                 'error_code' => $exception->safe_code(),
                 'ambiguous' => $exception->is_ambiguous(),
             ));
+            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Chained previous exception for diagnostics; the message is a fixed string.
             throw new PaymentException('The bank payment could not be started.', 0, $exception);
         } catch (ConfigurationException $exception) {
             $this->locks->mark_failed($order->get_id(), $token, 'configuration');
@@ -363,6 +374,7 @@ final class PaymentAttemptService
             $this->projector->transition($order, PaymentState::INTENT_CREATED, array('source' => 'checkout'));
         } catch (\Throwable $exception) {
             // The intent ID is durable in the reservation row and will be adopted by the next request.
+            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Chained previous exception for diagnostics; the message is a fixed string.
             throw new PaymentException('The bank payment was prepared but could not be saved. Please retry.', 0, $exception);
         }
         $this->logger->log('info', 'transfer_intent_created', array('order_id' => $order->get_id(), 'transfer_intent_id' => $intent->id, 'request_id' => $intent->request_id, 'environment' => $environment));

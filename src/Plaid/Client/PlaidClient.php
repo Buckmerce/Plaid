@@ -61,7 +61,7 @@ final class PlaidClient implements PlaidClientInterface
     public function post(string $path, array $body): PlaidResponse
     {
         if (! in_array($path, self::ALLOWED_PATHS, true)) {
-            throw new ConfigurationException('Plaid endpoint is not allowed: ' . $path);
+            throw new ConfigurationException('Plaid endpoint is not allowed: ' . esc_html($path));
         }
         if (str_starts_with($path, '/sandbox/') && $this->environment->is_production()) {
             // Invariant: Production must never invoke Sandbox-only APIs.
@@ -104,16 +104,16 @@ final class PlaidClient implements PlaidClientInterface
         if (is_array($decoded) && is_string($decoded['error_type'] ?? null) && is_string($decoded['error_code'] ?? null)) {
             $this->log('warning', 'plaid_request_failed', $path, $status, $request_id, $elapsed_ms, (string) $decoded['error_code']);
             throw new PlaidApiException(
-                $status,
-                $decoded['error_type'],
-                $decoded['error_code'],
-                is_string($decoded['error_message'] ?? null) ? $decoded['error_message'] : '',
-                is_string($decoded['display_message'] ?? null) ? $decoded['display_message'] : '',
-                $request_id
+                (int) $status,
+                esc_html($decoded['error_type']),
+                esc_html($decoded['error_code']),
+                esc_html(is_string($decoded['error_message'] ?? null) ? $decoded['error_message'] : ''),
+                esc_html(is_string($decoded['display_message'] ?? null) ? $decoded['display_message'] : ''),
+                esc_html($request_id)
             );
         }
         $this->log('error', 'plaid_malformed_response', $path, $status, $request_id, $elapsed_ms);
-        throw new PlaidMalformedResponseException(sprintf('Plaid returned an unexpected response (HTTP %d).', $status), $request_id);
+        throw new PlaidMalformedResponseException(sprintf('Plaid returned an unexpected response (HTTP %d).', (int) $status), esc_html($request_id));
     }
 
     /**
@@ -125,7 +125,7 @@ final class PlaidClient implements PlaidClientInterface
         $response = wp_remote_post($url, $args);
         if (is_wp_error($response)) {
             // The request may have reached Plaid; callers treat this as ambiguous.
-            throw new PlaidNetworkException('Plaid could not be reached: ' . $response->get_error_code());
+            throw new PlaidNetworkException('Plaid could not be reached: ' . esc_html((string) $response->get_error_code()));
         }
         return array(
             'status' => (int) wp_remote_retrieve_response_code($response),

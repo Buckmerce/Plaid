@@ -12,6 +12,7 @@ use PayBridge\Plaid\Gateway\GatewayAvailability;
 use PayBridge\Plaid\Persistence\Installer;
 use PayBridge\Plaid\Persistence\TransferEventStore;
 use PayBridge\Plaid\REST\RestRoutes;
+use PayBridge\Plaid\REST\WebhookController;
 use PayBridge\Plaid\Settings\Settings;
 
 /** WooCommerce → PayBridge diagnostics. Shows configuration booleans and health timestamps, never secrets. */
@@ -46,6 +47,8 @@ final class DiagnosticsPage
         $sync_error = get_option(EventSyncService::LAST_ERROR_OPTION, array());
         $store = new TransferEventStore();
         $schema_ok = Installer::schema_is_valid();
+        $webhook = get_option(WebhookController::LAST_WEBHOOK_OPTION, array());
+        $rejection = get_option(WebhookController::LAST_REJECTION_OPTION, array());
         return array(
             __('Plugin version', 'paybridge-for-plaid') => PAYBRIDGE_PLAID_VERSION,
             __('PHP', 'paybridge-for-plaid') => PHP_VERSION,
@@ -64,6 +67,8 @@ final class DiagnosticsPage
             __('Funding Account configured', 'paybridge-for-plaid') => '' !== $settings->funding_account_id() ? $yes : __('No (Plaid Ledger)', 'paybridge-for-plaid'),
             __('Plaid connectivity (last test)', 'paybridge-for-plaid') => is_array($connection) && array() !== $connection ? ConnectionTester::message($connection) . ' ' . (string) ($connection['at'] ?? '') : __('Not tested', 'paybridge-for-plaid'),
             __('Webhook URL', 'paybridge-for-plaid') => rest_url(RestRoutes::NAMESPACE . '/webhook'),
+            __('Last verified webhook', 'paybridge-for-plaid') => is_array($webhook) && isset($webhook['at']) ? sprintf('%s %s (%s)', (string) $webhook['at'], (string) ($webhook['code'] ?? ''), (string) ($webhook['outcome'] ?? '')) : $never,
+            __('Last rejected webhook', 'paybridge-for-plaid') => is_array($rejection) && isset($rejection['at']) ? sprintf('%s %s (HTTP %d)', (string) $rejection['at'], (string) ($rejection['reason'] ?? ''), (int) ($rejection['status'] ?? 0)) : $never,
             __('Last successful event sync', 'paybridge-for-plaid') => (string) get_option(EventSyncService::LAST_SYNC_OPTION, $never),
             __('Last event sync error', 'paybridge-for-plaid') => is_array($sync_error) && isset($sync_error['at']) ? (string) $sync_error['at'] : $never,
             __('Last reconciliation', 'paybridge-for-plaid') => (string) get_option(ReconciliationService::LAST_RUN_OPTION, $never),

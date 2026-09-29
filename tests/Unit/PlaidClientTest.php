@@ -60,8 +60,20 @@ final class PlaidClientTest extends TestCase
             self::assertSame('INVALID_FIELD', $exception->error_code);
             self::assertSame('25f441ecfc091b5', $exception->request_id());
             self::assertFalse($exception->is_ambiguous());
+            self::assertFalse($exception->is_transient());
             self::assertSame('invalid_field', $exception->safe_code());
             self::assertStringNotContainsString('test-secret-value', $exception->getMessage());
+        }
+    }
+
+    public function test_rate_limit_is_transient_but_not_ambiguous(): void
+    {
+        try {
+            $this->client('sandbox', 429, '{"error_type":"RATE_LIMIT_EXCEEDED","error_code":"RATE_LIMIT","error_message":"rate limit exceeded","request_id":"r429"}')->post('/transfer/get', array('transfer_id' => 't'));
+            self::fail('Expected API exception.');
+        } catch (PlaidApiException $exception) {
+            self::assertFalse($exception->is_ambiguous(), 'A rate-limited request was not performed.');
+            self::assertTrue($exception->is_transient(), 'Rate limiting is retried later, never treated as a final answer.');
         }
     }
 

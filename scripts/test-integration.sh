@@ -5,6 +5,9 @@
 set -euo pipefail
 
 base_dir=$(cd "$(dirname "$0")/.." && pwd)
+pbfp_base_dir=$base_dir
+# shellcheck source=lib/test-env.sh
+. "$base_dir/scripts/lib/test-env.sh"
 plugin_version=$(grep -m1 '^ \* Version:' "$base_dir/paybridge-for-plaid.php" | sed -E 's/^ \* Version:[[:space:]]*//')
 plugin_zip=${PAYBRIDGE_PLAID_TEST_PLUGIN_ZIP:-"$base_dir/dist/paybridge-for-plaid-$plugin_version.zip"}
 if [[ ! -f "$plugin_zip" ]]; then
@@ -58,8 +61,17 @@ mkdir -p "$site_dir/wp-content/mu-plugins"
 cp "$base_dir/tests/fixtures/disposable-site.php" "$site_dir/wp-content/mu-plugins/pbfp-disposable-site.php"
 cp "$base_dir/tests/fixtures/plaid-mock.php" "$site_dir/wp-content/mu-plugins/pbfp-plaid-mock.php"
 
+# WooCommerce's own activation notices (e.g. its bundled Jetpack packages loading translations
+# early under WP-CLI) are not PayBridge's; everything logged from here on is checked.
+: > "$site_dir/wp-content/debug.log"
 # Only the release ZIP is installed; the source tree is never loaded.
 "${wp_cli[@]}" plugin install "$plugin_zip" --activate
+# Update checks fail by design where the disposable site blocks external HTTP.
+activation_problems=$(grep -E 'PHP (Warning|Notice|Deprecated|Fatal)' "$site_dir/wp-content/debug.log" 2>/dev/null | grep -Ev 'wp_update_(plugins|themes)\(\)|wp_version_check\(\)' || true)
+if [[ -n "$activation_problems" ]]; then
+    printf 'PHP warnings/notices while installing and activating PayBridge:\n%s\n' "$activation_problems" >&2
+    exit 1
+fi
 "${wp_cli[@]}" eval 'if (! \PayBridge\Plaid\Persistence\Installer::schema_is_valid()) { throw new RuntimeException("Fresh activation did not create the PayBridge schema."); }'
 "${wp_cli[@]}" option update woocommerce_custom_orders_table_data_sync_enabled yes >/dev/null
 # Only warnings raised while PayBridge suites run are relevant.

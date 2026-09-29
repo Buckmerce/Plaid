@@ -16,8 +16,8 @@ foreach (array('paybridge_plaid_transfer_event_sync', 'paybridge_plaid_reconcile
 }
 
 // Decoys owned by other plugins must survive every uninstall mode.
-$wpdb->query("CREATE TABLE IF NOT EXISTS {$wpdb->prefix}paykassa_events (id int)");
-update_option('woocommerce_paykassa_settings', array('enabled' => 'yes'), false);
+$wpdb->query("CREATE TABLE IF NOT EXISTS {$wpdb->prefix}other_gateway_events (id int)");
+update_option('woocommerce_other_gateway_settings', array('enabled' => 'yes'), false);
 update_option('paybridge_plaid_unrelated_by_other_plugin', 'keep', false);
 set_transient('pbfpx_other_plugin_cache', 'keep', 3600);
 as_schedule_single_action(time() + 3600, 'other_plugin_hook', array(), 'other-plugin');
@@ -50,8 +50,8 @@ pbfp_assert(false === get_transient('pbfp_connection_test_1'), 'PayBridge transi
 foreach (array('paybridge_plaid_events', 'paybridge_plaid_payment_locks') as $suffix) {
     pbfp_assert(null === $wpdb->get_var("SHOW TABLES LIKE '{$wpdb->prefix}{$suffix}'"), 'Table removed on cleanup: ' . $suffix);
 }
-pbfp_assert($wpdb->prefix . 'paykassa_events' === $wpdb->get_var("SHOW TABLES LIKE '{$wpdb->prefix}paykassa_events'"), 'Another plugin table must never be dropped.');
-pbfp_assert(false !== get_option('woocommerce_paykassa_settings'), 'Another plugin option must never be deleted.');
+pbfp_assert($wpdb->prefix . 'other_gateway_events' === $wpdb->get_var("SHOW TABLES LIKE '{$wpdb->prefix}other_gateway_events'"), 'Another plugin table must never be dropped.');
+pbfp_assert(false !== get_option('woocommerce_other_gateway_settings'), 'Another plugin option must never be deleted.');
 pbfp_assert('keep' === get_option('paybridge_plaid_unrelated_by_other_plugin'), 'Unlisted options are not deleted by prefix guessing.');
 pbfp_assert('keep' === get_transient('pbfpx_other_plugin_cache'), 'Similar-prefix transients of other plugins survive.');
 pbfp_assert(as_has_scheduled_action('other_plugin_hook', array(), 'other-plugin'), 'Other plugins scheduled actions survive.');

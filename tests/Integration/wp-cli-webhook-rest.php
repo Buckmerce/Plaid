@@ -39,12 +39,18 @@ $cases = array(
     'stale token' => array(401, $body, array('plaid-verification' => $mock::sign($body, array('iat' => time() - 3600)))),
     'oversized body' => array(413, str_repeat(' ', 70000) . $body, array('plaid-verification' => $mock::sign(str_repeat(' ', 70000) . $body))),
 );
+delete_option('paybridge_plaid_last_webhook');
+delete_option('paybridge_plaid_last_webhook_rejection');
 foreach ($cases as $name => [$status, $raw, $headers]) {
     $response = pbfp_rest('/webhook', array(), $headers, $raw);
     pbfp_assert_same($status, $response['status'], 'Webhook case: ' . $name);
     pbfp_assert_same(0, pbfp_pending_actions(Scheduler::EVENT_SYNC_HOOK), 'Invalid webhook must not enqueue work: ' . $name);
     pbfp_assert(! str_contains((string) wp_json_encode($response['data']), 'request_body_sha256'), 'Error responses leak no verification details: ' . $name);
 }
+
+$rejection = get_option('paybridge_plaid_last_webhook_rejection');
+pbfp_assert(is_array($rejection) && 'missing_header' === $rejection['reason'] && 401 === $rejection['status'], 'Diagnostics record the first rejection (throttled): ' . wp_json_encode($rejection));
+pbfp_assert(false === get_option('paybridge_plaid_last_webhook'), 'Rejected webhooks are never recorded as verified.');
 
 // Key retrieval failure: rejected (retryable), never skipped.
 $mock::fail_next('/webhook_verification_key/get', 'key_fail');
@@ -71,6 +77,9 @@ pbfp_assert_same($before, $after, 'No invalid or unrelated webhook mutated the o
 pbfp_assert_same(200, pbfp_rest('/webhook', array(), array('plaid-verification' => $mock::sign($body)), $body)['status'], 'Valid webhook accepted.');
 pbfp_assert_same(200, pbfp_rest('/webhook', array(), array('plaid-verification' => $mock::sign($body)), $body)['status'], 'Duplicate webhook accepted.');
 pbfp_assert_same(1, pbfp_pending_actions(Scheduler::EVENT_SYNC_HOOK), 'Duplicate webhooks coalesce.');
+$verified = get_option('paybridge_plaid_last_webhook');
+pbfp_assert(is_array($verified) && 'TRANSFER_EVENTS_UPDATE' === $verified['code'] && 'event_sync_queued' === $verified['outcome'] && 'sandbox' === $verified['environment'], 'Diagnostics record the last verified webhook: ' . wp_json_encode($verified));
+pbfp_assert(str_contains(\PayBridge\Plaid\Admin\DiagnosticsPage::report()['Last verified webhook'], 'TRANSFER_EVENTS_UPDATE'), 'Diagnostics report shows the last verified webhook.');
 pbfp_run_scheduled(Scheduler::EVENT_SYNC_HOOK);
 pbfp_assert(pbfp_reload($order)->is_paid(), 'Verified webhook → event sync → order paid.');
 

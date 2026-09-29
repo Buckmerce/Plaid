@@ -10,6 +10,7 @@ final class Bootstrap
 {
     public static function boot(): void
     {
+        // phpcs:ignore PluginCheck.CodeAnalysis.DiscouragedFunctions.load_plugin_textdomainFound -- Released outside WordPress.org; registers the bundled languages/ directory.
         load_plugin_textdomain('paybridge-for-plaid', false, dirname(plugin_basename(PAYBRIDGE_PLAID_FILE)) . '/languages');
         $requirements = new Requirements();
         if (! $requirements->is_met()) {
