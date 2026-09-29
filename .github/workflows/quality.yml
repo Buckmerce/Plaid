@@ -1,0 +1,190 @@
+name: Quality
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php: ['8.1', '8.2', '8.3', '8.4']
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '${{ matrix.php }}'
+          tools: composer:v2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Validate Composer
+        run: composer validate --strict
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: PHP syntax
+        run: composer syntax
+
+      - name: PHPUnit
+        run: composer test
+
+      - name: PHPCS
+        run: composer lint
+
+      - name: PHPStan
+        run: composer stan
+
+      - name: JavaScript tests
+        run: npm run test
+
+      - name: Build plugin ZIP
+        run: npm run plugin-zip
+
+  integration:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: '8.1'
+            wordpress: '6.6'
+            woocommerce: '8.5.2'
+          - php: '8.2'
+            wordpress: '7.1'
+            woocommerce: '11.1.0'
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: paykassa-ci-only
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      PAYKASSA_TEST_DB_HOST: 127.0.0.1:3306
+      PAYKASSA_TEST_DB_USER: root
+      PAYKASSA_TEST_DB_PASSWORD: paykassa-ci-only
+      PAYKASSA_TEST_WP_VERSION: '${{ matrix.wordpress }}'
+      PAYKASSA_TEST_WC_VERSION: '${{ matrix.woocommerce }}'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '${{ matrix.php }}'
+          extensions: mysqli, mbstring, dom, gd
+          tools: wp-cli
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Build plugin ZIP
+        run: npm run plugin-zip
+
+      - name: Clean ZIP installation, schema v2 to v3 and payment smoke
+        run: bash scripts/test-integration.sh
+
+  browser:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: paykassa-ci-only
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      PAYKASSA_TEST_DB_HOST: 127.0.0.1:3306
+      PAYKASSA_TEST_DB_USER: root
+      PAYKASSA_TEST_DB_PASSWORD: paykassa-ci-only
+      PAYKASSA_TEST_WP_VERSION: '7.1'
+      PAYKASSA_TEST_WC_VERSION: '11.1.0'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mysqli, mbstring, dom, gd
+          tools: wp-cli
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Build plugin ZIP
+        run: npm run plugin-zip
+
+      - name: Install Chromium
+        run: npx --yes --package @playwright/cli playwright-cli install-browser chromium
+
+      - name: Browser E2E
+        run: npm run test:e2e
+
+  quality-gate:
+    name: Quality Gate
+    needs:
+      - test
+      - integration
+      - browser
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Verify quality jobs
+        shell: bash
+        run: |
+          test "${{ needs.test.result }}" = "success"
+          test "${{ needs.integration.result }}" = "success"
+          test "${{ needs.browser.result }}" = "success"

@@ -1,0 +1,126 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Verify tag commit belongs to master
+        shell: bash
+        run: |
+          git fetch origin master
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/master; then
+            echo "Release tag must point to a commit contained in master."
+            exit 1
+          fi
+
+      - name: Read and validate version
+        id: version
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid release tag: $GITHUB_REF_NAME"
+            exit 1
+          fi
+
+          PLUGIN_VERSION="$(
+            grep -m1 '^ \* Version:' paykassa.php |
+            sed -E 's/^ \* Version:[[:space:]]*//'
+          )"
+
+          CONSTANT_VERSION="$(
+            grep -m1 "define( 'PAYKASSA_VERSION'" paykassa.php |
+            sed -E "s/.*'PAYKASSA_VERSION',[[:space:]]*'([^']+)'.*/\1/"
+          )"
+
+          STABLE_TAG="$(
+            grep -m1 '^Stable tag:' readme.txt |
+            sed -E 's/^Stable tag:[[:space:]]*//'
+          )"
+
+          if [[ "$VERSION" != "$PLUGIN_VERSION" ]]; then
+            echo "Tag version $VERSION != plugin header version $PLUGIN_VERSION"
+            exit 1
+          fi
+
+          if [[ "$VERSION" != "$CONSTANT_VERSION" ]]; then
+            echo "Tag version $VERSION != PAYKASSA_VERSION $CONSTANT_VERSION"
+            exit 1
+          fi
+
+          if [[ "$VERSION" != "$STABLE_TAG" ]]; then
+            echo "Tag version $VERSION != readme.txt Stable tag $STABLE_TAG"
+            exit 1
+          fi
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Build front-end assets
+        run: npm run build
+
+      - name: Build production plugin ZIP
+        run: bash scripts/package.sh "${{ steps.version.outputs.version }}"
+
+      - name: Verify production ZIP
+        shell: bash
+        run: |
+          ZIP="dist/paykassa-${{ steps.version.outputs.version }}.zip"
+
+          test -f "$ZIP"
+
+          unzip -Z1 "$ZIP" > /tmp/paykassa-zip-files.txt
+          cat /tmp/paykassa-zip-files.txt
+
+          REQUIRED_FILES=(
+            "paykassa/paykassa.php"
+            "paykassa/readme.txt"
+            "paykassa/uninstall.php"
+          )
+
+          for REQUIRED in "${REQUIRED_FILES[@]}"; do
+            grep -Fxq "$REQUIRED" /tmp/paykassa-zip-files.txt || {
+              echo "Missing required release file: $REQUIRED"
+              exit 1
+            }
+          done
+
+          if grep -Eq '(^|/)(\.git|\.github|\.idea|\.playwright-cli|tests|docs|scripts|tools|node_modules|vendor|dist)(/|$)|(^|/)(composer\.(json|lock)|package(-lock)?\.json|README\.md|phpunit\.xml\.dist|phpstan\.neon|phpcs\.xml\.dist)$' /tmp/paykassa-zip-files.txt; then
+            echo "Development-only files found in release ZIP."
+            exit 1
+          fi
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            "dist/paykassa-${{ steps.version.outputs.version }}.zip" \
+            --title "PayKassa for WooCommerce ${{ steps.version.outputs.version }}" \
+            --generate-notes \
+            --verify-tag

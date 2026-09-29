@@ -1,0 +1,15 @@
+parameters:
+  level: 6
+  treatPhpDocTypesAsCertain: false
+  paths:
+    - src
+    - paybridge-for-plaid.php
+    - uninstall.php
+  bootstrapFiles:
+    - tests/phpstan-bootstrap.php
+  scanFiles:
+    - vendor/php-stubs/wordpress-stubs/wordpress-stubs.php
+    - vendor/php-stubs/woocommerce-stubs/woocommerce-stubs.php
+    - vendor/php-stubs/woocommerce-stubs/woocommerce-packages-stubs.php
+  scanDirectories:
+    - vendor-prefixed

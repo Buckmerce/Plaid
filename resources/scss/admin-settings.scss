@@ -1,0 +1,36 @@
+// PayBridge for Plaid — gateway settings screen. All selectors are .pbfp- namespaced.
+
+.pbfp-copy-field {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+	max-width: 760px;
+
+	input {
+		flex: 1 1 auto;
+		min-width: 0;
+	}
+}
+
+.pbfp-status {
+	margin: 0 0 8px;
+	padding: 8px 12px;
+	border-left: 4px solid #dba617;
+	background: #fff;
+	max-width: 760px;
+
+	&--ok {
+		border-left-color: #00a32a;
+	}
+
+	&--warning {
+		border-left-color: #d63638;
+		list-style: disc inside;
+	}
+}
+
+.pbfp-secret-status {
+	display: flex;
+	gap: 12px;
+	align-items: center;
+}

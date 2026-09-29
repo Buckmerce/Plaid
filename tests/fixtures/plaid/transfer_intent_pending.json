@@ -1,0 +1,24 @@
+{
+  "transfer_intent": {
+    "ach_class": "web",
+    "amount": "11.11",
+    "authorization_decision": null,
+    "authorization_decision_rationale": null,
+    "created": "2026-09-29T10:12:50.06492Z",
+    "description": "Order 1001",
+    "failure_reason": null,
+    "funding_account_id": "",
+    "guarantee_decision": null,
+    "guarantee_decision_rationale": null,
+    "id": "538932c1-9aa1-bcdb-7f86-b359ae3ca7b4",
+    "iso_currency_code": "USD",
+    "metadata": {"pbfp_order_id": "1001", "pbfp_attempt_id": "ATTEMPT", "pbfp_environment": "sandbox"},
+    "mode": "PAYMENT",
+    "network": "same-day-ach",
+    "origination_account_id": "",
+    "status": "PENDING",
+    "transfer_id": null,
+    "user": {"address": null, "email_address": "anne@example.com", "legal_name": "Anne Charleston", "phone_number": null}
+  },
+  "request_id": "81a5539f6f21544"
+}

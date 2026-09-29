@@ -1,0 +1,10 @@
+{
+  "has_more": false,
+  "request_id": "mdqfuVxeoza6mhu",
+  "transfer_events": [
+    {"account_id": "3gE5gnRzNyfXpBK5wEEKcymJ5albGVUqg77gr", "event_id": 1, "event_type": "pending", "failure_reason": null, "funding_account_id": "", "ledger_id": "e6600db0", "intent_id": null, "originator_client_id": null, "refund_id": null, "sweep_amount": null, "sweep_id": null, "timestamp": "2026-09-29T10:30:00Z", "transfer_amount": "33.33", "transfer_id": "460cbe92-2dcc-8eae-5ad6-b37d0ec90fd9", "transfer_type": "debit"},
+    {"event_id": 2, "event_type": "posted", "failure_reason": null, "timestamp": "2026-09-29T10:30:01Z", "transfer_amount": "33.33", "transfer_id": "460cbe92-2dcc-8eae-5ad6-b37d0ec90fd9", "transfer_type": "debit"},
+    {"event_id": 3, "event_type": "returned", "failure_reason": {"ach_return_code": "R01", "failure_code": "R01", "description": "Insufficient funds"}, "timestamp": "2026-09-29T10:30:04Z", "transfer_amount": "33.33", "transfer_id": "460cbe92-2dcc-8eae-5ad6-b37d0ec90fd9", "transfer_type": "debit"},
+    {"event_id": 18446744073709551615, "event_type": "sweep.settled", "failure_reason": null, "timestamp": "2026-09-29T10:31:00Z", "sweep_id": "swp", "sweep_amount": "-33.33"}
+  ]
+}
