@@ -1,0 +1,135 @@
+<?php
+
+declare(strict_types=1);
+
+namespace PayBridge\Plaid\REST;
+
+use PayBridge\Plaid\Checkout\PaymentAccess;
+use PayBridge\Plaid\Container;
+use PayBridge\Plaid\Exception\PaymentAttemptBusyException;
+use PayBridge\Plaid\Exception\PayBridgeException;
+use PayBridge\Plaid\Logging\Logger;
+use PayBridge\Plaid\Payment\CompletionResult;
+
+/**
+ * REST routes. Customer routes require order key + ownership + a payment nonce;
+ * the webhook route is public at the HTTP layer and authenticated
+ * cryptographically inside WebhookController.
+ */
+final class RestRoutes
+{
+    public const NAMESPACE = 'paybridge-for-plaid/v1';
+    private const LINK_TOKENS_PER_WINDOW = 15;
+    private const RATE_WINDOW_SECONDS = 600;
+
+    public function __construct(private readonly PaymentAccess $access = new PaymentAccess())
+    {
+    }
+
+    public function register(): void
+    {
+        add_action('rest_api_init', array($this, 'routes'));
+    }
+
+    public function routes(): void
+    {
+        $order_args = array(
+            'order_id' => array('type' => 'integer', 'required' => true, 'minimum' => 1),
+            'order_key' => array('type' => 'string', 'required' => true, 'pattern' => '^wc_order_[A-Za-z0-9]{1,40}$'),
+            'payment_nonce' => array('type' => 'string', 'required' => true, 'pattern' => '^[a-f0-9]{10}$'),
+        );
+        register_rest_route(self::NAMESPACE, '/link-token', array(
+            'methods' => \WP_REST_Server::CREATABLE,
+            'callback' => array($this, 'link_token'),
+            'permission_callback' => array($this, 'authorize_payer'),
+            'args' => $order_args,
+        ));
+        register_rest_route(self::NAMESPACE, '/complete', array(
+            'methods' => \WP_REST_Server::CREATABLE,
+            'callback' => array($this, 'complete'),
+            'permission_callback' => array($this, 'authorize_payer'),
+            'args' => $order_args,
+        ));
+        register_rest_route(self::NAMESPACE, '/webhook', array(
+            'methods' => \WP_REST_Server::CREATABLE,
+            'callback' => array(new WebhookController(), 'handle'),
+            // Authenticated by Plaid-Verification JWT inside the callback (never before verification).
+            'permission_callback' => '__return_true',
+            'args' => array(),
+        ));
+    }
+
+    public function authorize_payer(\WP_REST_Request $request): bool|\WP_Error
+    {
+        $order = wc_get_order((int) $request->get_param('order_id'));
+        $nonce = (string) $request->get_param('payment_nonce');
+        $this->access->ensure_session();
+        if (
+            ! $order instanceof \WC_Order
+            || ! $this->access->can_access($order, (string) $request->get_param('order_key'))
+            || false === wp_verify_nonce($nonce, PaymentAccess::nonce_action($order->get_id()))
+        ) {
+            // Deliberately indistinguishable: no order existence or ownership oracle.
+            return new \WP_Error('paybridge_forbidden', __('This payment session is not valid.', 'paybridge-for-plaid'), array('status' => 403));
+        }
+        return true;
+    }
+
+    public function link_token(\WP_REST_Request $request): \WP_REST_Response|\WP_Error
+    {
+        $order = wc_get_order((int) $request->get_param('order_id'));
+        if (! $order instanceof \WC_Order) {
+            return new \WP_Error('paybridge_forbidden', __('This payment session is not valid.', 'paybridge-for-plaid'), array('status' => 403));
+        }
+        if (! $this->consume_rate_limit('link_token', $order->get_id(), self::LINK_TOKENS_PER_WINDOW)) {
+            return new \WP_Error('paybridge_rate_limited', __('Too many attempts. Please wait a few minutes and try again.', 'paybridge-for-plaid'), array('status' => 429));
+        }
+        try {
+            $token = ( new Container() )->attempts()->issue_link_token($order);
+        } catch (PaymentAttemptBusyException $exception) {
+            return new \WP_Error('paybridge_busy', __('Your bank payment is being prepared. Please try again in a few seconds.', 'paybridge-for-plaid'), array('status' => 409));
+        } catch (PayBridgeException $exception) {
+            ( new Logger() )->log('warning', 'link_token_failed', array('order_id' => $order->get_id(), 'error_code' => Logger::fingerprint($exception->getMessage())));
+            return new \WP_Error('paybridge_unavailable', __('The bank payment could not be started. Please try again.', 'paybridge-for-plaid'), array('status' => 503));
+        }
+        if (null === $token) {
+            return new \WP_REST_Response(array('status' => CompletionResult::SUBMITTED, 'redirect' => $order->get_checkout_order_received_url()), 200);
+        }
+        $response = new \WP_REST_Response(array('status' => 'ready', 'link_token' => $token->token, 'expiration' => $token->expiration), 200);
+        $response->header('Cache-Control', 'no-store');
+        return $response;
+    }
+
+    public function complete(\WP_REST_Request $request): \WP_REST_Response|\WP_Error
+    {
+        $order = wc_get_order((int) $request->get_param('order_id'));
+        if (! $order instanceof \WC_Order) {
+            return new \WP_Error('paybridge_forbidden', __('This payment session is not valid.', 'paybridge-for-plaid'), array('status' => 403));
+        }
+        try {
+            $result = ( new Container() )->completion()->complete($order);
+        } catch (PaymentAttemptBusyException $exception) {
+            return new \WP_REST_Response(array('status' => CompletionResult::UNVERIFIED), 200);
+        } catch (PayBridgeException $exception) {
+            ( new Logger() )->log('warning', 'completion_failed', array('order_id' => $order->get_id(), 'error_code' => Logger::fingerprint($exception->getMessage())));
+            return new \WP_Error('paybridge_unavailable', __('The payment could not be confirmed. Please try again.', 'paybridge-for-plaid'), array('status' => 503));
+        }
+        $body = array('status' => $result->status, 'reason' => preg_replace('/[^A-Z_]/', '', strtoupper($result->reason_code)));
+        if (CompletionResult::SUBMITTED === $result->status) {
+            $body['redirect'] = $order->get_checkout_order_received_url();
+        }
+        return new \WP_REST_Response($body, 200);
+    }
+
+    private function consume_rate_limit(string $bucket, int $order_id, int $limit): bool
+    {
+        $key = 'pbfp_rl_' . $bucket . '_' . $order_id;
+        $count = get_transient($key);
+        $count = is_int($count) ? $count : 0;
+        if ($count >= $limit) {
+            return false;
+        }
+        set_transient($key, $count + 1, self::RATE_WINDOW_SECONDS);
+        return true;
+    }
+}

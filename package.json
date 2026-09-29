@@ -1,0 +1,62 @@
+{
+  "name": "paybridge-for-plaid",
+  "version": "0.1.0",
+  "private": true,
+  "description": "PayBridge for Plaid — WooCommerce Pay by Bank (front-end build).",
+  "license": "GPL-2.0-or-later",
+  "browserslist": [
+    "defaults",
+    "not IE 11"
+  ],
+  "targets": {
+    "adminStyles": {
+      "source": "resources/scss/admin-settings.scss",
+      "distDir": "assets",
+      "sourceMap": false
+    },
+    "paymentStyles": {
+      "source": "resources/scss/payment-page.scss",
+      "distDir": "assets",
+      "sourceMap": false
+    },
+    "blocksScript": {
+      "source": "resources/ts/blocks.ts",
+      "distDir": "assets/build",
+      "outputFormat": "global",
+      "isLibrary": false,
+      "sourceMap": false
+    },
+    "paymentScript": {
+      "source": "resources/ts/payment-page.ts",
+      "distDir": "assets/build",
+      "outputFormat": "global",
+      "isLibrary": false,
+      "sourceMap": false
+    },
+    "adminScript": {
+      "source": "resources/ts/admin-settings.ts",
+      "distDir": "assets/build",
+      "outputFormat": "global",
+      "isLibrary": false,
+      "sourceMap": false
+    }
+  },
+  "scripts": {
+    "clean": "rm -rf assets/admin-settings.css assets/payment-page.css assets/build assets/images .parcel-cache",
+    "build:assets": "parcel build --no-content-hash --no-cache",
+    "build:images": "bash scripts/copy-images.sh",
+    "build": "npm run clean && npm run build:assets && npm run build:images",
+    "watch": "parcel watch",
+    "typecheck": "tsc --noEmit",
+    "lint": "npm run typecheck && node --check assets/build/blocks.js && node --check assets/build/payment-page.js && node --check assets/build/admin-settings.js",
+    "test": "npm run build && npm run lint && node --test tests/js/",
+    "test:e2e": "bash scripts/test-browser-e2e.sh",
+    "plugin-zip": "npm run build && bash scripts/package.sh"
+  },
+  "devDependencies": {
+    "@parcel/transformer-sass": "^2.16.4",
+    "parcel": "^2.16.4",
+    "sass": "^1.104.1",
+    "typescript": "^7.0.2"
+  }
+}

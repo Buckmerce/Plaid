@@ -1,0 +1,70 @@
+# Dependencies
+/vendor/
+/node_modules/
+
+# Build / release artifacts
+/dist/
+/build/
+/.parcel-cache/
+
+# Compiled front-end assets (generated from /resources via `npm run build`)
+/assets/admin-settings.css
+/assets/build/
+/assets/images/
+
+# Test caches / reports
+/.phpunit.result.cache
+/.phpunit.cache/
+.phpstan.cache
+.phpcs-cache
+/coverage/
+
+# Browser / E2E artifacts
+/.playwright-cli/
+/output/
+
+# Local environment / secrets
+.env
+.env.*
+!.env.example
+
+# Local credential files
+auth.json
+credentials.json
+secrets.json
+*.local.json
+
+# Private keys / certificates
+*.key
+*.pem
+*.p12
+*.pfx
+
+# Database / dumps / backups
+*.sql
+*.sql.gz
+*.dump
+*.sqlite
+*.sqlite3
+*.db
+*.bak
+*.backup
+
+# Logs
+*.log
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Temporary translation files
+*.po~
+
+/docs/
+*.md
+!README.md
+*.zip

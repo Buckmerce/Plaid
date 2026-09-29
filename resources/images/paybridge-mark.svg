@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="Pay by Bank">
+  <title>Pay by Bank</title>
+  <rect x="2" y="2" width="44" height="44" rx="10" fill="#1F4E79"/>
+  <path d="M24 10 38 17v3H10v-3z" fill="#FFFFFF"/>
+  <rect x="13" y="22" width="4" height="11" rx="1" fill="#FFFFFF"/>
+  <rect x="22" y="22" width="4" height="11" rx="1" fill="#FFFFFF"/>
+  <rect x="31" y="22" width="4" height="11" rx="1" fill="#FFFFFF"/>
+  <rect x="10" y="35" width="28" height="3" rx="1" fill="#FFFFFF"/>
+</svg>

@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<ruleset name="PayBridge for Plaid">
+  <description>Quality checks for project-owned PHP.</description>
+  <file>src</file>
+  <file>uninstall.php</file>
+  <arg name="extensions" value="php"/>
+  <rule ref="PSR12"/>
+  <rule ref="PSR1.Methods.CamelCapsMethodName">
+    <severity>0</severity>
+  </rule>
+  <rule ref="Generic.Files.LineLength">
+    <severity>0</severity>
+  </rule>
+  <rule ref="Generic.PHP.ForbiddenFunctions">
+    <properties>
+      <property name="forbiddenFunctions" type="array">
+        <element key="var_dump" value="null"/>
+        <element key="print_r" value="null"/>
+        <element key="error_log" value="null"/>
+        <element key="get_post_meta" value="null"/>
+        <element key="update_post_meta" value="null"/>
+        <element key="delete_post_meta" value="null"/>
+      </property>
+    </properties>
+  </rule>
+  <exclude-pattern>*/vendor/*</exclude-pattern>
+  <exclude-pattern>*/vendor-prefixed/*</exclude-pattern>
+</ruleset>
