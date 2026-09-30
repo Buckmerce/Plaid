@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # Shared environment for the PayBridge test scripts (sourced, never executed).
 #
 # 1. Loads the gitignored project .env when present, so local runs need no exports.

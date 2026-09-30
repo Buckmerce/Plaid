@@ -141,7 +141,11 @@ const VERIFY_DELAY_MS = 4000;
 		window.location.assign( url || config.returnUrl );
 	};
 
-	const verify = async ( attempt: number ): Promise< void > => {
+	/**
+	 * Asks the server whether Plaid created a transfer. $exited: the customer closed Plaid Link
+	 * without an error (Plaid then calls onExit(null)); an incomplete result is reported as such.
+	 */
+	const verify = async ( attempt: number, exited = false ): Promise< void > => {
 		setStatus( 'verifying' );
 		let result: ServerResponse;
 		try {
@@ -162,13 +166,17 @@ const VERIFY_DELAY_MS = 4000;
 					setStatus( 'review', true );
 					return;
 				}
-				allowRetry( 'NSF' === result.reason ? 'insufficient' : 'incomplete' );
+				if ( 'NSF' === result.reason ) {
+					allowRetry( 'insufficient' );
+					return;
+				}
+				allowRetry( exited ? 'exited' : 'incomplete' );
 				return;
 			default:
 				if ( attempt + 1 < MAX_VERIFY_ATTEMPTS ) {
 					setStatus( 'unverified' );
 					window.setTimeout( () => {
-						void verify( attempt + 1 );
+						void verify( attempt + 1, exited );
 					}, VERIFY_DELAY_MS );
 					return;
 				}
@@ -221,7 +229,8 @@ const VERIFY_DELAY_MS = 4000;
 					allowRetry( 'exited' );
 					return;
 				}
-				void verify( MAX_VERIFY_ATTEMPTS - 1 ).then( () => undefined );
+				// The customer closed Link: confirm with the server (a transfer may exist), then explain.
+				void verify( MAX_VERIFY_ATTEMPTS - 1, true ).then( () => undefined );
 			},
 		} );
 		setStatus( 'opening' );

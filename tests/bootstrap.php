@@ -16,7 +16,7 @@ foreach (
         'MINUTE_IN_SECONDS' => 60,
         'HOUR_IN_SECONDS' => 3600,
         'DAY_IN_SECONDS' => 86400,
-        'PAYBRIDGE_PLAID_VERSION' => '0.1.0',
+        'PAYBRIDGE_PLAID_VERSION' => '1.0.0',
     ) as $name => $value
 ) {
     if (! defined($name)) {

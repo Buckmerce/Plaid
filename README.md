@@ -2,15 +2,16 @@
 
 WooCommerce payment gateway for US bank (ACH) payments through **Plaid Transfer UI**.
 The customer authorizes a debit in Plaid Link; the store marks the order paid only after
-Plaid itself reports the transfer as settled / funds available.
+Plaid itself reports the transfer as settled / funds available, follows it until the ACH return
+window closes, and refunds it natively through Plaid.
 
 | | |
 |---|---|
 | Plugin slug | `paybridge-for-plaid` |
 | Gateway ID | `paybridge_plaid` |
 | PHP namespace | `PayBridge\Plaid` |
-| Version | 0.1.0 |
-| Requires | WordPress 6.6+, WooCommerce 8.5+, PHP 8.1+ (tested up to WordPress 7.1 / WooCommerce 11.1) |
+| Version | 1.0.0 |
+| Requires | WordPress 6.6+, WooCommerce 8.5+, PHP 8.1–8.4, MySQL 8.0+ / MariaDB 10.11+ (tested up to WordPress 7.1 / WooCommerce 11.1) |
 | License | GPL-2.0-or-later |
 
 PayBridge is an independent project. It is not affiliated with, endorsed or sponsored by
@@ -75,7 +76,7 @@ Key design points (details in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and
 
 ## Requirements
 
-- WordPress 6.6 or later, WooCommerce 8.5 or later, PHP 8.1 or later, MySQL/MariaDB.
+- WordPress 6.6 or later, WooCommerce 8.5 or later, PHP 8.1–8.4, MySQL 8.0+ or MariaDB 10.11+.
 - Store currency **USD** (Plaid Transfer debits US bank accounts).
 - HTTPS for Production (the gateway is unavailable in Production over plain HTTP).
 - A Plaid account with **Transfer** enabled and API keys for the selected environment.
@@ -86,30 +87,42 @@ Key design points (details in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and
 1. Download `paybridge-for-plaid-<version>.zip` from the GitHub release (or build it, see
    [Development](#development)).
 2. WordPress admin → **Plugins → Add New → Upload Plugin**, upload the ZIP and activate.
-   Activation creates the two PayBridge tables and verifies their schema; if verification
-   fails the gateway stays disabled and an admin notice explains why.
+   Activation creates the three PayBridge tables (events, payment index, refunds) and verifies
+   their schema; if verification fails the gateway stays disabled and an admin notice explains why.
 3. Configure the gateway in **WooCommerce → Settings → Payments → PayBridge for Plaid**.
 
 ## Configuration
 
+The settings screen opens with a **status panel**: Ready / Disabled / Incomplete / Attention
+required, a Sandbox or Production badge and a PASS/FAIL checklist (credentials, HTTPS, USD, Link
+customization, schema, webhook route, last connection test, background jobs, WP-Cron).
+
 | Setting | Default | Notes |
 |---|---|---|
-| Enable/Disable | off | Gateway is offered only when fully configured (credentials, USD, HTTPS in Production). |
+| **General** | | |
+| Offer Pay by Bank at checkout | off | Controls NEW payments only. Existing payments, returns and refunds are always monitored. |
 | Title / Description | "Pay by Bank" | Shown at checkout. |
+| **Plaid connection** | | |
 | Environment | Sandbox | `sandbox` or `production`. Production requires HTTPS. |
-| Client ID / Secret | — | From Plaid Dashboard → Developers → Keys. The secret is write-only: it is never rendered back, blank keeps the stored value, **Remove stored secret** clears it. |
-| Funding Account ID | empty | Leave empty when the Plaid account uses **Plaid Ledger** (the default; Plaid rejects `funding_account_id` then). See [ADR-0007](docs/adr/0007-ambiguous-intent-and-ledger.md). |
-| Link customization name | empty | Optional Link customization, ideally with Account Select "Enabled for one account". |
+| Client ID / Secret | — | From Plaid Dashboard → Developers → Keys. The secret is write-only (never rendered back; blank keeps it; **Remove stored secret** clears it). Changing the Client ID or environment is refused while Production payments are monitored ([ADR-0015](docs/adr/0015-plaid-account-change-guard.md)); rotating the secret is always allowed. |
+| Funding Account ID | empty | Leave empty with **Plaid Ledger** (the default; Plaid rejects `funding_account_id` then). |
+| **Pay by Bank** | | |
+| Link customization name | empty | **Required in Production.** Create a Plaid Link customization with Account Select = "Enabled for one account" (language matching the store), publish it and enter its name. Sandbox may use Plaid's default. |
+| Bank statement description | `PAYMENT` | Shown on the customer's bank statement after your Plaid company name; upper-case letters, digits and spaces, ≤ 10 characters (ACH limit). |
 | Payment network | Same Day ACH | `same-day-ach` or `ach`. |
-| ACH class | WEB | `web` (recommended for online consumer payments), `ppd`, `ccd`, `tel`. |
 | Mark order paid when | Funds available | `funds_available` (recommended) or `settled`. |
-| Reconciliation | on | Background re-check of open payments. Keep enabled. |
+| **Advanced and logging** | | |
 | Debug logging | off | Redacted logs in WooCommerce → Status → Logs (source `paybridge-for-plaid`). |
-| Uninstall cleanup | off | When on, deleting the plugin removes PayBridge settings, event history and tables. Order payment metadata is always kept. |
+| Uninstall cleanup | off | When on, deleting the plugin removes PayBridge settings, event/refund history and tables. Order payment data is always kept. |
+
+The ACH class is always **WEB** (Transfer UI is a Nacha WEB authorization, [ADR-0013](docs/adr/0013-transfer-ui-configuration.md)).
+Customers must enter a billing first and last name: it is the account holder's legal name Plaid
+requires, and PayBridge never substitutes a placeholder or company name.
 
 **Test connection** on the settings screen (or `wp paybridge-plaid test-connection`) calls Plaid
-with the saved keys and reports whether the account is ready for Transfer and whether Ledger
-is enabled.
+with the saved keys and reports a classified result: invalid credentials, Transfer not enabled,
+permission denied, rate limited, Plaid unavailable, network error or connected (with Ledger and
+funding-account advice).
 
 ### Plaid Dashboard
 
@@ -125,8 +138,10 @@ is enabled.
 ### Sandbox testing
 
 Plaid Sandbox simulates Transfer UI outcomes by amount: **$11.11** succeeds (funds available),
-**$22.22** fails, **$33.33** is returned with R01, **$44.44** with R02. Use the Sandbox test
-user `user_good` / `pass_good` in Link.
+**$22.22** fails, **$33.33** is returned with R01, **$44.44** with R02. Refunds of **$1.11** are
+returned and **$2.22** fail; other refunds stay pending until
+`wp paybridge-plaid simulate-refund <refund-id> refund.posted|refund.settled`. Use the Sandbox
+test user `user_good` / `pass_good` in Link. The payment page shows a small "Sandbox" badge.
 
 ## Payment lifecycle and order statuses
 
@@ -139,8 +154,29 @@ user `user_good` / `pass_good` in Link.
 | `funds_available` | Funds available in the Plaid balance | `payment_complete()` → `processing`/`completed` |
 | `failed` | Transfer failed | `failed` |
 | `cancelled` | Transfer cancelled | `cancelled` |
-| `returned` | ACH return after settlement (R01, R02, …) | `failed` + admin alert + merchant email |
-| `manual_review` | Unexpected situation (e.g. money moving for a cancelled order, amount mismatch) | `on-hold` + admin alert |
+| `returned` | ACH return after settlement (R01, R02, …) | `failed`, history kept (paid date, transaction ID), "Bank payment returned" badge, admin alert, merchant email ([ADR-0012](docs/adr/0012-returned-payment-semantics.md)) |
+| `manual_review` | Contradiction (e.g. money for a cancelled order, amount mismatch) | `on-hold` + admin alert + email; merchant actions in the order panel |
+
+PayBridge keeps following every payment until Plaid's **unauthorized return window** (about
+three months after settlement) has closed — whether or not the gateway is still enabled
+([ADR-0014](docs/adr/0014-maintenance-and-return-windows.md)). A returned or failed order can be
+paid again through WooCommerce's pay link; that is always a new attempt, and every earlier
+attempt stays in the order's payment history ([ADR-0017](docs/adr/0017-payment-attempt-history.md)).
+
+### Refunds
+
+**Refund via PayBridge for Plaid** on the WooCommerce order screen sends full or partial refunds to
+the customer's bank through Plaid ([ADR-0016](docs/adr/0016-refund-architecture.md)):
+
+- available once the payment settled; at most 10 refunds per payment, never more than the
+  remaining refundable amount (failed/returned refunds don't count), within 180 days;
+- each WooCommerce refund maps to exactly one Plaid refund (durable reservation + Plaid
+  idempotency key); double submits and parallel requests cannot create a second refund; a
+  timeout is resolved from Plaid instead of being retried blindly;
+- refund status (pending → posted → settled, or failed/cancelled/returned) comes from verified
+  Plaid events and reconciliation; failures and returns raise alerts and emails;
+- if the original debit is returned after a refund, pending refunds are cancelled at Plaid and a
+  critical alert tells you the amount that already left.
 
 Transitions, ranks and conflict rules: [`docs/STATE_MACHINE.md`](docs/STATE_MACHINE.md) and
 [`docs/PAYMENT_LIFECYCLE.md`](docs/PAYMENT_LIFECYCLE.md). Extension hooks:
@@ -162,8 +198,10 @@ Transitions, ranks and conflict rules: [`docs/STATE_MACHINE.md`](docs/STATE_MACH
 - Transfers that do not belong to this store (another integration or store on the same
   Plaid account, another environment, an unknown attempt) are recorded as `ignored`
   with a reason and never retried.
-- Reconciliation (`paybridge_plaid_reconcile`, every 15 minutes) re-reads intents and
-  transfers that have been open for too long.
+- Refund events (`refund.*`, identified by `refund_id`) take the same verified path and drive
+  the refund state machine, never the payment state.
+- Reconciliation (`paybridge_plaid_reconcile`, every 15 minutes, independent of the enabled
+  switch) catches up on events and re-reads due payments and refunds, bounded per run.
 
 See [`docs/WEBHOOKS_AND_EVENTS.md`](docs/WEBHOOKS_AND_EVENTS.md).
 
@@ -177,8 +215,8 @@ See [`docs/WEBHOOKS_AND_EVENTS.md`](docs/WEBHOOKS_AND_EVENTS.md).
 - **Checkout Blocks** and **Classic checkout**: both place the order and redirect to the
   order-pay page, where Plaid Link runs (`woocommerce_receipt_paybridge_plaid`).
 - Unpaid-order cleanup keeps orders whose bank authorization is still in progress.
-- Refunds are not supported in 0.1.0 (ACH refunds require Plaid refunds with their own
-  lifecycle); refund manually and record it in WooCommerce.
+- Native refunds through `process_refund()` (see [Refunds](#refunds)).
+- Orders list: a "Pay by Bank" column flags returned payments and payments in review.
 
 ## Operations
 
@@ -187,15 +225,19 @@ wp paybridge-plaid status                  # versions, HPOS, Blocks, REST, schem
 wp paybridge-plaid test-connection         # verify keys and Transfer readiness
 wp paybridge-plaid sync-events             # run /transfer/event/sync now
 wp paybridge-plaid reconcile               # re-check open payments now
-wp paybridge-plaid sync-order <order-id>   # re-read one order's intent/transfer from Plaid
+wp paybridge-plaid sync-order <order-id>   # re-read one order's payment and refunds from Plaid
+wp paybridge-plaid refunds <order-id>      # PayBridge refunds and the refundable amount
 wp paybridge-plaid fire-sandbox-webhook [--url=<https-url>]   # Sandbox only
+wp paybridge-plaid simulate-refund <refund-id> <refund.posted|refund.settled|refund.failed|refund.returned>   # Sandbox only
 ```
 
-Also available: **WooCommerce → PayBridge diagnostics** (the same report as `status`,
-including the last verified and the last rejected webhook), Site
-Health tests, a PayBridge panel on the order screen (payment state, intent/transfer IDs and
-statuses, last event, failure/return reason, and a **Sync with Plaid** button), and persistent
-admin notices for returns and manual review. Incident procedures: [`docs/RUNBOOKS.md`](docs/RUNBOOKS.md).
+Also available: **WooCommerce → PayBridge diagnostics** (status checklist and operational
+counts: monitored payments, oldest one, manual review, unknown intent outcomes, event backlog,
+refunds pending/failed, overdue jobs, WP-Cron, last webhook/sync/reconciliation), Site Health
+tests, a PayBridge panel on the order screen (attempt, Plaid IDs, statuses, settlement and
+return windows, refunds, earlier attempts; **Sync with Plaid**, **Cancel bank payment** while
+Plaid allows it, manual-review actions), and persistent admin notices plus merchant emails for
+returns, refund problems and manual review. Incident procedures: [`docs/RUNBOOKS.md`](docs/RUNBOOKS.md).
 
 ## Security model
 
@@ -245,12 +287,14 @@ Composer; CI fails if it is out of date. Front-end sources live in `resources/ts
 | Command | What it covers |
 |---|---|
 | `composer syntax` / `composer lint` / `composer stan` | PHP lint, PHPCS, PHPStan level 6 |
-| `composer test` | PHPUnit: money, snapshot, state machine, Plaid client/DTOs/services, webhook verification, redaction |
+| `composer test` | PHPUnit: money (cents), snapshot, payment/refund state machines and ordering matrices, monitoring policy, refund policy and idempotency keys, Plaid client/DTOs/services/refund contract, webhook verification, settings, redaction |
 | `npm test` | Build, TypeScript typecheck, behavioural tests of the payment-page script |
-| `bash scripts/test-integration.sh` | Fresh WordPress + WooCommerce from the release ZIP; HPOS off and on; payment flows, ambiguous failures, foreign transfers, webhook REST matrix, parallel-request concurrency, uninstall |
-| `bash scripts/test-browser-e2e.sh` | Playwright: Classic and Blocks checkout, Link success/failure/exit, double submit, guest and logged-in customers |
+| `bash scripts/verify-package.sh` | ZIP contents, source/package parity, fresh-asset byte parity, no dev files/source maps/secrets, SHA-256 |
+| `bash scripts/test-package-smoke.sh` | Pristine WordPress + WooCommerce + only the ZIP: activation, schema, HPOS on/off, Blocks, diagnostics, Site Health, default uninstall |
+| `bash scripts/test-integration.sh` | Fresh WordPress + WooCommerce from the release ZIP; HPOS off and on; payments, refunds, lifecycle (disabled gateway, return windows, account guard, returns, repayment, cancel, manual review), webhook REST matrix, multi-process concurrency, schema migration, uninstall |
+| `bash scripts/test-browser-e2e.sh` | Playwright: Classic and Blocks checkout (guest and logged-in), Link success/failure/exit/retry, double submit, admin refunds, return badge, repayment, misconfiguration, axe-core accessibility |
 | `bash scripts/test-plugin-check.sh` | WordPress Plugin Check on the release ZIP |
-| `npm run test:sandbox` | Optional real Plaid Sandbox run: genuine Transfer UI from the Checkout block and the Classic checkout, $11.11/$22.22/$33.33 lifecycles (needs `PAYBRIDGE_PLAID_SANDBOX_*`; exits 78 when absent) |
+| `npm run test:sandbox` | Real Plaid Sandbox: genuine Transfer UI from both checkouts, $11.11/$22.22/$33.33 lifecycles, a genuine Link exit, full and partial refunds, refund failure and return, a lost Plaid response recovered by idempotency (needs `PAYBRIDGE_PLAID_SANDBOX_*`; exits 78 when absent) |
 | `npm run test:sandbox:ngrok` | The same run with the store on a public HTTPS URL through ngrok (`PAYBRIDGE_PLAID_NGROK_DOMAIN`): lifecycles driven by genuine Plaid-signed webhooks, then forged, tampered, replayed and stale webhooks sent through the tunnel |
 
 All scripts create a throwaway site and database (`paybridge_test_*`, `paybridge_browser_*`,
@@ -264,7 +308,7 @@ versions. Plaid is replaced by a deterministic mock in all but the Sandbox scrip
 
 ```bash
 ngrok config add-authtoken <token>        # once; or export NGROK_AUTHTOKEN
-echo 'PAYBRIDGE_PLAID_NGROK_DOMAIN=ocelot-dribble-creature.ngrok-free.dev' >> .env
+echo 'PAYBRIDGE_PLAID_NGROK_DOMAIN=your-reserved-name.ngrok-free.dev' >> .env
 npm run plugin-zip && npm run test:sandbox:ngrok
 ```
 
@@ -283,15 +327,17 @@ be online in only one ngrok agent at a time.
 
 ## CI and releases
 
-`.github/workflows/quality.yml` runs on pushes and pull requests to `master`: static analysis
-and front-end tests, PHPUnit on PHP 8.1–8.4, package verification, integration on
-WordPress 6.6/WooCommerce 8.5.2 and WordPress 7.1/WooCommerce 11.1.0, Plugin Check, browser
-E2E and the optional Sandbox gate (repository secrets, never for forks), followed by a single
-**Quality Gate** job.
+`.github/workflows/quality.yml` runs on pushes and pull requests to `master` (and is called by
+the release workflow): Composer validation, PHP syntax, shellcheck, PHPCS, PHPStan, PHPUnit on
+PHP 8.1–8.4 (8.5 early-warning), dependency audits and review, front-end build/typecheck/tests,
+one reproducible package build with SHA-256, pristine-install smoke, source/package parity (a
+rebuild of the commit must be byte-identical), integration on MySQL 8.0/8.4
+and MariaDB 10.11/11.4 across WordPress 6.6–7.1 and WooCommerce 8.5.2–11.1.2, Plugin Check,
+browser E2E with accessibility, the real Sandbox gate, and a **Quality Gate** job.
 
-`.github/workflows/release.yml` runs for tags `vX.Y.Z` on `master`: it checks that the tag,
-plugin header, `PAYBRIDGE_PLAID_VERSION` and `readme.txt` Stable tag agree, builds the ZIP
-with `scripts/package.sh` and publishes a GitHub release. See
+`.github/workflows/release.yml` runs for tags `vX.Y.Z` (or `-rc.N`): it verifies version metadata,
+runs the complete quality pipeline with the real Sandbox gate required, and publishes exactly the
+ZIP that pipeline built and tested (same SHA-256). See
 [`docs/CI_CD_RELEASE.md`](docs/CI_CD_RELEASE.md).
 
 ## Project layout
@@ -300,21 +346,22 @@ with `scripts/package.sh` and publishes a GitHub release. See
 paybridge-for-plaid.php   bootstrap: header, constants, autoloaders, activation hooks
 uninstall.php             conservative, opt-in cleanup of PayBridge-owned data only
 src/
-  Admin/                  settings connection test, order meta box, diagnostics, Site Health, notices
+  Admin/                  configuration status, connection test, order panel, orders-list column, diagnostics, Site Health, notices
   Background/             Action Scheduler jobs: event sync, reconciliation
   Checkout/               order-pay page, customer access checks, Blocks payment method
   CLI/                    wp paybridge-plaid commands
   Gateway/                WC_Payment_Gateway, availability rules
   Logging/                WooCommerce logger wrapper + redactor
-  Payment/                snapshot, state machine, attempt/completion services, event processor, projector
-  Persistence/            installer, payment reservations, event store, cursor, DB mutex
-  Plaid/                  HTTP client, DTOs, intent/link/transfer/event services, webhook verification
+  Payment/                snapshot, state machine, attempts + history, completion, event processor, projector, monitoring
+  Refund/                 refund policy, service, state machine, event handler, monitoring
+  Persistence/            installer, payment index/reservations, refund store, event store, cursor, DB mutex
+  Plaid/                  HTTP client, DTOs, intent/link/transfer/refund/event services, webhook verification
   REST/                   /link-token, /complete, /webhook
   Settings/, Support/, Exception/
 resources/                TypeScript and SCSS sources, images
 vendor-prefixed/          firebase/php-jwt under PayBridge\Plaid\Vendor\
 tests/                    Unit, Integration (WP-CLI), E2E (Playwright), js, fixtures
-scripts/                  package, integration, browser, Plugin Check, Sandbox scripts
+scripts/                  package, package verification, pristine smoke, integration, browser, Plugin Check, Sandbox scripts
 docs/                     engineering documentation, ADRs, API integration maps
 ```
 

@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Builds dist/paybridge-for-plaid-<version>.zip from the current source tree.
 # The ZIP is always rebuilt from scratch; a stale archive is never reused.
+# The archive is reproducible: the same source and SOURCE_DATE_EPOCH (default: the HEAD commit
+# time) always give byte-identical ZIPs (fixed timestamps, permissions and entry order).
+# PBFP_DIST_DIR writes the ZIP elsewhere (used to compare a rebuild with a released artifact).
 set -euo pipefail
 
 BASE_DIR="$(cd "$(dirname "$0")/.." && pwd)"
@@ -17,6 +20,8 @@ if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta|rc)\.[0-9]+)?$ ]]; th
     echo "Invalid version: $VERSION" >&2
     exit 1
 fi
+# Refuse to build when ANY version source differs from the requested version.
+# shellcheck disable=SC2055
 if [[ "$VERSION" != "$HEADER_VERSION" || "$VERSION" != "$CONSTANT_VERSION" || "$VERSION" != "$STABLE_TAG" || "$VERSION" != "$PACKAGE_VERSION" ]]; then
     echo "Version mismatch: requested=$VERSION header=$HEADER_VERSION PAYBRIDGE_PLAID_VERSION=$CONSTANT_VERSION readme=$STABLE_TAG package.json=$PACKAGE_VERSION" >&2
     exit 1
@@ -36,7 +41,9 @@ fi
 STAGE_DIR="$(mktemp -d)"
 trap 'rm -rf "$STAGE_DIR"' EXIT
 PLUGIN_DIR="$STAGE_DIR/$SLUG"
-mkdir -p "$PLUGIN_DIR" "$BASE_DIR/dist"
+DIST_DIR="${PBFP_DIST_DIR:-$BASE_DIR/dist}"
+mkdir -p "$PLUGIN_DIR" "$DIST_DIR"
+DIST_DIR="$(cd "$DIST_DIR" && pwd)"
 
 cp "$MAIN_FILE" "$BASE_DIR/readme.txt" "$BASE_DIR/uninstall.php" "$BASE_DIR/LICENSE" "$PLUGIN_DIR/"
 cp -a "$BASE_DIR/src" "$BASE_DIR/assets" "$BASE_DIR/languages" "$BASE_DIR/vendor-prefixed" "$PLUGIN_DIR/"
@@ -44,11 +51,19 @@ find "$PLUGIN_DIR/languages" -name '.gitkeep' -delete
 # Runtime needs only the prefixed sources, autoloader and licenses of bundled libraries.
 find "$PLUGIN_DIR/vendor-prefixed" \( -name 'composer.json' -o -name 'README.md' -o -name 'CHANGELOG.md' \) -not -path '*/vendor-prefixed/composer/*' -delete
 
-ZIP="$BASE_DIR/dist/$SLUG-$VERSION.zip"
+# Reproducible archive: normalized permissions and timestamps, sorted entries, no extra
+# attributes (uid/gid, extended timestamps). ZIP stores local time, so zip runs in UTC.
+EPOCH="${SOURCE_DATE_EPOCH:-$(git -C "$BASE_DIR" log -1 --format=%ct 2>/dev/null || true)}"
+[[ "$EPOCH" =~ ^[0-9]+$ ]] || EPOCH=1767225600
+find "$PLUGIN_DIR" -type d -exec chmod 0755 {} +
+find "$PLUGIN_DIR" -type f -exec chmod 0644 {} +
+find "$PLUGIN_DIR" -exec touch -h -d "@$EPOCH" {} +
+
+ZIP="$DIST_DIR/$SLUG-$VERSION.zip"
 rm -f "$ZIP"
 (
     cd "$STAGE_DIR"
-    zip -qrX "$ZIP" "$SLUG"
+    find "$SLUG" -print | LC_ALL=C sort | TZ=UTC zip -qX -@ "$ZIP"
 )
 
 # Package gate: required runtime files present, development files absent.

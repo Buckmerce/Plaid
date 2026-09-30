@@ -2,14 +2,14 @@
 # This file is distributed under the GPLv2 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: PayBridge for Plaid — WooCommerce Pay by Bank 0.1.0\n"
+"Project-Id-Version: PayBridge for Plaid — WooCommerce Pay by Bank 1.0.0\n"
 "Report-Msgid-Bugs-To: https://github.com/al5dy/paybridge-for-plaid/issues\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-09-29T12:41:59+02:00\n"
+"POT-Creation-Date: 2026-09-30T13:13:30+02:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: paybridge-for-plaid\n"
@@ -29,839 +29,1730 @@ msgstr ""
 msgid "al5dy"
 msgstr ""
 
-#. translators: 1: order number, 2: ACH return code
-#: src/Admin/AdminNotices.php:35
-#, php-format
-msgid "PayBridge: the bank payment for order #%1$s was RETURNED (%2$s). The funds were reversed."
-msgstr ""
-
-#. translators: 1: order number, 2: reason code
-#: src/Admin/AdminNotices.php:37
-#, php-format
-msgid "PayBridge: order #%1$s requires manual payment review (%2$s)."
-msgstr ""
-
-#: src/Admin/AdminNotices.php:41
+#: src/Admin/AdminNotices.php:36
 msgid "Review order"
 msgstr ""
 
-#: src/Admin/AdminNotices.php:43
+#: src/Admin/AdminNotices.php:38
 msgid "Dismiss"
 msgstr ""
 
-#: src/Admin/AdminNotices.php:50
+#: src/Admin/AdminNotices.php:45
 msgid "You are not allowed to do this."
 msgstr ""
 
-#: src/Admin/ConnectionTester.php:31
+#: src/Admin/ConfigurationStatus.php:46
+msgid "Plaid Client ID and Secret"
+msgstr ""
+
+#: src/Admin/ConfigurationStatus.php:46
+msgid "Enter both keys of the selected environment."
+msgstr ""
+
+#: src/Admin/ConfigurationStatus.php:47
+msgid "Environment: Production (real money)"
+msgstr ""
+
+#: src/Admin/ConfigurationStatus.php:47
+msgid "Environment: Sandbox (test mode)"
+msgstr ""
+
+#: src/Admin/ConfigurationStatus.php:49
+#: src/Admin/DiagnosticsPage.php:71
+msgid "HTTPS"
+msgstr ""
+
+#: src/Admin/ConfigurationStatus.php:49
+msgid "Production requires HTTPS."
+msgstr ""
+
+#: src/Admin/ConfigurationStatus.php:51
+msgid "Store currency USD"
+msgstr ""
+
+#: src/Admin/ConfigurationStatus.php:56
+#: src/Admin/DiagnosticsPage.php:86
+msgid "Link customization configured"
+msgstr ""
+
+#: src/Admin/ConfigurationStatus.php:57
+msgid "Create a Plaid Link customization with Account Select = “Enabled for one account”, then enter its name. Required for Production."
+msgstr ""
+
+#. translators: %s: Plaid error code
+#: src/Admin/ConfigurationStatus.php:61
+#, php-format
+msgid "Plaid rejected the last Link session (%s)"
+msgstr ""
+
+#. translators: %s: Plaid error code
+#: src/Admin/ConfigurationStatus.php:61
+msgid "Check the Link customization name, that it is published and that its language matches the store language."
+msgstr ""
+
+#: src/Admin/ConfigurationStatus.php:64
+msgid "Database tables"
+msgstr ""
+
+#: src/Admin/ConfigurationStatus.php:64
+msgid "Deactivate and reactivate the plugin to recreate its tables."
+msgstr ""
+
+#: src/Admin/ConfigurationStatus.php:66
+msgid "Webhook REST route"
+msgstr ""
+
+#: src/Admin/ConfigurationStatus.php:71
+#: src/Admin/ConfigurationStatus.php:73
+msgid "Last Plaid connection test"
+msgstr ""
+
+#: src/Admin/ConfigurationStatus.php:73
+msgid "Not run yet: use “Test connection”."
+msgstr ""
+
+#: src/Admin/ConfigurationStatus.php:79
+msgid "Pay by Bank offered at checkout"
+msgstr ""
+
+#: src/Admin/ConfigurationStatus.php:79
+msgid "Disabled: customers cannot choose Pay by Bank. Existing payments are still monitored."
+msgstr ""
+
+#: src/Admin/ConfigurationStatus.php:104
+msgid "Action Scheduler available"
+msgstr ""
+
+#: src/Admin/ConfigurationStatus.php:104
+msgid "PayBridge cannot follow payments without WooCommerce Action Scheduler."
+msgstr ""
+
+#: src/Admin/ConfigurationStatus.php:108
+#: src/Admin/DiagnosticsPage.php:76
+msgid "Reconciliation scheduled"
+msgstr ""
+
+#: src/Admin/ConfigurationStatus.php:108
+msgid "It is scheduled automatically on the next admin or cron request."
+msgstr ""
+
+#: src/Admin/ConfigurationStatus.php:114
+msgid "Background jobs running on time"
+msgstr ""
+
+#: src/Admin/ConfigurationStatus.php:117
+msgid "PayBridge jobs are overdue and WP-Cron is disabled (DISABLE_WP_CRON). Configure a server cron job that runs wp-cron.php or `wp action-scheduler run` every minute."
+msgstr ""
+
+#: src/Admin/ConfigurationStatus.php:118
+msgid "PayBridge jobs are overdue. WP-Cron runs only when the site gets visits; configure a server cron job for reliable payment updates."
+msgstr ""
+
+#: src/Admin/ConfigurationStatus.php:119
+msgid "WP-Cron is disabled; a server cron job must run the scheduled actions."
+msgstr ""
+
+#: src/Admin/ConfigurationStatus.php:125
+msgid "Last Plaid event sync failed"
+msgstr ""
+
+#: src/Admin/ConfigurationStatus.php:125
+msgid "Plaid rejected the request: check the credentials with “Test connection”."
+msgstr ""
+
+#: src/Admin/ConfigurationStatus.php:125
+msgid "PayBridge retries automatically with backoff."
+msgstr ""
+
+#. translators: %d: number of payments
+#: src/Admin/ConfigurationStatus.php:131
+#, php-format
+msgid "%d bank payment(s) cannot be monitored"
+msgstr ""
+
+#. translators: %d: number of payments
+#: src/Admin/ConfigurationStatus.php:131
+msgid "Plaid credentials are missing, so returns and refunds of existing payments are not detected."
+msgstr ""
+
+#. translators: %d: number of payments
+#: src/Admin/ConfigurationStatus.php:138
+#, php-format
+msgid "%d payment(s) belong to another Plaid account"
+msgstr ""
+
+#. translators: %d: number of payments
+#: src/Admin/ConfigurationStatus.php:138
+msgid "They cannot be read with the current Client ID and are not monitored."
+msgstr ""
+
+#: src/Admin/ConfigurationStatus.php:179
+msgid "Ready"
+msgstr ""
+
+#: src/Admin/ConfigurationStatus.php:180
+msgid "Disabled"
+msgstr ""
+
+#: src/Admin/ConfigurationStatus.php:181
+msgid "Incomplete"
+msgstr ""
+
+#: src/Admin/ConfigurationStatus.php:182
+msgid "Attention required"
+msgstr ""
+
+#: src/Admin/ConfigurationStatus.php:189
+#: src/Admin/DiagnosticsPage.php:86
+msgid "PASS"
+msgstr ""
+
+#: src/Admin/ConfigurationStatus.php:190
+msgid "FAIL"
+msgstr ""
+
+#: src/Admin/ConfigurationStatus.php:191
+msgid "WARN"
+msgstr ""
+
+#: src/Admin/ConfigurationStatus.php:192
+msgid "INFO"
+msgstr ""
+
+#: src/Admin/ConnectionTester.php:42
 msgid "You are not allowed to run this check."
 msgstr ""
 
-#: src/Admin/ConnectionTester.php:74
+#: src/Admin/ConnectionTester.php:112
 msgid "Connected to Plaid Transfer. Plaid Ledger is enabled (leave Funding Account ID empty)."
 msgstr ""
 
-#: src/Admin/ConnectionTester.php:75
+#: src/Admin/ConnectionTester.php:113
 msgid "Connected to Plaid Transfer."
 msgstr ""
 
-#: src/Admin/ConnectionTester.php:76
-msgid "Enter the Client ID and Secret, save, then test again."
+#: src/Admin/ConnectionTester.php:114
+msgid "Configuration incomplete: enter the Client ID and Secret, save, then test again."
 msgstr ""
 
 #. translators: %s: Plaid error code such as INVALID_API_KEYS
-#: src/Admin/ConnectionTester.php:78
+#: src/Admin/ConnectionTester.php:116
+#, php-format
+msgid "Invalid Plaid credentials (%s): check the Client ID and that the Secret belongs to the selected environment."
+msgstr ""
+
+#. translators: %s: Plaid error code
+#: src/Admin/ConnectionTester.php:118
+#, php-format
+msgid "Plaid Transfer is not enabled for this Plaid account/environment (%s). Request Transfer access in the Plaid Dashboard."
+msgstr ""
+
+#. translators: %s: Plaid error code
+#: src/Admin/ConnectionTester.php:120
+#, php-format
+msgid "Plaid denied access to Transfer (%s). Your team may not be approved for this environment yet."
+msgstr ""
+
+#: src/Admin/ConnectionTester.php:121
+msgid "Plaid rate-limited the check. Wait a minute and test again."
+msgstr ""
+
+#: src/Admin/ConnectionTester.php:122
+msgid "Plaid is temporarily unavailable or returned an unexpected response. Try again later; see status.plaid.com."
+msgstr ""
+
+#: src/Admin/ConnectionTester.php:123
+msgid "Plaid could not be reached from this server (network error). Check outbound HTTPS connectivity and firewall rules."
+msgstr ""
+
+#. translators: %s: Plaid error code
+#: src/Admin/ConnectionTester.php:125
 #, php-format
 msgid "Plaid rejected the request (%s). Check the credentials, the environment and that Transfer is enabled for your account."
 msgstr ""
 
-#: src/Admin/ConnectionTester.php:79
-msgid "Plaid could not be reached from this server. Check outbound HTTPS connectivity."
-msgstr ""
-
-#: src/Admin/ConnectionTester.php:80
+#: src/Admin/ConnectionTester.php:126
 msgid "No connection test has been run."
 msgstr ""
 
-#: src/Admin/DiagnosticsPage.php:34
-msgid "PayBridge diagnostics"
+#: src/Admin/ConnectionTester.php:131
+msgid "Link customization missing: Production requires one with Account Select “Enabled for one account”."
 msgstr ""
 
-#: src/Admin/DiagnosticsPage.php:41
-msgid "Yes"
+#: src/Admin/ConnectionTester.php:132
+msgid "Plaid Ledger is enabled, so remove the Funding Account ID (Plaid rejects it)."
 msgstr ""
 
-#: src/Admin/DiagnosticsPage.php:42
-msgid "No"
+#: src/Admin/ConnectionTester.php:133
+msgid "No Plaid Ledger was found: enter your Funding Account ID from the Plaid Dashboard."
 msgstr ""
 
 #: src/Admin/DiagnosticsPage.php:43
-msgid "Never"
+msgid "PayBridge diagnostics"
 msgstr ""
 
 #: src/Admin/DiagnosticsPage.php:50
-msgid "Plugin version"
+msgid "Yes"
 msgstr ""
 
 #: src/Admin/DiagnosticsPage.php:51
-msgid "PHP"
+msgid "No"
 msgstr ""
 
 #: src/Admin/DiagnosticsPage.php:52
+msgid "Never"
+msgstr ""
+
+#: src/Admin/DiagnosticsPage.php:63
+#: src/Admin/OrderMetaBox.php:114
+#: src/Gateway/PayBridgeGateway.php:172
+msgid "Status"
+msgstr ""
+
+#: src/Admin/DiagnosticsPage.php:64
+msgid "Plugin version"
+msgstr ""
+
+#: src/Admin/DiagnosticsPage.php:65
+msgid "PHP"
+msgstr ""
+
+#: src/Admin/DiagnosticsPage.php:66
 msgid "WordPress"
 msgstr ""
 
-#: src/Admin/DiagnosticsPage.php:53
+#: src/Admin/DiagnosticsPage.php:67
 msgid "WooCommerce"
 msgstr ""
 
-#: src/Admin/DiagnosticsPage.php:53
+#: src/Admin/DiagnosticsPage.php:67
 msgid "Not active"
 msgstr ""
 
-#: src/Admin/DiagnosticsPage.php:54
+#: src/Admin/DiagnosticsPage.php:68
+msgid "Database server"
+msgstr ""
+
+#: src/Admin/DiagnosticsPage.php:69
 msgid "HPOS (custom order tables)"
 msgstr ""
 
-#: src/Admin/DiagnosticsPage.php:55
+#: src/Admin/DiagnosticsPage.php:70
 msgid "Checkout Blocks available"
 msgstr ""
 
-#: src/Admin/DiagnosticsPage.php:56
-msgid "HTTPS"
-msgstr ""
-
-#: src/Admin/DiagnosticsPage.php:57
+#: src/Admin/DiagnosticsPage.php:72
 msgid "REST API route registered"
 msgstr ""
 
-#: src/Admin/DiagnosticsPage.php:58
+#: src/Admin/DiagnosticsPage.php:73
 msgid "Action Scheduler"
 msgstr ""
 
-#: src/Admin/DiagnosticsPage.php:59
-msgid "Reconciliation scheduled"
+#: src/Admin/DiagnosticsPage.php:74
+msgid "WP-Cron disabled (DISABLE_WP_CRON)"
 msgstr ""
 
-#: src/Admin/DiagnosticsPage.php:60
+#: src/Admin/DiagnosticsPage.php:75
+msgid "Background maintenance active"
+msgstr ""
+
+#: src/Admin/DiagnosticsPage.php:77
+msgid "Overdue PayBridge jobs (>30 min)"
+msgstr ""
+
+#: src/Admin/DiagnosticsPage.php:78
+msgid "Failed PayBridge jobs (7 days)"
+msgstr ""
+
+#: src/Admin/DiagnosticsPage.php:79
 msgid "Database schema"
 msgstr ""
 
 #. translators: %s: schema version
-#: src/Admin/DiagnosticsPage.php:60
+#: src/Admin/DiagnosticsPage.php:79
 #, php-format
 msgid "Valid (version %s)"
 msgstr ""
 
 #. translators: %s: schema version
-#: src/Admin/DiagnosticsPage.php:60
+#: src/Admin/DiagnosticsPage.php:79
 msgid "INVALID"
 msgstr ""
 
 #. translators: %s: schema version
-#: src/Admin/DiagnosticsPage.php:61
+#: src/Admin/DiagnosticsPage.php:80
+msgid "Gateway enabled (new payments)"
+msgstr ""
+
+#: src/Admin/DiagnosticsPage.php:81
 msgid "Plaid environment"
 msgstr ""
 
-#: src/Admin/DiagnosticsPage.php:62
+#: src/Admin/DiagnosticsPage.php:82
 msgid "Client ID configured"
 msgstr ""
 
-#: src/Admin/DiagnosticsPage.php:63
+#: src/Admin/DiagnosticsPage.php:83
 msgid "Secret configured"
 msgstr ""
 
-#: src/Admin/DiagnosticsPage.php:64
+#: src/Admin/DiagnosticsPage.php:84
+msgid "Plaid account fingerprint"
+msgstr ""
+
+#: src/Admin/DiagnosticsPage.php:85
 msgid "Funding Account configured"
 msgstr ""
 
-#: src/Admin/DiagnosticsPage.php:64
+#: src/Admin/DiagnosticsPage.php:85
 msgid "No (Plaid Ledger)"
 msgstr ""
 
-#: src/Admin/DiagnosticsPage.php:65
-msgid "Plaid connectivity (last test)"
+#: src/Admin/DiagnosticsPage.php:86
+msgid "FAIL (required for Production)"
 msgstr ""
 
-#: src/Admin/DiagnosticsPage.php:65
-msgid "Not tested"
+#: src/Admin/DiagnosticsPage.php:86
+msgid "Not set (Sandbox default)"
 msgstr ""
 
-#: src/Admin/DiagnosticsPage.php:66
-#: src/Gateway/PayBridgeGateway.php:157
-msgid "Webhook URL"
+#: src/Admin/DiagnosticsPage.php:87
+msgid "Last Link session error"
 msgstr ""
 
-#: src/Admin/DiagnosticsPage.php:67
-msgid "Last successful event sync"
+#: src/Admin/DiagnosticsPage.php:88
+#: src/Gateway/PayBridgeGateway.php:60
+msgid "Bank statement description"
 msgstr ""
 
-#: src/Admin/DiagnosticsPage.php:68
-msgid "Last event sync error"
-msgstr ""
-
-#: src/Admin/DiagnosticsPage.php:69
-msgid "Last reconciliation"
-msgstr ""
-
-#: src/Admin/DiagnosticsPage.php:70
-msgid "Last reconciliation error"
-msgstr ""
-
-#: src/Admin/DiagnosticsPage.php:71
-msgid "Events waiting for an order match"
-msgstr ""
-
-#: src/Admin/DiagnosticsPage.php:72
-msgid "Events abandoned after retries"
-msgstr ""
-
-#: src/Admin/DiagnosticsPage.php:84
-msgid "PayBridge for Plaid — diagnostics"
-msgstr ""
-
-#: src/Admin/DiagnosticsPage.php:93
-msgid "Test Plaid connection"
-msgstr ""
-
-#: src/Admin/DiagnosticsPage.php:94
-msgid "Support report"
-msgstr ""
-
-#: src/Admin/DiagnosticsPage.php:94
-msgid "Safe to share: contains no credentials or customer data."
-msgstr ""
-
-#: src/Admin/OrderMetaBox.php:34
-#: src/Gateway/PayBridgeGateway.php:48
-msgid "Environment"
-msgstr ""
-
-#: src/Admin/OrderMetaBox.php:35
-msgid "Payment state"
-msgstr ""
-
-#: src/Admin/OrderMetaBox.php:36
-msgid "Transfer Intent ID"
-msgstr ""
-
-#: src/Admin/OrderMetaBox.php:37
-msgid "Transfer Intent status"
-msgstr ""
-
-#: src/Admin/OrderMetaBox.php:38
-msgid "Transfer ID"
-msgstr ""
-
-#: src/Admin/OrderMetaBox.php:39
-msgid "Transfer status"
-msgstr ""
-
-#: src/Admin/OrderMetaBox.php:40
-#: src/Checkout/PaymentPage.php:78
-msgid "Amount"
-msgstr ""
-
-#: src/Admin/OrderMetaBox.php:41
-msgid "Last synchronized"
-msgstr ""
-
-#: src/Admin/OrderMetaBox.php:42
-msgid "Last event ID"
-msgstr ""
-
-#: src/Admin/OrderMetaBox.php:43
-msgid "Request ID"
-msgstr ""
-
-#: src/Admin/OrderMetaBox.php:44
-msgid "Failure / return reason"
-msgstr ""
-
-#: src/Admin/OrderMetaBox.php:45
-msgid "Manual review reason"
-msgstr ""
-
-#: src/Admin/OrderMetaBox.php:47
-#: src/Gateway/PayBridgeGateway.php:29
-#: src/Plugin.php:83
-msgid "PayBridge for Plaid"
-msgstr ""
-
-#: src/Admin/OrderMetaBox.php:55
-msgid "ACH return: the bank payment for this order was reversed."
-msgstr ""
-
-#: src/Admin/OrderMetaBox.php:66
-msgid "Sync with Plaid"
-msgstr ""
-
-#: src/Admin/OrderMetaBox.php:74
-msgid "You are not allowed to synchronize payments."
-msgstr ""
-
-#: src/Admin/OrderMetaBox.php:80
-msgid "The order is not a PayBridge order."
-msgstr ""
-
-#: src/Admin/OrderMetaBox.php:84
-msgid "Synchronized with Plaid."
-msgstr ""
-
-#: src/Admin/OrderMetaBox.php:86
-msgid "The payment is being processed right now. Try again in a moment."
-msgstr ""
-
-#: src/Admin/OrderMetaBox.php:89
-msgid "Plaid could not be reached or returned an error. See the PayBridge logs."
-msgstr ""
-
-#: src/Admin/SiteHealth.php:27
-msgid "PayBridge for Plaid configuration"
-msgstr ""
-
-#: src/Admin/SiteHealth.php:28
-msgid "PayBridge for Plaid background processing"
-msgstr ""
-
-#: src/Admin/SiteHealth.php:37
-msgid "PayBridge for Plaid is disabled"
-msgstr ""
-
-#: src/Admin/SiteHealth.php:37
-msgid "The gateway is not enabled, so no checks apply."
-msgstr ""
-
-#: src/Admin/SiteHealth.php:40
-msgid "PayBridge database tables are invalid"
-msgstr ""
-
-#: src/Admin/SiteHealth.php:40
-msgid "Deactivate and reactivate the plugin to recreate its tables."
-msgstr ""
-
-#: src/Admin/SiteHealth.php:44
-msgid "PayBridge Production requires HTTPS"
-msgstr ""
-
-#: src/Admin/SiteHealth.php:44
-msgid "Pay by Bank is hidden until the site uses HTTPS."
-msgstr ""
-
-#: src/Admin/SiteHealth.php:47
-msgid "PayBridge for Plaid configuration is incomplete"
-msgstr ""
-
-#: src/Admin/SiteHealth.php:51
-msgid "The last Plaid connection test failed"
-msgstr ""
-
-#: src/Admin/SiteHealth.php:53
-msgid "PayBridge for Plaid is configured"
-msgstr ""
-
-#: src/Admin/SiteHealth.php:53
-msgid "Credentials are present and the configuration allows Pay by Bank."
-msgstr ""
-
-#: src/Admin/SiteHealth.php:61
-msgid "PayBridge background processing is idle"
-msgstr ""
-
-#: src/Admin/SiteHealth.php:61
-msgid "The gateway is not enabled."
-msgstr ""
-
-#: src/Admin/SiteHealth.php:64
-msgid "Action Scheduler is unavailable"
-msgstr ""
-
-#: src/Admin/SiteHealth.php:64
-msgid "PayBridge cannot process Plaid transfer events without Action Scheduler."
-msgstr ""
-
-#: src/Admin/SiteHealth.php:67
-msgid "PayBridge reconciliation is not scheduled yet"
-msgstr ""
-
-#: src/Admin/SiteHealth.php:67
-msgid "It is scheduled automatically on the next admin or cron request."
-msgstr ""
-
-#: src/Admin/SiteHealth.php:71
-msgid "The last Plaid event sync failed"
-msgstr ""
-
-#: src/Admin/SiteHealth.php:71
-msgid "PayBridge will retry automatically. See WooCommerce → Status → Logs (paybridge-for-plaid)."
-msgstr ""
-
-#: src/Admin/SiteHealth.php:73
-msgid "PayBridge background processing is healthy"
-msgstr ""
-
-#: src/Admin/SiteHealth.php:73
-msgid "Transfer event sync and reconciliation are available."
-msgstr ""
-
-#: src/Admin/SiteHealth.php:82
-#: src/Gateway/PayBridgeGateway.php:53
-msgid "Payments"
-msgstr ""
-
-#: src/Admin/SiteHealth.php:84
-msgid "Open PayBridge diagnostics"
-msgstr ""
-
-#: src/Checkout/PaymentPage.php:37
-msgid "This payment session has expired. Please open the payment link from your order confirmation email or log in to your account to pay for this order."
-msgstr ""
-
-#: src/Checkout/PaymentPage.php:55
-msgid "Preparing secure bank connection…"
-msgstr ""
-
-#: src/Checkout/PaymentPage.php:56
-msgid "Opening your bank connection…"
-msgstr ""
-
-#: src/Checkout/PaymentPage.php:57
-msgid "Confirming your payment with Plaid…"
-msgstr ""
-
-#: src/Checkout/PaymentPage.php:58
-msgid "Payment submitted. Redirecting to your order…"
-msgstr ""
-
-#: src/Checkout/PaymentPage.php:59
-msgid "The bank connection was closed before the payment was completed. You can try again."
-msgstr ""
-
-#: src/Checkout/PaymentPage.php:60
-msgid "Your bank payment was not completed. You can try again."
-msgstr ""
-
-#: src/Checkout/PaymentPage.php:61
-msgid "Your bank reported insufficient funds. You can try again or use another account."
-msgstr ""
-
-#: src/Checkout/PaymentPage.php:62
-msgid "Your bank payment could not be authorized. You can try again."
-msgstr ""
-
-#: src/Checkout/PaymentPage.php:63
-msgid "We could not confirm your payment yet. Please wait a moment…"
-msgstr ""
-
-#: src/Checkout/PaymentPage.php:64
-msgid "Your payment needs review by the store. Please contact the store."
-msgstr ""
-
-#: src/Checkout/PaymentPage.php:65
-msgid "Something went wrong while starting the bank payment. Please try again."
-msgstr ""
-
-#: src/Checkout/PaymentPage.php:66
-msgid "Secure bank connection could not be loaded. Check your connection and try again."
-msgstr ""
-
-#: src/Checkout/PaymentPage.php:67
-msgid "Try again"
-msgstr ""
-
-#: src/Checkout/PaymentPage.php:77
-msgid "Order"
-msgstr ""
-
-#: src/Checkout/PaymentPage.php:81
-msgid "Connect bank and pay"
-msgstr ""
-
-#: src/Checkout/PaymentPage.php:83
-msgid "Your bank connection and payment authorization are handled securely by Plaid. This store never sees your bank login credentials."
-msgstr ""
-
-#: src/Checkout/PaymentPage.php:84
-msgid "JavaScript is required to connect your bank."
-msgstr ""
-
-#: src/Gateway/GatewayAvailability.php:59
-msgid "The gateway is disabled."
-msgstr ""
-
-#: src/Gateway/GatewayAvailability.php:60
-msgid "The Plaid environment setting is invalid."
-msgstr ""
-
-#: src/Gateway/GatewayAvailability.php:61
-msgid "Plaid Client ID and Secret are required."
-msgstr ""
-
-#: src/Gateway/GatewayAvailability.php:62
-msgid "The store or order currency is not USD."
-msgstr ""
-
-#: src/Gateway/GatewayAvailability.php:63
-msgid "Production requires the site to use HTTPS."
-msgstr ""
-
-#: src/Gateway/PayBridgeGateway.php:30
-msgid "Pay by Bank through Plaid Transfer. Customers authorize a one-time ACH debit in Plaid Transfer UI; orders are updated from verified Plaid transfer events."
-msgstr ""
-
-#: src/Gateway/PayBridgeGateway.php:36
-#: src/Gateway/PayBridgeGateway.php:45
-#: src/Settings/Settings.php:47
-msgid "Pay by Bank"
-msgstr ""
-
-#: src/Gateway/PayBridgeGateway.php:37
-#: src/Gateway/PayBridgeGateway.php:46
-#: src/Settings/Settings.php:53
-msgid "Securely pay directly from your bank account."
-msgstr ""
-
-#: src/Gateway/PayBridgeGateway.php:44
-msgid "Enable/Disable"
-msgstr ""
-
-#: src/Gateway/PayBridgeGateway.php:44
-msgid "Enable PayBridge"
-msgstr ""
-
-#: src/Gateway/PayBridgeGateway.php:45
-msgid "Title"
-msgstr ""
-
-#: src/Gateway/PayBridgeGateway.php:45
-msgid "Payment method name shown at checkout."
-msgstr ""
-
-#: src/Gateway/PayBridgeGateway.php:46
-msgid "Description"
-msgstr ""
-
-#: src/Gateway/PayBridgeGateway.php:47
-msgid "Plaid account"
-msgstr ""
-
-#: src/Gateway/PayBridgeGateway.php:47
-msgid "API keys are in the Plaid Dashboard under Developers → Keys. Plaid Transfer must be enabled for your account."
-msgstr ""
-
-#: src/Gateway/PayBridgeGateway.php:48
-msgid "Sandbox"
-msgstr ""
-
-#: src/Gateway/PayBridgeGateway.php:48
-msgid "Production"
-msgstr ""
-
-#: src/Gateway/PayBridgeGateway.php:48
-msgid "Production moves real money and requires HTTPS."
-msgstr ""
-
-#: src/Gateway/PayBridgeGateway.php:49
-msgid "Client ID"
-msgstr ""
-
-#: src/Gateway/PayBridgeGateway.php:50
-msgid "Secret"
-msgstr ""
-
-#: src/Gateway/PayBridgeGateway.php:50
-msgid "Use the secret of the selected environment. Leave blank when saving to keep the stored secret."
-msgstr ""
-
-#: src/Gateway/PayBridgeGateway.php:51
-msgid "Funding Account ID (optional)"
-msgstr ""
-
-#: src/Gateway/PayBridgeGateway.php:51
-msgid "Leave empty when your Plaid Transfer account uses Plaid Ledger (the default). Only accounts without a Ledger configure a funding account ID here."
-msgstr ""
-
-#: src/Gateway/PayBridgeGateway.php:52
-msgid "Link customization name (optional)"
-msgstr ""
-
-#: src/Gateway/PayBridgeGateway.php:52
-msgid "Name of a Plaid Link customization with Account Select set to “Enabled for one account”, as recommended for Transfer UI."
-msgstr ""
-
-#: src/Gateway/PayBridgeGateway.php:54
-msgid "Payment network"
-msgstr ""
-
-#: src/Gateway/PayBridgeGateway.php:54
-msgid "Same Day ACH"
-msgstr ""
-
-#: src/Gateway/PayBridgeGateway.php:54
-msgid "Standard ACH"
-msgstr ""
-
-#: src/Gateway/PayBridgeGateway.php:55
+#: src/Admin/DiagnosticsPage.php:89
 msgid "ACH class"
 msgstr ""
 
-#: src/Gateway/PayBridgeGateway.php:55
-msgid "WEB — consumer authorized online (recommended)"
+#: src/Admin/DiagnosticsPage.php:90
+msgid "Plaid connectivity (last test)"
+msgstr ""
+
+#: src/Admin/DiagnosticsPage.php:90
+msgid "Not tested"
+msgstr ""
+
+#: src/Admin/DiagnosticsPage.php:91
+#: src/Gateway/PayBridgeGateway.php:195
+msgid "Webhook URL"
+msgstr ""
+
+#: src/Admin/DiagnosticsPage.php:92
+msgid "Last verified webhook"
+msgstr ""
+
+#: src/Admin/DiagnosticsPage.php:93
+msgid "Last rejected webhook"
+msgstr ""
+
+#: src/Admin/DiagnosticsPage.php:94
+msgid "Last successful event sync"
+msgstr ""
+
+#: src/Admin/DiagnosticsPage.php:95
+msgid "Last event sync error"
+msgstr ""
+
+#: src/Admin/DiagnosticsPage.php:96
+msgid "Consecutive event sync failures"
+msgstr ""
+
+#: src/Admin/DiagnosticsPage.php:97
+msgid "Last reconciliation"
+msgstr ""
+
+#: src/Admin/DiagnosticsPage.php:98
+msgid "Last reconciliation error"
+msgstr ""
+
+#: src/Admin/DiagnosticsPage.php:110
+msgid "Monitored bank payments"
+msgstr ""
+
+#: src/Admin/DiagnosticsPage.php:111
+msgid "Oldest monitored payment (attempt created)"
+msgstr ""
+
+#: src/Admin/DiagnosticsPage.php:112
+msgid "Payments in flight (pending/posted)"
+msgstr ""
+
+#: src/Admin/DiagnosticsPage.php:113
+msgid "Payments awaiting authorization"
+msgstr ""
+
+#: src/Admin/DiagnosticsPage.php:114
+msgid "Payments in manual review"
+msgstr ""
+
+#: src/Admin/DiagnosticsPage.php:115
+msgid "Returned payments"
+msgstr ""
+
+#: src/Admin/DiagnosticsPage.php:116
+msgid "Intent creations with unknown outcome"
+msgstr ""
+
+#: src/Admin/DiagnosticsPage.php:117
+msgid "Payments of another Plaid account"
+msgstr ""
+
+#: src/Admin/DiagnosticsPage.php:118
+msgid "Refunds pending (in flight/unconfirmed)"
+msgstr ""
+
+#: src/Admin/DiagnosticsPage.php:119
+msgid "Refunds settled"
+msgstr ""
+
+#: src/Admin/DiagnosticsPage.php:120
+msgid "Refunds failed or returned"
+msgstr ""
+
+#: src/Admin/DiagnosticsPage.php:121
+msgid "Event backlog (waiting to be processed)"
+msgstr ""
+
+#: src/Admin/DiagnosticsPage.php:122
+msgid "Events waiting for an order match"
+msgstr ""
+
+#: src/Admin/DiagnosticsPage.php:123
+msgid "Events abandoned after retries"
+msgstr ""
+
+#: src/Admin/DiagnosticsPage.php:144
+msgid "PayBridge for Plaid — diagnostics"
+msgstr ""
+
+#: src/Admin/DiagnosticsPage.php:144
+#: src/Gateway/PayBridgeGateway.php:174
+msgid "Production"
+msgstr ""
+
+#: src/Admin/DiagnosticsPage.php:144
+#: src/Gateway/PayBridgeGateway.php:174
+msgid "Sandbox"
+msgstr ""
+
+#. translators: %s: status label
+#: src/Admin/DiagnosticsPage.php:148
+#, php-format
+msgid "Status: %s"
+msgstr ""
+
+#: src/Admin/DiagnosticsPage.php:157
+msgid "Test Plaid connection"
+msgstr ""
+
+#: src/Admin/DiagnosticsPage.php:158
+#: src/Admin/DiagnosticsPage.php:163
+msgid "Support report"
+msgstr ""
+
+#: src/Admin/DiagnosticsPage.php:158
+msgid "Safe to share: contains no credentials or customer data."
+msgstr ""
+
+#: src/Admin/OrderListColumn.php:38
+#: src/Admin/OrderListColumn.php:42
+#: src/Gateway/PayBridgeGateway.php:41
+#: src/Gateway/PayBridgeGateway.php:51
+#: src/Gateway/PayBridgeGateway.php:58
+#: src/Settings/Settings.php:58
+msgid "Pay by Bank"
+msgstr ""
+
+#. translators: %s: ACH return code
+#: src/Admin/OrderListColumn.php:83
+msgid "Bank payment returned"
+msgstr ""
+
+#. translators: %s: ACH return code
+#: src/Admin/OrderListColumn.php:83
+#, php-format
+msgid "Bank payment returned (%s)"
+msgstr ""
+
+#: src/Admin/OrderListColumn.php:84
+msgid "Needs review"
+msgstr ""
+
+#: src/Admin/OrderListColumn.php:85
+msgid "Bank payment failed"
+msgstr ""
+
+#: src/Admin/OrderListColumn.php:86
+msgid "Bank payment cancelled"
+msgstr ""
+
+#: src/Admin/OrderListColumn.php:87
+msgid "Awaiting ACH settlement"
+msgstr ""
+
+#: src/Admin/OrderListColumn.php:88
+#: src/Admin/OrderMetaBox.php:66
+msgid "Settled"
+msgstr ""
+
+#: src/Admin/OrderListColumn.php:89
+#: src/Admin/OrderMetaBox.php:67
+msgid "Funds available"
+msgstr ""
+
+#: src/Admin/OrderListColumn.php:90
+msgid "Awaiting authorization"
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:56
+msgid "PayBridge state"
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:57
+#: src/Gateway/PayBridgeGateway.php:54
+msgid "Environment"
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:58
+msgid "Payment attempt"
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:59
+msgid "Attempt created"
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:60
+#: src/Admin/OrderMetaBox.php:114
+#: src/Admin/OrderMetaBox.php:135
+#: src/Checkout/PaymentPage.php:57
+msgid "Amount"
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:61
+msgid "Transfer Intent ID"
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:62
+msgid "Transfer Intent status (Plaid)"
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:63
+#: src/Admin/OrderMetaBox.php:135
+msgid "Transfer ID"
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:64
+msgid "Transfer status (Plaid)"
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:65
+msgid "Transfer created"
+msgstr ""
+
+#. translators: %s: date
+#: src/Admin/OrderMetaBox.php:67
+#, php-format
+msgid "expected %s"
+msgstr ""
+
+#. translators: %s: date
+#: src/Admin/OrderMetaBox.php:68
+msgid "Standard return window"
+msgstr ""
+
+#. translators: %s: date
+#: src/Admin/OrderMetaBox.php:68
+#: src/Admin/OrderMetaBox.php:69
+#, php-format
+msgid "about %s (estimated)"
+msgstr ""
+
+#. translators: %s: date
+#: src/Admin/OrderMetaBox.php:69
+msgid "Unauthorized return window"
+msgstr ""
+
+#. translators: %s: date
+#: src/Admin/OrderMetaBox.php:70
+msgid "Returned"
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:71
+msgid "Return code"
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:72
+msgid "Failure code"
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:73
+msgid "Failure / return reason"
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:74
+msgid "Manual review reason"
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:75
+msgid "Last synchronized"
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:76
+msgid "Last event ID"
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:77
+msgid "Plaid request ID"
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:78
+msgid "Refunded through Plaid"
+msgstr ""
+
+#. translators: %s: amount
+#: src/Admin/OrderMetaBox.php:78
+#, php-format
+msgid "$%s refundable"
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:80
+#: src/Gateway/PayBridgeGateway.php:34
+#: src/Plugin.php:104
+msgid "PayBridge for Plaid"
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:92
+msgid "Bank payment returned: the customer's bank reversed this payment. The original payment details are kept below; the order stays Failed until a new payment succeeds."
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:113
+msgid "Refunds"
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:114
+msgid "Plaid refund ID"
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:114
+msgid "WooCommerce refund"
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:114
+msgid "Code"
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:114
+msgid "Updated"
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:119
+msgid "created outside WooCommerce"
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:134
+msgid "Earlier payment attempts"
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:135
+msgid "Created"
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:135
+msgid "Final state"
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:135
+msgid "Return / failure"
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:135
+msgid "Retired"
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:153
+msgid "Sync with Plaid"
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:156
+msgid "Cancel this bank payment at Plaid? The customer will not be charged and the order will be cancelled."
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:157
+msgid "Cancel bank payment"
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:160
+msgid "Reviewed: fulfil manually"
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:160
+msgid "Reviewed: refunded"
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:160
+msgid "Reviewed: customer contacted"
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:164
+msgid "Let the customer pay again"
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:189
+msgid "Synchronized with Plaid."
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:191
+#: src/Admin/OrderMetaBox.php:208
+msgid "The payment is being processed right now. Try again in a moment."
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:194
+msgid "Plaid could not be reached or returned an error. See the PayBridge logs."
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:205
+msgid "The bank payment was cancelled at Plaid."
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:206
+msgid "Plaid no longer allows cancelling this bank payment (it was already sent to the bank). Refund it after it settles instead."
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:211
+msgid "The cancellation could not be confirmed with Plaid. Nothing was changed; use Sync with Plaid to check the payment."
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:222
+msgid "Unknown decision."
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:227
+msgid "Review recorded. The customer can pay for this order again."
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:228
+msgid "Review decision recorded."
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:229
+msgid "This payment cannot be released: Plaid shows it may still be authorized or it already created a transfer."
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:233
+msgid "The review could not be recorded. See the PayBridge logs."
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:241
+msgid "You are not allowed to manage payments."
+msgstr ""
+
+#: src/Admin/OrderMetaBox.php:247
+msgid "The order is not a PayBridge order."
+msgstr ""
+
+#: src/Admin/SiteHealth.php:25
+msgid "PayBridge for Plaid configuration"
+msgstr ""
+
+#: src/Admin/SiteHealth.php:26
+msgid "PayBridge for Plaid background processing"
+msgstr ""
+
+#: src/Admin/SiteHealth.php:38
+msgid "PayBridge for Plaid is not in use"
+msgstr ""
+
+#: src/Admin/SiteHealth.php:38
+msgid "The gateway is disabled and no bank payments exist in the configured environment."
+msgstr ""
+
+#: src/Admin/SiteHealth.php:41
+msgid "PayBridge for Plaid configuration is incomplete"
+msgstr ""
+
+#: src/Admin/SiteHealth.php:42
+msgid "PayBridge for Plaid needs attention"
+msgstr ""
+
+#: src/Admin/SiteHealth.php:43
+msgid "PayBridge for Plaid is disabled for new payments"
+msgstr ""
+
+#: src/Admin/SiteHealth.php:43
+msgid "Existing bank payments are still monitored."
+msgstr ""
+
+#: src/Admin/SiteHealth.php:44
+msgid "PayBridge for Plaid is configured"
+msgstr ""
+
+#: src/Admin/SiteHealth.php:44
+msgid "Production is ready to accept bank payments."
+msgstr ""
+
+#: src/Admin/SiteHealth.php:44
+msgid "Sandbox is ready for test payments."
+msgstr ""
+
+#: src/Admin/SiteHealth.php:57
+msgid "PayBridge cannot follow bank payments in the background"
+msgstr ""
+
+#: src/Admin/SiteHealth.php:60
+msgid "PayBridge background processing needs attention"
+msgstr ""
+
+#: src/Admin/SiteHealth.php:63
+msgid "PayBridge background processing is idle"
+msgstr ""
+
+#: src/Admin/SiteHealth.php:63
+msgid "No bank payments need monitoring."
+msgstr ""
+
+#: src/Admin/SiteHealth.php:65
+msgid "PayBridge background processing is healthy"
+msgstr ""
+
+#: src/Admin/SiteHealth.php:65
+msgid "Transfer event sync and reconciliation are running."
+msgstr ""
+
+#: src/Admin/SiteHealth.php:74
+msgid "Payments"
+msgstr ""
+
+#: src/Admin/SiteHealth.php:76
+msgid "Open PayBridge diagnostics"
+msgstr ""
+
+#: src/Checkout/PaymentPage.php:38
+msgid "This payment session has expired. Please open the payment link from your order confirmation email or log in to your account to pay for this order."
+msgstr ""
+
+#: src/Checkout/PaymentPage.php:52
+msgid "Sandbox — test mode, no real money"
+msgstr ""
+
+#: src/Checkout/PaymentPage.php:56
+msgid "Order"
+msgstr ""
+
+#: src/Checkout/PaymentPage.php:60
+msgid "What happens next"
+msgstr ""
+
+#: src/Checkout/PaymentPage.php:62
+msgid "A secure window from Plaid opens. Choose your bank and sign in there."
+msgstr ""
+
+#: src/Checkout/PaymentPage.php:63
+msgid "Select the account to pay from and confirm the amount."
+msgstr ""
+
+#: src/Checkout/PaymentPage.php:64
+msgid "We confirm the payment and show your order. Bank payments usually take 1–3 business days to complete; we update your order when they do."
+msgstr ""
+
+#: src/Checkout/PaymentPage.php:67
+msgid "This order has no account holder name, which is required to pay by bank. Please contact the store or place a new order with your legal first and last name."
+msgstr ""
+
+#: src/Checkout/PaymentPage.php:69
+msgid "Connect bank and pay"
+msgstr ""
+
+#: src/Checkout/PaymentPage.php:72
+msgid "Your bank connection and payment authorization are handled securely by Plaid. This store never sees your bank login credentials."
+msgstr ""
+
+#: src/Checkout/PaymentPage.php:73
+msgid "JavaScript is required to connect your bank."
+msgstr ""
+
+#: src/Checkout/PaymentPage.php:94
+msgid "Preparing a secure bank connection…"
+msgstr ""
+
+#: src/Checkout/PaymentPage.php:95
+msgid "Opening the secure bank connection…"
+msgstr ""
+
+#: src/Checkout/PaymentPage.php:96
+msgid "Confirming your payment…"
+msgstr ""
+
+#: src/Checkout/PaymentPage.php:97
+msgid "Payment submitted. Taking you to your order…"
+msgstr ""
+
+#: src/Checkout/PaymentPage.php:98
+msgid "The bank connection was closed before the payment was completed. No payment was made. You can try again."
+msgstr ""
+
+#: src/Checkout/PaymentPage.php:99
+msgid "Your bank payment was not completed. You can try again."
+msgstr ""
+
+#: src/Checkout/PaymentPage.php:100
+msgid "Your bank reported insufficient funds. You can try again or use another account."
+msgstr ""
+
+#: src/Checkout/PaymentPage.php:101
+msgid "Your bank payment could not be authorized. You can try again."
+msgstr ""
+
+#: src/Checkout/PaymentPage.php:102
+msgid "We could not confirm your payment yet. Please wait a moment…"
+msgstr ""
+
+#: src/Checkout/PaymentPage.php:103
+msgid "Your payment needs review by the store. Please contact the store."
+msgstr ""
+
+#: src/Checkout/PaymentPage.php:104
+#: src/REST/RestRoutes.php:104
+msgid "The bank payment could not be started. Please try again."
+msgstr ""
+
+#: src/Checkout/PaymentPage.php:105
+msgid "The secure bank connection could not be loaded. Check your connection and try again."
+msgstr ""
+
+#: src/Checkout/PaymentPage.php:106
+#: src/REST/RestRoutes.php:101
+msgid "Pay by Bank is not available for this order right now. Please contact the store or choose another payment method."
+msgstr ""
+
+#: src/Checkout/PaymentPage.php:107
+msgid "This order has no account holder name. Please contact the store."
+msgstr ""
+
+#: src/Checkout/PaymentPage.php:108
+#: src/REST/RestRoutes.php:91
+#: src/REST/RestRoutes.php:121
+msgid "Too many attempts. Please wait a few minutes and try again."
+msgstr ""
+
+#: src/Checkout/PaymentPage.php:109
+msgid "Try again"
+msgstr ""
+
+#: src/Gateway/GatewayAvailability.php:84
+msgid "The gateway is disabled, so Pay by Bank is not offered to customers. Existing bank payments are still monitored."
+msgstr ""
+
+#: src/Gateway/GatewayAvailability.php:85
+msgid "The Plaid environment setting is invalid."
+msgstr ""
+
+#: src/Gateway/GatewayAvailability.php:86
+msgid "Plaid Client ID and Secret are required."
+msgstr ""
+
+#: src/Gateway/GatewayAvailability.php:87
+msgid "Production requires a Plaid Link customization: create one in the Plaid Dashboard with Account Select set to “Enabled for one account” and enter its name."
+msgstr ""
+
+#: src/Gateway/GatewayAvailability.php:88
+msgid "The store or order currency is not USD."
+msgstr ""
+
+#: src/Gateway/GatewayAvailability.php:89
+msgid "Production requires the site to use HTTPS."
+msgstr ""
+
+#: src/Gateway/PayBridgeGateway.php:35
+msgid "Pay by Bank through Plaid Transfer. Customers authorize a one-time ACH debit in Plaid Transfer UI; orders are updated from verified Plaid transfer events, and refunds are sent back to the customer's bank through Plaid."
+msgstr ""
+
+#: src/Gateway/PayBridgeGateway.php:42
+#: src/Gateway/PayBridgeGateway.php:52
+#: src/Settings/Settings.php:64
+msgid "Securely pay directly from your bank account."
+msgstr ""
+
+#: src/Gateway/PayBridgeGateway.php:49
+msgid "General"
+msgstr ""
+
+#: src/Gateway/PayBridgeGateway.php:49
+msgid "Disabling Pay by Bank only hides it at checkout. Existing bank payments, returns and refunds keep being monitored."
+msgstr ""
+
+#: src/Gateway/PayBridgeGateway.php:50
+msgid "Enable/Disable"
+msgstr ""
+
+#: src/Gateway/PayBridgeGateway.php:50
+msgid "Offer Pay by Bank at checkout"
+msgstr ""
+
+#: src/Gateway/PayBridgeGateway.php:51
+msgid "Title"
+msgstr ""
+
+#: src/Gateway/PayBridgeGateway.php:51
+msgid "Payment method name shown at checkout."
+msgstr ""
+
+#: src/Gateway/PayBridgeGateway.php:52
+msgid "Description"
+msgstr ""
+
+#: src/Gateway/PayBridgeGateway.php:52
+msgid "Shown below the payment method at checkout."
+msgstr ""
+
+#: src/Gateway/PayBridgeGateway.php:53
+msgid "Plaid connection"
+msgstr ""
+
+#: src/Gateway/PayBridgeGateway.php:53
+msgid "API keys are in the Plaid Dashboard under Developers → Keys. Plaid Transfer must be enabled for your team. Changing the Client ID or environment is refused while Production payments are still monitored."
+msgstr ""
+
+#: src/Gateway/PayBridgeGateway.php:54
+msgid "Sandbox (test, no real money)"
+msgstr ""
+
+#: src/Gateway/PayBridgeGateway.php:54
+msgid "Production (real money)"
+msgstr ""
+
+#: src/Gateway/PayBridgeGateway.php:54
+msgid "Production moves real money and requires HTTPS."
 msgstr ""
 
 #: src/Gateway/PayBridgeGateway.php:55
-msgid "PPD — prearranged consumer payment"
-msgstr ""
-
-#: src/Gateway/PayBridgeGateway.php:55
-msgid "CCD — corporate account"
-msgstr ""
-
-#: src/Gateway/PayBridgeGateway.php:55
-msgid "TEL — telephone authorization"
+msgid "Client ID"
 msgstr ""
 
 #: src/Gateway/PayBridgeGateway.php:56
-msgid "Mark order paid when"
+msgid "Secret"
 msgstr ""
 
 #: src/Gateway/PayBridgeGateway.php:56
-msgid "Funds are available (recommended)"
-msgstr ""
-
-#: src/Gateway/PayBridgeGateway.php:56
-msgid "Transfer is settled"
-msgstr ""
-
-#: src/Gateway/PayBridgeGateway.php:56
-msgid "Until then orders stay On hold. ACH debits can still be returned later; returns are always recorded and flagged."
+msgid "Use the secret of the selected environment. Leave blank when saving to keep the stored secret."
 msgstr ""
 
 #: src/Gateway/PayBridgeGateway.php:57
-msgid "Operations"
+msgid "Funding Account ID (optional)"
 msgstr ""
 
-#: src/Gateway/PayBridgeGateway.php:58
-msgid "Reconciliation"
-msgstr ""
-
-#: src/Gateway/PayBridgeGateway.php:58
-msgid "Re-check open payments with Plaid in the background"
-msgstr ""
-
-#: src/Gateway/PayBridgeGateway.php:58
-msgid "Recovers from missed webhooks. Strongly recommended."
+#: src/Gateway/PayBridgeGateway.php:57
+msgid "Leave empty when your Plaid Transfer account uses Plaid Ledger (the default). Only accounts without a Ledger configure a funding account ID here."
 msgstr ""
 
 #: src/Gateway/PayBridgeGateway.php:59
+msgid "Link customization name"
+msgstr ""
+
+#: src/Gateway/PayBridgeGateway.php:59
+msgid "Required for Production. In the Plaid Dashboard open Link → Link Customization, create a customization with Account Select set to “Enabled for one account” (its language must match your store language), publish it and enter its name here. Sandbox uses Plaid's default customization when empty."
+msgstr ""
+
+#: src/Gateway/PayBridgeGateway.php:60
+msgid "Shown on the customer's bank statement after the company name Plaid has on file. Use a stable word that describes the purpose, such as PAYMENT or ORDER: recognizable descriptions reduce \"unrecognized payment\" disputes and returns. Letters, digits and spaces only, at most 10 characters; never put order numbers or personal data here."
+msgstr ""
+
+#: src/Gateway/PayBridgeGateway.php:61
+msgid "Payment network"
+msgstr ""
+
+#: src/Gateway/PayBridgeGateway.php:61
+msgid "Same Day ACH"
+msgstr ""
+
+#: src/Gateway/PayBridgeGateway.php:61
+msgid "Standard ACH"
+msgstr ""
+
+#: src/Gateway/PayBridgeGateway.php:61
+msgid "Same Day ACH payments made after Plaid's cutoff are sent as Standard ACH automatically."
+msgstr ""
+
+#: src/Gateway/PayBridgeGateway.php:62
+msgid "Mark order paid when"
+msgstr ""
+
+#: src/Gateway/PayBridgeGateway.php:62
+msgid "Funds are available (recommended)"
+msgstr ""
+
+#: src/Gateway/PayBridgeGateway.php:62
+msgid "Transfer is settled"
+msgstr ""
+
+#: src/Gateway/PayBridgeGateway.php:62
+msgid "Until then orders stay On hold. ACH debits can still be returned later; returns are always recorded and flagged."
+msgstr ""
+
+#: src/Gateway/PayBridgeGateway.php:63
+msgid "Background processing"
+msgstr ""
+
+#: src/Gateway/PayBridgeGateway.php:63
+msgid "PayBridge follows every bank payment until its ACH return window closes, using verified Plaid webhooks, Plaid transfer events and a reconciliation job every 15 minutes (WooCommerce Action Scheduler). This cannot be turned off while payments exist."
+msgstr ""
+
+#: src/Gateway/PayBridgeGateway.php:64
+msgid "Advanced and logging"
+msgstr ""
+
+#: src/Gateway/PayBridgeGateway.php:65
 msgid "Debug logging"
 msgstr ""
 
-#: src/Gateway/PayBridgeGateway.php:59
+#: src/Gateway/PayBridgeGateway.php:65
 msgid "Write redacted debug logs (WooCommerce → Status → Logs)"
 msgstr ""
 
-#: src/Gateway/PayBridgeGateway.php:60
+#: src/Gateway/PayBridgeGateway.php:66
 msgid "Uninstall cleanup"
 msgstr ""
 
-#: src/Gateway/PayBridgeGateway.php:60
-msgid "Delete PayBridge settings, event history and tables when the plugin is deleted"
+#: src/Gateway/PayBridgeGateway.php:66
+msgid "Delete PayBridge settings, event and refund history and tables when the plugin is deleted"
 msgstr ""
 
-#: src/Gateway/PayBridgeGateway.php:60
-msgid "Order payment records stay on the orders for auditing."
+#: src/Gateway/PayBridgeGateway.php:66
+msgid "Order payment records stay on the orders for auditing. Leave this off while payments may still be returned."
 msgstr ""
 
-#: src/Gateway/PayBridgeGateway.php:80
+#: src/Gateway/PayBridgeGateway.php:86
 msgid "Webhook URL copied."
 msgstr ""
 
-#: src/Gateway/PayBridgeGateway.php:80
+#: src/Gateway/PayBridgeGateway.php:86
 msgid "Select the URL and copy it manually."
 msgstr ""
 
-#: src/Gateway/PayBridgeGateway.php:127
+#: src/Gateway/PayBridgeGateway.php:140
 msgid "A secret is stored."
 msgstr ""
 
-#: src/Gateway/PayBridgeGateway.php:128
+#: src/Gateway/PayBridgeGateway.php:141
 msgid "Remove stored secret"
 msgstr ""
 
-#: src/Gateway/PayBridgeGateway.php:161
-msgid "Copy"
-msgstr ""
-
-#: src/Gateway/PayBridgeGateway.php:163
-msgid "In the Plaid Dashboard open Team Settings → Webhooks, add a webhook for “Transfer event” in the selected environment and paste this URL. Webhooks are cryptographically verified."
-msgstr ""
-
-#: src/Gateway/PayBridgeGateway.php:168
-msgid "Configuration status"
-msgstr ""
-
-#: src/Gateway/PayBridgeGateway.php:171
-msgid "Ready: Pay by Bank can be offered at checkout."
-msgstr ""
-
-#: src/Gateway/PayBridgeGateway.php:179
+#: src/Gateway/PayBridgeGateway.php:188
 msgid "Test connection"
 msgstr ""
 
-#: src/Gateway/PayBridgeGateway.php:202
+#: src/Gateway/PayBridgeGateway.php:189
+msgid "Open diagnostics"
+msgstr ""
+
+#: src/Gateway/PayBridgeGateway.php:197
+msgid "Copy"
+msgstr ""
+
+#: src/Gateway/PayBridgeGateway.php:199
+msgid "In the Plaid Dashboard open Team Settings → Webhooks, add a webhook for “Transfer event” in the selected environment and paste this URL. Webhooks are cryptographically verified."
+msgstr ""
+
+#: src/Gateway/PayBridgeGateway.php:243
+msgid "Please enter the account holder's legal first and last name in the billing details before paying by bank."
+msgstr ""
+
+#: src/Gateway/PayBridgeGateway.php:251
 msgid "We could not find this order."
 msgstr ""
 
-#: src/Gateway/PayBridgeGateway.php:211
+#: src/Gateway/PayBridgeGateway.php:262
 msgid "Your bank payment is already being prepared. Please wait a few seconds and try again."
 msgstr ""
 
-#: src/Gateway/PayBridgeGateway.php:214
+#: src/Gateway/PayBridgeGateway.php:265
 msgid "Pay by Bank is temporarily unavailable. Please choose another payment method."
 msgstr ""
 
-#: src/Gateway/PayBridgeGateway.php:217
+#: src/Gateway/PayBridgeGateway.php:268
 msgid "We could not start the bank payment. Please try again or choose another payment method."
 msgstr ""
 
-#: src/Payment/OrderPaymentProjector.php:92
+#: src/Gateway/PayBridgeGateway.php:300
+#: src/Refund/RefundPolicy.php:36
+msgid "This order was not paid with Pay by Bank."
+msgstr ""
+
+#: src/Gateway/PayBridgeGateway.php:303
+msgid "Enter the amount to refund."
+msgstr ""
+
+#: src/Gateway/PayBridgeGateway.php:309
+msgid "Pay by Bank refunds are unavailable because the Plaid connection is not configured."
+msgstr ""
+
+#: src/Gateway/PayBridgeGateway.php:312
+msgid "The refund could not be processed. No refund was sent to Plaid; see the PayBridge logs."
+msgstr ""
+
+#. translators: 1: Plaid transfer ID, 2: user ID, 3: Plaid transfer status
+#: src/Payment/ManualActions.php:73
+#, php-format
+msgid "PayBridge: transfer %1$s cancelled at Plaid by user #%2$d before it was sent to the bank."
+msgstr ""
+
+#. translators: 1: Plaid transfer ID, 2: user ID, 3: Plaid transfer status
+#: src/Payment/ManualActions.php:73
+#, php-format
+msgid "PayBridge: transfer %1$s could not be cancelled (user #%2$d); Plaid reports it as %3$s."
+msgstr ""
+
+#: src/Payment/ManualActions.php:117
+msgid "PayBridge: order reopened for payment after manual review."
+msgstr ""
+
+#. translators: 1: decision code, 2: user ID
+#: src/Payment/ManualActions.php:125
+#, php-format
+msgid "PayBridge: manual review resolved (%1$s) by user #%2$d. The unused payment attempt was released; the customer can pay again."
+msgstr ""
+
+#. translators: 1: decision code, 2: user ID
+#: src/Payment/ManualActions.php:125
+#, php-format
+msgid "PayBridge: manual review resolved (%1$s) by user #%2$d. Automatic processing of this payment stays stopped."
+msgstr ""
+
+#. translators: 1: site name, 2: alert subject
+#: src/Payment/MerchantNotifier.php:30
+#, php-format
+msgid "[%1$s] %2$s"
+msgstr ""
+
+#. translators: %s: order admin URL
+#: src/Payment/MerchantNotifier.php:36
+#, php-format
+msgid "Review the order: %s"
+msgstr ""
+
+#: src/Payment/OrderPaymentProjector.php:125
 msgid "Bank payment submitted; awaiting ACH settlement."
 msgstr ""
 
-#: src/Payment/OrderPaymentProjector.php:124
-msgid "ACH return received: the bank payment was reversed."
-msgstr ""
-
-#. translators: 1: site name, 2: order number
-#: src/Payment/OrderPaymentProjector.php:165
+#. translators: %s: order number
+#: src/Payment/OrderPaymentProjector.php:167
 #, php-format
-msgid "[%1$s] ACH return received for order #%2$s"
+msgid "Bank payment for order #%s needs review"
 msgstr ""
 
-#. translators: 1: order number, 2: ACH return code, 3: order admin URL
-#: src/Payment/OrderPaymentProjector.php:171
+#. translators: 1: order number, 2: reason code
+#: src/Payment/OrderPaymentProjector.php:170
 #, php-format
-msgid ""
-"The bank payment for order #%1$s was returned (%2$s). The funds were reversed.\n"
-"\n"
-"Review the order: %3$s"
+msgid "PayBridge stopped automatic processing of the bank payment for order #%1$s (%2$s). No order was fulfilled automatically. Open the order to see the Plaid identifiers and decide how to proceed."
 msgstr ""
 
-#: src/Payment/OrderPaymentProjector.php:173
+#: src/Payment/OrderPaymentProjector.php:189
+msgid "ACH return received: the bank payment was reversed. The original payment details are kept on this order."
+msgstr ""
+
+#. translators: 1: refunded amount, 2: ACH return code
+#: src/Payment/OrderPaymentProjector.php:200
+#, php-format
+msgid "PayBridge: CRITICAL — the bank payment was returned (%2$s) after refunds of $%1$s were issued. The customer may have received this money twice. Contact the customer before taking further action."
+msgstr ""
+
+#. translators: %s: order number
+#: src/Payment/OrderPaymentProjector.php:207
+#, php-format
+msgid "URGENT: ACH return after refund for order #%s"
+msgstr ""
+
+#. translators: 1: order number, 2: ACH return code, 3: refunded amount
+#: src/Payment/OrderPaymentProjector.php:210
+#, php-format
+msgid "The bank payment for order #%1$s was returned (%2$s) after you refunded $%3$s. The customer's bank reversed the payment, so the customer may have received this money twice and you may lose both the payment and the refund. Pending refunds were cancelled where Plaid still allowed it; check the order notes."
+msgstr ""
+
+#: src/Payment/OrderPaymentProjector.php:212
+#: src/Payment/OrderPaymentProjector.php:226
 msgid "no return code"
 msgstr ""
 
+#. translators: %s: order number
+#: src/Payment/OrderPaymentProjector.php:221
+#, php-format
+msgid "ACH return received for order #%s"
+msgstr ""
+
+#. translators: 1: order number, 2: ACH return code
+#: src/Payment/OrderPaymentProjector.php:224
+#, php-format
+msgid "The bank payment for order #%1$s was returned (%2$s). The funds were reversed. The order is now Failed; its original payment details are kept."
+msgstr ""
+
 #. translators: %s: Plaid transfer ID
-#: src/Payment/OrderPaymentProjector.php:182
+#: src/Payment/OrderPaymentProjector.php:253
 #, php-format
 msgid "Transfer ID: %s."
 msgstr ""
 
-#: src/Payment/OrderPaymentProjector.php:187
+#: src/Payment/OrderPaymentProjector.php:259
 msgid "PayBridge: Plaid Transfer Intent created. Waiting for the customer to authorize the bank payment."
 msgstr ""
 
-#: src/Payment/OrderPaymentProjector.php:189
+#: src/Payment/OrderPaymentProjector.php:261
 msgid "PayBridge: bank payment authorization in progress."
 msgstr ""
 
-#: src/Payment/OrderPaymentProjector.php:191
+#: src/Payment/OrderPaymentProjector.php:263
 msgid "PayBridge: bank payment authorization failed or was declined"
 msgstr ""
 
-#: src/Payment/OrderPaymentProjector.php:191
+#: src/Payment/OrderPaymentProjector.php:263
 msgid "The customer can retry."
 msgstr ""
 
-#: src/Payment/OrderPaymentProjector.php:193
+#: src/Payment/OrderPaymentProjector.php:265
 msgid "PayBridge: the Transfer Intent request had an unknown outcome. No Link token was issued for it, so it cannot move money; a retry creates a new intent."
 msgstr ""
 
-#: src/Payment/OrderPaymentProjector.php:195
+#: src/Payment/OrderPaymentProjector.php:267
 msgid "PayBridge: Plaid transfer created."
 msgstr ""
 
-#: src/Payment/OrderPaymentProjector.php:197
+#: src/Payment/OrderPaymentProjector.php:269
 msgid "PayBridge: transfer pending."
 msgstr ""
 
-#: src/Payment/OrderPaymentProjector.php:199
+#: src/Payment/OrderPaymentProjector.php:271
 msgid "PayBridge: transfer posted to the ACH network."
 msgstr ""
 
-#: src/Payment/OrderPaymentProjector.php:201
+#: src/Payment/OrderPaymentProjector.php:273
 msgid "PayBridge: transfer settled."
 msgstr ""
 
-#: src/Payment/OrderPaymentProjector.php:203
-msgid "PayBridge: funds available."
+#: src/Payment/OrderPaymentProjector.php:275
+msgid "PayBridge: funds available. The customer's bank can still return the payment within the ACH return windows; PayBridge keeps monitoring it."
 msgstr ""
 
-#: src/Payment/OrderPaymentProjector.php:205
+#: src/Payment/OrderPaymentProjector.php:277
 msgid "PayBridge: transfer failed; no funds were moved"
 msgstr ""
 
-#: src/Payment/OrderPaymentProjector.php:207
+#: src/Payment/OrderPaymentProjector.php:279
 msgid "PayBridge: transfer cancelled."
 msgstr ""
 
-#: src/Payment/OrderPaymentProjector.php:209
+#: src/Payment/OrderPaymentProjector.php:281
 msgid "PayBridge: ACH RETURN — the bank payment was returned and the funds reversed"
 msgstr ""
 
-#: src/Payment/OrderPaymentProjector.php:211
+#: src/Payment/OrderPaymentProjector.php:283
 msgid "PayBridge: payment requires manual review"
 msgstr ""
 
 #. translators: %s: payment state
-#: src/Payment/OrderPaymentProjector.php:213
+#: src/Payment/OrderPaymentProjector.php:285
 #, php-format
 msgid "PayBridge: payment state changed to %s."
 msgstr ""
 
-#. translators: 1: Plaid Transfer Intent ID, 2: reason code
-#: src/Payment/PaymentAttemptService.php:397
+#. translators: 1: order number, 2: ACH return code
+#: src/Payment/PaymentAlerts.php:92
 #, php-format
-msgid "PayBridge: previous bank payment attempt retired (intent %1$s, %2$s). A new attempt may start."
+msgid "PayBridge: the bank payment for order #%1$s was RETURNED (%2$s). The funds were reversed."
 msgstr ""
 
-#: src/Plugin.php:30
+#. translators: 1: order number, 2: ACH return code
+#: src/Payment/PaymentAlerts.php:94
+#, php-format
+msgid "PayBridge: the bank payment for order #%1$s was RETURNED (%2$s) AFTER a refund was issued. The customer may have received the money twice; you may lose both the payment and the refund. Review the order now."
+msgstr ""
+
+#. translators: 1: refund amount, 2: order number, 3: failure code
+#: src/Payment/PaymentAlerts.php:96
+#, php-format
+msgid "PayBridge: the refund of %1$s for order #%2$s FAILED at Plaid (%3$s). The customer did not receive it. Delete the WooCommerce refund record and refund again if needed."
+msgstr ""
+
+#. translators: 1: refund amount, 2: order number, 3: ACH return code
+#: src/Payment/PaymentAlerts.php:98
+#, php-format
+msgid "PayBridge: the refund of %1$s for order #%2$s was RETURNED by the customer's bank (%3$s). The customer did not receive it; contact the customer."
+msgstr ""
+
+#. translators: 1: refund amount, 2: order number
+#: src/Payment/PaymentAlerts.php:100
+#, php-format
+msgid "PayBridge: Plaid did not confirm the refund of %1$s for order #%2$s. Do not refund this order again: PayBridge is verifying the refund with Plaid."
+msgstr ""
+
+#. translators: 1: refund amount, 2: order number
+#: src/Payment/PaymentAlerts.php:102
+#, php-format
+msgid "PayBridge: the refund of %1$s for order #%2$s was cancelled because the original bank payment was returned."
+msgstr ""
+
+#. translators: 1: refund amount, 2: order number
+#: src/Payment/PaymentAlerts.php:104
+#, php-format
+msgid "PayBridge: a refund of %1$s for order #%2$s was created outside WooCommerce (for example in the Plaid Dashboard). Record it in WooCommerce as a manual refund."
+msgstr ""
+
+#. translators: 1: order number, 2: reason code
+#: src/Payment/PaymentAlerts.php:106
+#, php-format
+msgid "PayBridge: order #%1$s requires manual payment review (%2$s)."
+msgstr ""
+
+#. translators: 1: Plaid Transfer Intent ID, 2: reason code
+#: src/Payment/PaymentAttemptService.php:420
+#, php-format
+msgid "PayBridge: previous bank payment attempt retired (intent %1$s, %2$s). Its details are kept in the payment history; a new attempt may start."
+msgstr ""
+
+#: src/Plugin.php:33
 msgid "PayBridge for Plaid could not create or verify its database tables. Pay by Bank stays disabled until this is fixed; try deactivating and reactivating the plugin."
 msgstr ""
 
-#: src/Plugin.php:71
+#: src/Plugin.php:92
 msgid "Settings"
 msgstr ""
 
-#: src/Plugin.php:72
+#: src/Plugin.php:93
 msgid "Diagnostics"
 msgstr ""
 
-#: src/Plugin.php:84
+#: src/Plugin.php:105
 msgid "When a customer chooses Pay by Bank, this store sends the order amount, a short order description, the customer’s billing name and email address, and internal order references to Plaid Inc. to create the payment. The customer connects their bank and authorizes the payment inside Plaid’s interface; bank login credentials are never shared with this store. Plaid processes this data under its own terms and privacy policy (https://plaid.com/legal/). The store keeps Plaid payment identifiers and statuses on the order for accounting and dispute handling."
 msgstr ""
 
-#: src/REST/RestRoutes.php:73
-#: src/REST/RestRoutes.php:82
-#: src/REST/RestRoutes.php:107
+#: src/Refund/RefundPolicy.php:41
+msgid "There is no Plaid bank payment to refund for this order."
+msgstr ""
+
+#: src/Refund/RefundPolicy.php:46
+msgid "The bank payment failed, was cancelled or was returned, so there is nothing to refund."
+msgstr ""
+
+#: src/Refund/RefundPolicy.php:50
+msgid "The bank payment has not settled yet. Refund it after it settles; until then it may still fail or be returned."
+msgstr ""
+
+#: src/Refund/RefundPolicy.php:53
+msgid "This payment was made in another Plaid environment than the one configured now."
+msgstr ""
+
+#: src/Refund/RefundPolicy.php:57
+msgid "This payment belongs to a different Plaid account than the one configured now."
+msgstr ""
+
+#: src/Refund/RefundPolicy.php:62
+msgid "Plaid refunds are possible only within 180 days of the payment."
+msgstr ""
+
+#: src/Refund/RefundPolicy.php:66
+msgid "A previous refund for this order is still being confirmed with Plaid. Wait until it is confirmed before refunding again."
+msgstr ""
+
+#: src/Refund/RefundPolicy.php:71
+msgid "Plaid allows at most 10 refunds per payment."
+msgstr ""
+
+#: src/Refund/RefundPolicy.php:80
+msgid "The recorded refund amounts are invalid; review the order."
+msgstr ""
+
+#: src/Refund/RefundPolicy.php:83
+msgid "The bank payment has already been refunded in full."
+msgstr ""
+
+#: src/Refund/RefundService.php:82
+msgid "Enter a refund amount greater than zero with at most two decimal places."
+msgstr ""
+
+#: src/Refund/RefundService.php:85
+msgid "Pay by Bank refunds must be created from the WooCommerce order screen."
+msgstr ""
+
+#: src/Refund/RefundService.php:88
+msgid "The refund amount does not match the WooCommerce refund."
+msgstr ""
+
+#: src/Refund/RefundService.php:98
+msgid "The order could not be loaded."
+msgstr ""
+
+#. translators: %s: remaining refundable amount
+#: src/Refund/RefundService.php:111
+#, php-format
+msgid "The refund exceeds the amount that can still be refunded through Plaid ($%s)."
+msgstr ""
+
+#: src/Refund/RefundService.php:117
+msgid "An identical refund was issued for this order less than a minute ago. If you really want a second refund of the same amount, wait a minute and try again."
+msgstr ""
+
+#: src/Refund/RefundService.php:135
+#: src/Refund/RefundService.php:144
+msgid "The refund could not be recorded safely, so it was not sent to Plaid. No money was moved."
+msgstr ""
+
+#: src/Refund/RefundService.php:141
+msgid "Another refund for this order is being processed. Wait a moment, reload the order and check its refunds before trying again."
+msgstr ""
+
+#: src/Refund/RefundService.php:195
+msgid "Plaid created the refund, but it could not be recorded. Do not refund again; see the PayBridge alert on this order."
+msgstr ""
+
+#. translators: 1: refund amount, 2: Plaid error code
+#: src/Refund/RefundService.php:221
+#, php-format
+msgid "PayBridge: Plaid rejected a refund of $%1$s (%2$s). No money was moved."
+msgstr ""
+
+#. translators: 1: Plaid error code, 2: Plaid error explanation
+#: src/Refund/RefundService.php:227
+#, php-format
+msgid "Plaid rejected the refund (%1$s). %2$s No money was moved."
+msgstr ""
+
+#. translators: %s: refund amount
+#: src/Refund/RefundService.php:244
+#, php-format
+msgid "PayBridge: Plaid did not confirm a refund of $%s (the request timed out or Plaid was unavailable). PayBridge will check Plaid and record the refund automatically if it was created. Do not refund this order again until then."
+msgstr ""
+
+#: src/Refund/RefundService.php:247
+msgid "Plaid did not confirm the refund. Do not refund this order again: PayBridge is checking with Plaid and will record the refund automatically if Plaid created it."
+msgstr ""
+
+#. translators: %s: refund amount and Plaid refund ID
+#: src/Refund/RefundService.php:325
+#, php-format
+msgid "PayBridge: refund %s was sent to the customer's bank."
+msgstr ""
+
+#. translators: %s: refund amount and Plaid refund ID
+#: src/Refund/RefundService.php:329
+#, php-format
+msgid "PayBridge: refund %s settled at the customer's bank."
+msgstr ""
+
+#. translators: 1: refund amount and Plaid refund ID, 2: failure code
+#: src/Refund/RefundService.php:336
+#, php-format
+msgid "PayBridge: REFUND RETURNED — refund %1$s was returned by the customer's bank (%2$s). The customer did not receive it; the money is back in your Plaid balance."
+msgstr ""
+
+#. translators: 1: refund amount and Plaid refund ID, 2: failure code
+#: src/Refund/RefundService.php:336
+#, php-format
+msgid "PayBridge: REFUND FAILED — refund %1$s failed at Plaid (%2$s). No money reached the customer. The WooCommerce refund record does not reflect a completed refund."
+msgstr ""
+
+#. translators: 1: order number
+#: src/Refund/RefundService.php:345
+#, php-format
+msgid "Refund returned for order #%1$s"
+msgstr ""
+
+#. translators: 1: order number
+#: src/Refund/RefundService.php:345
+#, php-format
+msgid "Refund failed for order #%1$s"
+msgstr ""
+
+#. translators: %s: refund amount and Plaid refund ID
+#: src/Refund/RefundService.php:354
+#, php-format
+msgid "PayBridge: refund %s was cancelled before it was sent. The customer will not receive it."
+msgstr ""
+
+#. translators: %s: refund amount
+#: src/Refund/RefundService.php:361
+#, php-format
+msgid "PayBridge: the unconfirmed refund of $%s was not created at Plaid. No money was moved; you can refund again."
+msgstr ""
+
+#: src/Refund/RefundService.php:448
+msgid "Pay by Bank refund confirmed by Plaid after a timeout."
+msgstr ""
+
+#. translators: 1: refund amount, 2: Plaid refund ID
+#: src/Refund/RefundService.php:465
+#, php-format
+msgid "PayBridge: Plaid confirmed the refund of $%1$s (refund ID %2$s) that had timed out. It is now recorded."
+msgstr ""
+
+#. translators: 1: refund amount, 2: Plaid refund ID
+#: src/Refund/RefundService.php:494
+#, php-format
+msgid "PayBridge: a refund of $%1$s (refund ID %2$s) was created outside WooCommerce, for example in the Plaid Dashboard. It counts toward the refundable amount. Record it in WooCommerce as a manual refund if it is not recorded yet."
+msgstr ""
+
+#. translators: 1: Plaid refund ID, 2: Plaid error code
+#: src/Refund/RefundService.php:525
+#, php-format
+msgid "PayBridge: the pending refund %1$s could not be cancelled after the payment was returned (%2$s)."
+msgstr ""
+
+#: src/Refund/RefundService.php:581
+msgid "This refund is still being confirmed with Plaid. Do not refund again."
+msgstr ""
+
+#: src/Refund/RefundService.php:582
+msgid "This refund was not completed by Plaid. No money was moved for it."
+msgstr ""
+
+#. translators: 1: refund amount, 2: Plaid refund ID
+#: src/Refund/RefundService.php:600
+#, php-format
+msgid "PayBridge: refund of $%1$s submitted to Plaid (refund ID %2$s). The customer usually receives it within a few business days."
+msgstr ""
+
+#. translators: %s: refund reason
+#: src/Refund/RefundService.php:605
+#, php-format
+msgid "Reason: %s"
+msgstr ""
+
+#. translators: %s: date
+#: src/Refund/RefundService.php:613
+#, php-format
+msgid "Warning: the original bank payment can still be returned by the customer's bank until about %s. If it is returned, you may lose both the payment and this refund; PayBridge will alert you."
+msgstr ""
+
+#: src/REST/RestRoutes.php:79
+#: src/REST/RestRoutes.php:88
+#: src/REST/RestRoutes.php:118
 msgid "This payment session is not valid."
 msgstr ""
 
-#: src/REST/RestRoutes.php:85
-msgid "Too many attempts. Please wait a few minutes and try again."
-msgstr ""
-
-#: src/REST/RestRoutes.php:90
+#: src/REST/RestRoutes.php:96
 msgid "Your bank payment is being prepared. Please try again in a few seconds."
 msgstr ""
 
-#: src/REST/RestRoutes.php:93
-msgid "The bank payment could not be started. Please try again."
+#: src/REST/RestRoutes.php:98
+msgid "If you cannot change it, please contact the store."
 msgstr ""
 
-#: src/REST/RestRoutes.php:115
+#: src/REST/RestRoutes.php:129
 msgid "The payment could not be confirmed. Please try again."
+msgstr ""
+
+#. translators: 1: number of open payments, 2: number of open refunds
+#: src/Settings/AccountChangeGuard.php:104
+#, php-format
+msgid "PayBridge kept the previous Plaid environment, Client ID and Secret: %1$d Production payment(s) and %2$d refund(s) are still monitored for ACH returns or refund outcomes, and only the Plaid account that created them can read them. Other settings were saved. You can rotate the secret of the same Client ID at any time; switch accounts after PayBridge diagnostics show no monitored payments."
+msgstr ""
+
+#. translators: 1: number of open payments, 2: number of open refunds
+#: src/Settings/AccountChangeGuard.php:110
+#, php-format
+msgid "PayBridge: %1$d open Sandbox payment(s) and %2$d refund(s) of the previous Plaid account/environment are no longer monitored. Sandbox moves no real money."
 msgstr ""
 
 #: src/Support/Requirements.php:26
