@@ -1,126 +1,96 @@
 name: Release
 
+# A tag can only publish the ZIP that the complete quality pipeline built and tested in this
+# same workflow run: quality.yml builds it once, records its SHA-256, runs every gate on it
+# (including the real Plaid Sandbox gate, required here), and this job publishes that file
+# after re-checking the hash. Nothing is rebuilt after testing.
+
 on:
   push:
     tags:
       - 'v*.*.*'
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  release:
-    name: Release
+  verify-tag:
+    name: Verify tag and version metadata
     runs-on: ubuntu-latest
-
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
     steps:
-      - name: Checkout release tag
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           fetch-tags: true
-
-      - name: Verify tag commit belongs to master
+      - name: Tag commit belongs to master
         shell: bash
         run: |
           git fetch origin master
-          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/master; then
-            echo "Release tag must point to a commit contained in master."
-            exit 1
-          fi
-
-      - name: Read and validate version
-        id: version
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/master || { echo "::error::Release tags must point to a commit contained in master."; exit 1; }
+      - id: version
+        name: Tag, plugin header, constant, readme Stable tag, package.json and changelog agree
         shell: bash
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-
-          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Invalid release tag: $GITHUB_REF_NAME"
-            exit 1
-          fi
-
-          PLUGIN_VERSION="$(
-            grep -m1 '^ \* Version:' paybridge-for-plaid.php |
-            sed -E 's/^ \* Version:[[:space:]]*//'
-          )"
-
-          CONSTANT_VERSION="$(
-            grep -m1 "define( 'PAYBRIDGE_PLAID_VERSION'" paybridge-for-plaid.php |
-            sed -E "s/.*'PAYBRIDGE_PLAID_VERSION',[[:space:]]*'([^']+)'.*/\1/"
-          )"
-
-          STABLE_TAG="$(
-            grep -m1 '^Stable tag:' readme.txt |
-            sed -E 's/^Stable tag:[[:space:]]*//'
-          )"
-
-          if [[ "$VERSION" != "$PLUGIN_VERSION" ]]; then
-            echo "Tag version $VERSION != plugin header version $PLUGIN_VERSION"
-            exit 1
-          fi
-
-          if [[ "$VERSION" != "$CONSTANT_VERSION" ]]; then
-            echo "Tag version $VERSION != PAYBRIDGE_PLAID_VERSION $CONSTANT_VERSION"
-            exit 1
-          fi
-
-          if [[ "$VERSION" != "$STABLE_TAG" ]]; then
-            echo "Tag version $VERSION != readme.txt Stable tag $STABLE_TAG"
-            exit 1
-          fi
-
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Install npm dependencies
-        run: npm ci
-
-      - name: Build front-end assets
-        run: npm run build
-
-      - name: Build production plugin ZIP
-        run: bash scripts/package.sh "${{ steps.version.outputs.version }}"
-
-      - name: Verify production ZIP
-        shell: bash
-        run: |
-          ZIP="dist/paybridge-for-plaid-${{ steps.version.outputs.version }}.zip"
-
-          test -f "$ZIP"
-
-          unzip -Z1 "$ZIP" > /tmp/paybridge-for-plaid-zip-files.txt
-          cat /tmp/paybridge-for-plaid-zip-files.txt
-
-          REQUIRED_FILES=(
-            "paybridge-for-plaid/paybridge-for-plaid.php"
-            "paybridge-for-plaid/readme.txt"
-            "paybridge-for-plaid/uninstall.php"
-          )
-
-          for REQUIRED in "${REQUIRED_FILES[@]}"; do
-            grep -Fxq "$REQUIRED" /tmp/paybridge-for-plaid-zip-files.txt || {
-              echo "Missing required release file: $REQUIRED"
-              exit 1
-            }
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta|rc)\.[0-9]+)?$ ]] || { echo "::error::Invalid release tag $GITHUB_REF_NAME"; exit 1; }
+          header=$(grep -m1 '^ \* Version:' paybridge-for-plaid.php | sed -E 's/^ \* Version:[[:space:]]*//')
+          constant=$(grep -m1 "define( 'PAYBRIDGE_PLAID_VERSION'" paybridge-for-plaid.php | sed -E "s/.*'PAYBRIDGE_PLAID_VERSION',[[:space:]]*'([^']+)'.*/\1/")
+          stable=$(grep -m1 '^Stable tag:' readme.txt | sed -E 's/^Stable tag:[[:space:]]*//')
+          package=$(node -p "require('./package.json').version")
+          for pair in "header:$header" "constant:$constant" "readme:$stable" "package.json:$package"; do
+            [[ "${pair#*:}" == "$VERSION" ]] || { echo "::error::${pair%%:*} version ${pair#*:} != tag $VERSION"; exit 1; }
           done
+          grep -q "^## $VERSION" CHANGELOG.md || { echo "::error::CHANGELOG.md has no section for $VERSION"; exit 1; }
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          [[ "$VERSION" == *-* ]] && echo "prerelease=true" >> "$GITHUB_OUTPUT" || echo "prerelease=false" >> "$GITHUB_OUTPUT"
 
-          if grep -Eq '(^|/)(\.git|\.github|\.idea|\.playwright-cli|tests|docs|scripts|tools|node_modules|vendor|dist)(/|$)|(^|/)(composer\.(json|lock)|package(-lock)?\.json|README\.md|phpunit\.xml\.dist|phpstan\.neon|phpcs\.xml\.dist)$' /tmp/paybridge-for-plaid-zip-files.txt; then
-            echo "Development-only files found in release ZIP."
-            exit 1
-          fi
+  quality:
+    name: Full quality gate
+    needs: verify-tag
+    uses: ./.github/workflows/quality.yml
+    with:
+      require_sandbox: true
+    secrets: inherit
 
+  release:
+    name: Publish the tested ZIP
+    needs: [verify-tag, quality]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: paybridge-for-plaid-zip
+          path: dist
+      - name: The artifact is the tested one
+        shell: bash
+        env:
+          EXPECTED_NAME: ${{ needs.quality.outputs.zip_name }}
+          EXPECTED_SHA: ${{ needs.quality.outputs.zip_sha256 }}
+          VERSION: ${{ needs.verify-tag.outputs.version }}
+        run: |
+          [[ "$EXPECTED_NAME" == "paybridge-for-plaid-$VERSION.zip" ]] || { echo "::error::Tested ZIP $EXPECTED_NAME does not match version $VERSION"; exit 1; }
+          actual=$(sha256sum "dist/$EXPECTED_NAME" | cut -d' ' -f1)
+          [[ "$actual" == "$EXPECTED_SHA" ]] || { echo "::error::SHA-256 mismatch: tested $EXPECTED_SHA, about to publish $actual"; exit 1; }
+          (cd dist && sha256sum -c "$EXPECTED_NAME.sha256")
+          echo "Publishing $EXPECTED_NAME ($actual)" >> "$GITHUB_STEP_SUMMARY"
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.verify-tag.outputs.version }}
+          PRERELEASE: ${{ needs.verify-tag.outputs.prerelease }}
+          SHA: ${{ needs.quality.outputs.zip_sha256 }}
         run: |
+          flags=()
+          [[ "$PRERELEASE" == true ]] && flags+=(--prerelease)
           gh release create "$GITHUB_REF_NAME" \
-            "dist/paybridge-for-plaid-${{ steps.version.outputs.version }}.zip" \
-            --title "PayBridge for Plaid ${{ steps.version.outputs.version }}" \
-            --generate-notes \
-            --verify-tag
+            "dist/paybridge-for-plaid-$VERSION.zip" \
+            "dist/paybridge-for-plaid-$VERSION.zip.sha256" \
+            --title "PayBridge for Plaid $VERSION" \
+            --notes "Release ZIP SHA-256: \`$SHA\` (built and tested once by the quality gate of this workflow run). See CHANGELOG.md." \
+            --verify-tag "${flags[@]}"

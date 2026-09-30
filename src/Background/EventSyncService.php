@@ -24,6 +24,9 @@ final class EventSyncService
 {
     public const LAST_SYNC_OPTION = 'paybridge_plaid_last_event_sync';
     public const LAST_ERROR_OPTION = 'paybridge_plaid_last_event_sync_error';
+    /** Consecutive failed runs; drives the bounded exponential backoff of follow-up runs. */
+    public const FAILURES_OPTION = 'paybridge_plaid_event_sync_failures';
+    public const MAX_RETRY_DELAY_SECONDS = 900;
 
     private const MAX_PAGES = 10;
     private const MAX_EVENTS_PER_RUN = 200;
@@ -71,6 +74,7 @@ final class EventSyncService
             }
             update_option(self::LAST_SYNC_OPTION, gmdate('c'), false);
             delete_option(self::LAST_ERROR_OPTION);
+            delete_option(self::FAILURES_OPTION);
             while (time() < $deadline && $processed < self::MAX_EVENTS_PER_RUN) {
                 $batch = $this->store->claim_batch($this->environment, 25);
                 if (array() === $batch) {
@@ -81,14 +85,30 @@ final class EventSyncService
                 }
             }
         } catch (\Throwable $exception) {
-            update_option(self::LAST_ERROR_OPTION, array('at' => gmdate('c'), 'code' => Logger::fingerprint($exception->getMessage())), false);
-            $this->logger->log('error', 'event_sync_failed', array('environment' => $this->environment, 'error_code' => Logger::fingerprint($exception->getMessage())));
+            $category = ReconciliationService::category($exception);
+            $code = $exception instanceof \PayBridge\Plaid\Plaid\Exception\PlaidException ? $exception->safe_code() : Logger::fingerprint($exception->getMessage());
+            update_option(self::LAST_ERROR_OPTION, array('at' => gmdate('c'), 'code' => $code, 'category' => $category), false);
+            update_option(self::FAILURES_OPTION, self::failures() + 1, false);
+            $this->logger->log('error', 'event_sync_failed', array('environment' => $this->environment, 'error_code' => $code, 'category' => $category));
             return array('status' => 'failed', 'fetched' => $fetched, 'processed' => $processed, 'more' => true);
         } finally {
             $mutex->release();
         }
         $more = $has_more || $this->store->has_processable($this->environment);
         return array('status' => 'ok', 'fetched' => $fetched, 'processed' => $processed, 'more' => $more);
+    }
+
+    public static function failures(): int
+    {
+        $failures = get_option(self::FAILURES_OPTION, 0);
+        return is_numeric($failures) ? max(0, (int) $failures) : 0;
+    }
+
+    /** Delay before a follow-up run: immediate progress when healthy, exponential backoff (max 15 min) after failures. */
+    public static function retry_delay(): int
+    {
+        $failures = self::failures();
+        return 0 === $failures ? MINUTE_IN_SECONDS : min(self::MAX_RETRY_DELAY_SECONDS, MINUTE_IN_SECONDS * (2 ** min(6, $failures - 1)));
     }
 
     /** @param array{id:int, owner_token:string, event:\PayBridge\Plaid\Plaid\DTO\TransferEvent, attempts:int} $claim */

@@ -10,14 +10,15 @@ MAIN_FILE="$BASE_DIR/$SLUG.php"
 HEADER_VERSION="$(grep -m1 '^ \* Version:' "$MAIN_FILE" | sed -E 's/^ \* Version:[[:space:]]*//')"
 CONSTANT_VERSION="$(grep -m1 "define( 'PAYBRIDGE_PLAID_VERSION'" "$MAIN_FILE" | sed -E "s/.*'PAYBRIDGE_PLAID_VERSION',[[:space:]]*'([^']+)'.*/\1/")"
 STABLE_TAG="$(grep -m1 '^Stable tag:' "$BASE_DIR/readme.txt" | sed -E 's/^Stable tag:[[:space:]]*//')"
+PACKAGE_VERSION="$(sed -nE 's/^[[:space:]]*"version":[[:space:]]*"([^"]+)".*/\1/p' "$BASE_DIR/package.json" | head -1)"
 VERSION="${1:-$HEADER_VERSION}"
 
-if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta|rc)\.[0-9]+)?$ ]]; then
     echo "Invalid version: $VERSION" >&2
     exit 1
 fi
-if [[ "$VERSION" != "$HEADER_VERSION" || "$VERSION" != "$CONSTANT_VERSION" || "$VERSION" != "$STABLE_TAG" ]]; then
-    echo "Version mismatch: requested=$VERSION header=$HEADER_VERSION PAYBRIDGE_PLAID_VERSION=$CONSTANT_VERSION readme=$STABLE_TAG" >&2
+if [[ "$VERSION" != "$HEADER_VERSION" || "$VERSION" != "$CONSTANT_VERSION" || "$VERSION" != "$STABLE_TAG" || "$VERSION" != "$PACKAGE_VERSION" ]]; then
+    echo "Version mismatch: requested=$VERSION header=$HEADER_VERSION PAYBRIDGE_PLAID_VERSION=$CONSTANT_VERSION readme=$STABLE_TAG package.json=$PACKAGE_VERSION" >&2
     exit 1
 fi
 

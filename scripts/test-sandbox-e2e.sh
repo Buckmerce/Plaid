@@ -115,13 +115,15 @@ for option in "woocommerce_currency USD" "woocommerce_default_country US:CA" "wo
     "${wp_cli[@]}" option update $option >/dev/null
 done
 "${wp_cli[@]}" rewrite structure '/%postname%/' --hard >/dev/null 2>&1 || true
-"${wp_cli[@]}" eval 'update_option("woocommerce_paybridge_plaid_settings", array("enabled"=>"yes","title"=>"Pay by Bank","description"=>"Securely pay directly from your bank account.","environment"=>"sandbox","client_id"=>getenv("PAYBRIDGE_PLAID_SANDBOX_CLIENT_ID"),"secret"=>getenv("PAYBRIDGE_PLAID_SANDBOX_SECRET"),"funding_account_id"=>"","link_customization_name"=>"","network"=>"same-day-ach","ach_class"=>"web","confirmation_state"=>"funds_available","reconciliation_enabled"=>"yes","debug"=>"yes","delete_data_on_uninstall"=>"no"));'
+"${wp_cli[@]}" eval 'update_option("woocommerce_paybridge_plaid_settings", array("enabled"=>"yes","title"=>"Pay by Bank","description"=>"Securely pay directly from your bank account.","environment"=>"sandbox","client_id"=>getenv("PAYBRIDGE_PLAID_SANDBOX_CLIENT_ID"),"secret"=>getenv("PAYBRIDGE_PLAID_SANDBOX_SECRET"),"funding_account_id"=>"","link_customization_name"=>"","statement_descriptor"=>"PAYMENT","network"=>"same-day-ach","confirmation_state"=>"funds_available","debug"=>"yes","delete_data_on_uninstall"=>"no"));'
 connection=$("${wp_cli[@]}" eval 'echo (new PayBridge\Plaid\Admin\ConnectionTester())->test(PayBridge\Plaid\Settings\Settings::load())["status"];')
 [[ "$connection" == connected ]] || { printf 'Plaid Sandbox connection test failed: %s\n' "$connection" >&2; exit 1; }
 products='{'
-for amount in 11.11 22.22 33.33; do
-    id=$("${wp_cli[@]}" eval '$p = new WC_Product_Simple(); $p->set_name("Sandbox '"$amount"'"); $p->set_regular_price("'"$amount"'"); $p->set_virtual(true); $p->set_status("publish"); echo $p->save();')
-    products+="\"$amount\":$id,"
+# "11.11-full" is a second $11.11 payment for the full-refund gate.
+for key in 11.11 22.22 33.33 11.11-full; do
+    amount=${key%%-*}
+    id=$("${wp_cli[@]}" eval '$p = new WC_Product_Simple(); $p->set_name("Sandbox '"$key"'"); $p->set_regular_price("'"$amount"'"); $p->set_virtual(true); $p->set_status("publish"); echo $p->save();')
+    products+="\"$key\":$id,"
 done
 products="${products%,}}"
 checkout_url=$("${wp_cli[@]}" post url "$checkout_id")
@@ -147,8 +149,8 @@ if [[ -n "$ngrok_domain" ]]; then
     gate catch-up
 fi
 
-config=$(PBFP_PRODUCTS="$products" PBFP_CHECKOUT="$checkout_url" PBFP_PUBLIC_HOST="$ngrok_domain" php -r 'echo rawurlencode(json_encode(array("products"=>json_decode(getenv("PBFP_PRODUCTS"),true),"checkout"=>getenv("PBFP_CHECKOUT"),"publicHost"=>getenv("PBFP_PUBLIC_HOST"),"blocksAmount"=>"11.11","username"=>getenv("PAYBRIDGE_PLAID_SANDBOX_USERNAME"),"password"=>getenv("PAYBRIDGE_PLAID_SANDBOX_PASSWORD"))));')
-printf '== Plaid Transfer UI: $11.11 (Checkout block), $22.22 and $33.33 (Classic checkout)\n'
+config=$(PBFP_PRODUCTS="$products" PBFP_CHECKOUT="$checkout_url" PBFP_PUBLIC_HOST="$ngrok_domain" php -r 'echo rawurlencode(json_encode(array("products"=>json_decode(getenv("PBFP_PRODUCTS"),true),"checkout"=>getenv("PBFP_CHECKOUT"),"publicHost"=>getenv("PBFP_PUBLIC_HOST"),"blocksAmount"=>"11.11","exitAmount"=>"22.22","username"=>getenv("PAYBRIDGE_PLAID_SANDBOX_USERNAME"),"password"=>getenv("PAYBRIDGE_PLAID_SANDBOX_PASSWORD"))));')
+printf '== Plaid Transfer UI: $11.11 (Checkout block), $22.22 (after exiting Link once), $33.33 and a second $11.11 (Classic checkout)\n'
 pushd "$artifacts" >/dev/null
 "${playwright_cli[@]}" open "$base_url/#pbfp_sandbox=$config" --config "$base_dir/tests/E2E/playwright-cli.json" >/dev/null
 output=$("${playwright_cli[@]}" run-code --filename "$base_dir/tests/E2E/sandbox-transfer-ui.js" 2>&1 | grep -E 'SANDBOX_ORDERS=|ASSERTION|### Error|Error:' || true)
@@ -197,6 +199,7 @@ $expect = array(
     "11.11" => array("state" => "funds_available", "paid" => true),
     "22.22" => array("state" => "failed", "paid" => false),
     "33.33" => array("state" => "returned", "paid" => false, "return" => "R01"),
+    "11.11-full" => array("state" => "funds_available", "paid" => true),
 );
 $failed = false;
 foreach ($expect as $amount => $want) {
@@ -209,6 +212,30 @@ foreach ($expect as $amount => $want) {
 if ($failed) { throw new RuntimeException("Real Plaid Sandbox lifecycle assertions failed."); }
 '
 
+printf '== Refunds through Plaid: partial ($1.11 returned, $2.22 failed, $5.00 settled), full ($11.11 settled)\n'
+refund_gate() {
+    PBFP_STEP="$1" PBFP_ORDERS="$orders" "${wp_cli[@]}" eval-file "$base_dir/tests/E2E/sandbox-refunds.php" --use-include
+}
+refund_gate create
+refund_gate simulate
+if [[ -n "$ngrok_domain" ]]; then
+    # Refund events arrive through a genuine Plaid-signed webhook, like the payment lifecycle above.
+    gate rearm
+    "${wp_cli[@]}" paybridge-plaid fire-sandbox-webhook
+    gate await-webhook
+    run_event_sync_queue
+else
+    "${wp_cli[@]}" eval '$r = (new PayBridge\Plaid\Container())->event_sync()->run(); echo "event sync: ", json_encode($r), "\n";'
+fi
+refund_verified=false
+for attempt in 1 2 3; do
+    if refund_gate verify; then refund_verified=true; break; fi
+    printf 'Refund events not complete yet (attempt %d); syncing again.\n' "$attempt" >&2
+    sleep 20
+    "${wp_cli[@]}" eval '(new PayBridge\Plaid\Container())->event_sync()->run();'
+done
+[[ "$refund_verified" == true ]] || { printf 'Real Plaid Sandbox refund assertions failed.\n' >&2; exit 1; }
+
 php_problems=$(grep -E 'PHP (Warning|Notice|Deprecated|Fatal)' "$site_dir/wp-content/debug.log" 2>/dev/null || true)
 if [[ -n "$php_problems" ]]; then
     printf 'PHP warnings/notices were logged during the Sandbox gate:\n%s\n' "$php_problems" >&2
@@ -216,7 +243,7 @@ if [[ -n "$php_problems" ]]; then
 fi
 
 if [[ -n "$ngrok_domain" ]]; then
-    printf 'Real Plaid Sandbox gate passed through %s: $11.11 success, $22.22 failure, $33.33 return (R01), driven by genuine Plaid-signed webhooks; forged, tampered, replayed and stale webhooks rejected or harmless.\n' "$base_url"
+    printf 'Real Plaid Sandbox gate passed through %s: $11.11 success, $22.22 failure (after a Link exit), $33.33 return (R01), full and partial refunds, refund failure and return, driven by genuine Plaid-signed webhooks; forged, tampered, replayed and stale webhooks rejected or harmless.\n' "$base_url"
 else
-    printf 'Real Plaid Sandbox gate passed: $11.11 success, $22.22 failure, $33.33 return (R01).\n'
+    printf 'Real Plaid Sandbox gate passed: $11.11 success, $22.22 failure (after a Link exit), $33.33 return (R01), full and partial refunds, refund failure and return.\n'
 fi

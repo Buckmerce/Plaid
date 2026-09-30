@@ -17,7 +17,7 @@ final class PaymentLockStore
     public const LEASE_SECONDS = 120;
     public const RECONCILE_FIRST_CHECK_SECONDS = 900;
 
-    public function acquire(int $order_id, string $environment, string $attempt_id): PaymentReservation
+    public function acquire(int $order_id, string $environment, string $attempt_id, string $account_fp = ''): PaymentReservation
     {
         global $wpdb;
         $token = bin2hex(random_bytes(32));
@@ -25,15 +25,16 @@ final class PaymentLockStore
         // INSERT IGNORE turns only the expected primary-key collision into a
         // deterministic branch; a real DB error returns false and fails closed.
         $inserted = $wpdb->query($wpdb->prepare(
-            'INSERT IGNORE INTO %i (order_id, environment, status, owner_token, lease_expires_at, attempts, attempt_id, created_at, updated_at)
-             VALUES (%d, %s, %s, %s, %s, 1, %s, UTC_TIMESTAMP(), UTC_TIMESTAMP())',
+            "INSERT IGNORE INTO %i (order_id, environment, status, owner_token, lease_expires_at, attempts, attempt_id, account_fp, created_at, updated_at)
+             VALUES (%d, %s, %s, %s, %s, 1, %s, NULLIF(%s, ''), UTC_TIMESTAMP(), UTC_TIMESTAMP())",
             Installer::locks_table(),
             $order_id,
             $environment,
             PaymentLockStatus::PREPARING,
             $token,
             $lease,
-            $attempt_id
+            $attempt_id,
+            $account_fp
         ));
         if (false === $inserted) {
             return new PaymentReservation(PaymentReservation::ERROR);
@@ -45,17 +46,19 @@ final class PaymentLockStore
             return new PaymentReservation(PaymentReservation::ERROR);
         }
         $claimed = $wpdb->query($wpdb->prepare(
-            'UPDATE %i
-             SET environment = %s, status = %s, owner_token = %s, lease_expires_at = %s, attempt_id = %s,
-                 snapshot_hash = NULL, transfer_intent_id = NULL, transfer_id = NULL, reconcile_after = NULL, error_code = NULL, attempts = attempts + 1, updated_at = UTC_TIMESTAMP()
+            "UPDATE %i
+             SET environment = %s, status = %s, owner_token = %s, lease_expires_at = %s, attempt_id = %s, account_fp = NULLIF(%s, ''),
+                 snapshot_hash = NULL, transfer_intent_id = NULL, transfer_id = NULL, reconcile_after = NULL, monitor_until = NULL, payment_state = NULL,
+                 error_code = NULL, attempts = attempts + 1, updated_at = UTC_TIMESTAMP()
              WHERE order_id = %d
-               AND (status IN (%s, %s, %s) OR (status = %s AND lease_expires_at < UTC_TIMESTAMP()))',
+               AND (status IN (%s, %s, %s) OR (status = %s AND lease_expires_at < UTC_TIMESTAMP()))",
             Installer::locks_table(),
             $environment,
             PaymentLockStatus::PREPARING,
             $token,
             $lease,
             $attempt_id,
+            $account_fp,
             $order_id,
             PaymentLockStatus::UNCERTAIN,
             PaymentLockStatus::FAILED,
@@ -176,16 +179,20 @@ final class PaymentLockStore
      *
      * @return list<int>
      */
-    public function due_for_reconciliation(string $environment, int $limit): array
+    public function due_for_reconciliation(string $environment, int $limit, string $account_fp = ''): array
     {
         global $wpdb;
+        // Only payments of the configured Plaid account can be read with its credentials (ADR-0015).
         $ids = $wpdb->get_col($wpdb->prepare(
-            'SELECT order_id FROM %i
+            "SELECT order_id FROM %i
              WHERE environment = %s AND status = %s AND reconcile_after IS NOT NULL AND reconcile_after <= UTC_TIMESTAMP()
-             ORDER BY reconcile_after ASC LIMIT %d',
+               AND (account_fp IS NULL OR %s = '' OR account_fp = %s)
+             ORDER BY reconcile_after ASC LIMIT %d",
             Installer::locks_table(),
             $environment,
             PaymentLockStatus::CREATED,
+            $account_fp,
+            $account_fp,
             max(1, min(100, $limit))
         ));
         return is_array($ids) ? array_values(array_map('intval', $ids)) : array();
@@ -211,6 +218,107 @@ final class PaymentLockStore
         ));
     }
 
+    /**
+     * Projection of the order's payment state and monitoring plan into the index, so that
+     * monitoring, diagnostics and the account-change guard never scan WooCommerce orders.
+     * Only the row of the order's current attempt is updated.
+     */
+    public function record_monitoring(int $order_id, string $attempt_id, string $payment_state, ?int $next_check_at, ?int $monitor_until): bool
+    {
+        global $wpdb;
+        // Timestamps are formatted as UTC in PHP: FROM_UNIXTIME() would use the session time zone.
+        return false !== $wpdb->query($wpdb->prepare(
+            "UPDATE %i SET payment_state = NULLIF(%s, ''), reconcile_after = NULLIF(%s, ''), monitor_until = NULLIF(%s, ''), updated_at = UTC_TIMESTAMP()
+             WHERE order_id = %d AND attempt_id = %s AND status = %s",
+            Installer::locks_table(),
+            $payment_state,
+            null === $next_check_at ? '' : gmdate('Y-m-d H:i:s', $next_check_at),
+            null === $monitor_until ? '' : gmdate('Y-m-d H:i:s', $monitor_until),
+            $order_id,
+            $attempt_id,
+            PaymentLockStatus::CREATED
+        ));
+    }
+
+    /**
+     * Current attempts whose provider state can still change, per Plaid account (ADR-0015):
+     * money in flight, a pending authorization, or an open ACH return window, including
+     * transfers under manual review (reconcile_after is kept until the window closes).
+     *
+     * @return array{count:int, oldest:string}
+     */
+    public function monitored(string $environment, string $account_fp = ''): array
+    {
+        global $wpdb;
+        $row = $wpdb->get_row($wpdb->prepare(
+            "SELECT COUNT(*) AS total, MIN(created_at) AS oldest FROM %i
+             WHERE environment = %s AND status = %s
+               AND (%s = '' OR account_fp IS NULL OR account_fp = %s)
+               AND (
+                    reconcile_after IS NOT NULL
+                 OR payment_state IN ('intent_created', 'intent_pending', 'transfer_created', 'pending', 'posted', 'settled')
+               )",
+            Installer::locks_table(),
+            $environment,
+            PaymentLockStatus::CREATED,
+            $account_fp,
+            $account_fp
+        ), ARRAY_A);
+        return array('count' => is_array($row) ? (int) $row['total'] : 0, 'oldest' => is_array($row) ? (string) ($row['oldest'] ?? '') : '');
+    }
+
+    /** @return array<string, int> Current attempts per payment state in one environment. */
+    public function count_by_state(string $environment): array
+    {
+        global $wpdb;
+        $rows = $wpdb->get_results($wpdb->prepare(
+            'SELECT COALESCE(payment_state, %s) AS state, COUNT(*) AS total FROM %i WHERE environment = %s GROUP BY state',
+            'unknown',
+            Installer::locks_table(),
+            $environment
+        ), ARRAY_A);
+        $counts = array();
+        foreach (is_array($rows) ? $rows : array() as $row) {
+            $counts[(string) $row['state']] = (int) $row['total'];
+        }
+        return $counts;
+    }
+
+    public function count_by_lock_status(string $status): int
+    {
+        global $wpdb;
+        return (int) $wpdb->get_var($wpdb->prepare('SELECT COUNT(*) FROM %i WHERE status = %s', Installer::locks_table(), $status));
+    }
+
+    /** Rows of another Plaid account in this environment: they cannot be monitored with the current credentials. */
+    public function count_other_account(string $environment, string $account_fp): int
+    {
+        global $wpdb;
+        if ('' === $account_fp) {
+            return 0;
+        }
+        return (int) $wpdb->get_var($wpdb->prepare(
+            'SELECT COUNT(*) FROM %i WHERE environment = %s AND status = %s AND account_fp IS NOT NULL AND account_fp <> %s AND reconcile_after IS NOT NULL',
+            Installer::locks_table(),
+            $environment,
+            PaymentLockStatus::CREATED,
+            $account_fp
+        ));
+    }
+
+    /** @return list<int> Created rows whose index projection predates schema 2 (bounded backfill). */
+    public function missing_projection(int $limit): array
+    {
+        global $wpdb;
+        $ids = $wpdb->get_col($wpdb->prepare(
+            'SELECT order_id FROM %i WHERE status = %s AND payment_state IS NULL ORDER BY order_id ASC LIMIT %d',
+            Installer::locks_table(),
+            PaymentLockStatus::CREATED,
+            max(1, min(100, $limit))
+        ));
+        return is_array($ids) ? array_values(array_map('intval', $ids)) : array();
+    }
+
     /** @return array{order_id:int, status:string}|null */
     private function find_by(string $column, string $value): ?array
     {
@@ -231,7 +339,7 @@ final class PaymentLockStore
         return array('order_id' => (int) $rows[0]['order_id'], 'status' => (string) $rows[0]['status']);
     }
 
-    /** @return array{status:string, transfer_intent_id:string, snapshot_hash:string, environment:string}|null */
+    /** @return array{status:string, transfer_intent_id:string, snapshot_hash:string, environment:string, account_fp:string, payment_state:string, reconcile_after:string, monitor_until:string}|null */
     public function row(int $order_id): ?array
     {
         global $wpdb;
@@ -239,7 +347,7 @@ final class PaymentLockStore
             return null;
         }
         $row = $wpdb->get_row($wpdb->prepare(
-            'SELECT status, transfer_intent_id, snapshot_hash, environment FROM %i WHERE order_id = %d',
+            'SELECT status, transfer_intent_id, snapshot_hash, environment, account_fp, payment_state, reconcile_after, monitor_until FROM %i WHERE order_id = %d',
             Installer::locks_table(),
             $order_id
         ), ARRAY_A);
@@ -251,6 +359,10 @@ final class PaymentLockStore
             'transfer_intent_id' => (string) ($row['transfer_intent_id'] ?? ''),
             'snapshot_hash' => (string) ($row['snapshot_hash'] ?? ''),
             'environment' => (string) ($row['environment'] ?? ''),
+            'account_fp' => (string) ($row['account_fp'] ?? ''),
+            'payment_state' => (string) ($row['payment_state'] ?? ''),
+            'reconcile_after' => (string) ($row['reconcile_after'] ?? ''),
+            'monitor_until' => (string) ($row['monitor_until'] ?? ''),
         );
     }
 

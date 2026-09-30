@@ -7,6 +7,7 @@ namespace PayBridge\Plaid;
 use PayBridge\Plaid\Admin\AdminNotices;
 use PayBridge\Plaid\Admin\ConnectionTester;
 use PayBridge\Plaid\Admin\DiagnosticsPage;
+use PayBridge\Plaid\Admin\OrderListColumn;
 use PayBridge\Plaid\Admin\OrderMetaBox;
 use PayBridge\Plaid\Admin\SiteHealth;
 use PayBridge\Plaid\Background\Scheduler;
@@ -15,6 +16,8 @@ use PayBridge\Plaid\Checkout\PaymentPage;
 use PayBridge\Plaid\Gateway\PayBridgeGateway;
 use PayBridge\Plaid\Persistence\Installer;
 use PayBridge\Plaid\REST\RestRoutes;
+use PayBridge\Plaid\Refund\WooRefundContext;
+use PayBridge\Plaid\Settings\AccountChangeGuard;
 
 final class Plugin
 {
@@ -41,6 +44,7 @@ final class Plugin
         add_action('woocommerce_blocks_payment_method_type_registration', array($this, 'register_blocks'));
         add_filter('plugin_action_links_' . plugin_basename(PAYBRIDGE_PLAID_FILE), array($this, 'action_links'));
         add_action('admin_enqueue_scripts', array(PayBridgeGateway::class, 'enqueue_admin_assets'));
+        add_action('admin_enqueue_scripts', array($this, 'enqueue_order_styles'));
         add_action('admin_init', array($this, 'privacy_policy'));
 
         ( new RestRoutes() )->register();
@@ -51,9 +55,23 @@ final class Plugin
         ( new DiagnosticsPage() )->register();
         ( new SiteHealth() )->register();
         ( new AdminNotices() )->register();
+        ( new OrderListColumn() )->register();
+        ( new AccountChangeGuard() )->register();
+        WooRefundContext::register();
         if (defined('WP_CLI') && WP_CLI && class_exists('WP_CLI')) {
             \WP_CLI::add_command('paybridge-plaid', CLI\Command::class);
         }
+    }
+
+    /** Badge and panel styles on the WooCommerce order list and order edit screens (HPOS and legacy). */
+    public function enqueue_order_styles(string $hook_suffix): void
+    {
+        $screen = function_exists('get_current_screen') ? get_current_screen() : null;
+        $screen_id = null === $screen ? '' : (string) $screen->id;
+        if (! in_array($hook_suffix, array('woocommerce_page_wc-orders', 'woocommerce_page_' . DiagnosticsPage::PAGE_SLUG), true) && ! in_array($screen_id, array('edit-shop_order', 'shop_order', 'woocommerce_page_wc-orders'), true)) {
+            return;
+        }
+        wp_enqueue_style('paybridge-plaid-admin', PAYBRIDGE_PLAID_URL . 'assets/admin-settings.css', array(), PAYBRIDGE_PLAID_VERSION);
     }
 
     /** @param object $registry Automattic\WooCommerce\Blocks\Payments\PaymentMethodRegistry */

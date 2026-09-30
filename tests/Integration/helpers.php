@@ -35,10 +35,9 @@ function pbfp_configure(array $overrides = array()): void
         'secret' => 'test-sandbox-secret',
         'funding_account_id' => '',
         'link_customization_name' => '',
+        'statement_descriptor' => 'PAYMENT',
         'network' => 'same-day-ach',
-        'ach_class' => 'web',
         'confirmation_state' => 'funds_available',
-        'reconciliation_enabled' => 'yes',
         'debug' => 'yes',
         'delete_data_on_uninstall' => 'no',
     ), false);
@@ -83,6 +82,28 @@ function pbfp_product(): WC_Product
     $new->save();
     update_option('pbfp_test_product_id', $new->get_id(), false);
     return $product = $new;
+}
+
+/** Runs a WooCommerce admin refund exactly like the order screen does (wc_create_refund → process_refund). */
+function pbfp_wc_refund(WC_Order $order, string $amount, string $reason = 'Customer request'): WC_Order_Refund|WP_Error
+{
+    return wc_create_refund(array('order_id' => $order->get_id(), 'amount' => $amount, 'reason' => $reason, 'refund_payment' => true, 'restock_items' => false));
+}
+
+/** @return list<array<string, mixed>> PayBridge refund rows of an order, oldest first. */
+function pbfp_refund_rows(WC_Order $order): array
+{
+    global $wpdb;
+    $rows = $wpdb->get_results($wpdb->prepare("SELECT * FROM {$wpdb->prefix}paybridge_plaid_refunds WHERE order_id = %d ORDER BY id ASC", $order->get_id()), ARRAY_A);
+    return is_array($rows) ? $rows : array();
+}
+
+/** @return array<string, mixed>|null Payment index row. */
+function pbfp_index_row(WC_Order $order): ?array
+{
+    global $wpdb;
+    $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}paybridge_plaid_payment_locks WHERE order_id = %d", $order->get_id()), ARRAY_A);
+    return is_array($row) ? $row : null;
 }
 
 function pbfp_reload(WC_Order|int $order): WC_Order
@@ -150,8 +171,10 @@ function pbfp_reset_world(): void
     delete_option('paybridge_plaid_payment_alerts');
     delete_option('paybridge_plaid_event_cursor_sandbox');
     delete_option('paybridge_plaid_event_cursor_production');
+    delete_option('paybridge_plaid_event_sync_failures');
     global $wpdb;
     $wpdb->query('DELETE FROM ' . $wpdb->prefix . 'paybridge_plaid_events');
+    $wpdb->query('DELETE FROM ' . $wpdb->prefix . 'paybridge_plaid_refunds');
     foreach ($wpdb->get_col("SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE '\\_transient\\_pbfp\\_%'") as $name) {
         delete_transient(substr((string) $name, strlen('_transient_')));
     }

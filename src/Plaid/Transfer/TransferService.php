@@ -19,4 +19,13 @@ final class TransferService
         $response = $this->client->post('/transfer/get', array('transfer_id' => $transfer_id));
         return Transfer::from_array($response->object('transfer'), $response->request_id);
     }
+
+    /**
+     * Command: cancels a transfer Plaid still reports as cancellable. Returns the request ID.
+     * Plaid answers TRANSFER_NOT_CANCELLABLE once the transfer was sent to the network.
+     */
+    public function cancel(string $transfer_id): string
+    {
+        return $this->client->post('/transfer/cancel', array('transfer_id' => $transfer_id))->request_id;
+    }
 }

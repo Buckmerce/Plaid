@@ -75,6 +75,10 @@ mkdir -p "$site_dir/wp-content/mu-plugins"
 for fixture in disposable-site plaid-mock browser-helpers; do
     cp "$base_dir/tests/fixtures/$fixture.php" "$site_dir/wp-content/mu-plugins/pbfp-$fixture.php"
 done
+# axe-core (accessibility engine) is served only by this disposable site, never shipped.
+axe_source="$base_dir/node_modules/axe-core/axe.min.js"
+[[ -f "$axe_source" ]] || { printf 'Run npm ci first: axe-core is required for the accessibility checks.\n' >&2; exit 1; }
+cp "$axe_source" "$site_dir/wp-content/pbfp-axe.min.js"
 # WooCommerce's own activation notices (e.g. its bundled Jetpack packages loading translations
 # early under WP-CLI) are not PayBridge's; everything logged from here on is checked.
 : > "$site_dir/wp-content/debug.log"
@@ -101,7 +105,7 @@ PBFP_BLOCKS_PAGE_ID="$blocks_id" "${wp_cli[@]}" eval '$m = new ReflectionMethod(
 "${wp_cli[@]}" option update woocommerce_enable_guest_checkout yes >/dev/null
 "${wp_cli[@]}" option update woocommerce_enable_signup_and_login_from_checkout no >/dev/null
 "${wp_cli[@]}" option update woocommerce_coming_soon no >/dev/null
-settings='{"enabled":"yes","title":"Pay by Bank","description":"Securely pay directly from your bank account.","environment":"sandbox","client_id":"browserclientid","secret":"browser-sandbox-secret-value","funding_account_id":"","link_customization_name":"","network":"same-day-ach","ach_class":"web","confirmation_state":"funds_available","reconciliation_enabled":"yes","debug":"yes","delete_data_on_uninstall":"no"}'
+settings='{"enabled":"yes","title":"Pay by Bank","description":"Securely pay directly from your bank account.","environment":"sandbox","client_id":"browserclientid","secret":"browser-sandbox-secret-value","funding_account_id":"","link_customization_name":"","statement_descriptor":"PAYMENT","network":"same-day-ach","confirmation_state":"funds_available","debug":"yes","delete_data_on_uninstall":"no"}'
 "${wp_cli[@]}" option update woocommerce_paybridge_plaid_settings "$settings" --format=json >/dev/null
 product_id=$("${wp_cli[@]}" eval '$p = new WC_Product_Simple(); $p->set_name("PayBridge Test Product"); $p->set_regular_price("11.11"); $p->set_virtual(true); $p->set_status("publish"); echo $p->save();')
 "${wp_cli[@]}" rewrite structure '/%postname%/' --hard >/dev/null
@@ -130,4 +134,4 @@ if [[ -n "$php_problems" ]]; then
     printf 'PHP warnings/notices during the browser suite:\n%s\n' "$php_problems" >&2
     exit 1
 fi
-printf 'PayBridge browser E2E passed: settings, diagnostics, Classic and Blocks checkout, payment page, double-click guard, failure/exit/retry UX, access control.\n'
+printf 'PayBridge browser E2E passed: settings, diagnostics, Classic and Blocks checkout, payment page, double-click guard, failure/exit/retry UX, access control, WooCommerce admin refunds, returned-payment indicator, accessibility (axe WCAG 2.2 AA, keyboard, focus).\n'

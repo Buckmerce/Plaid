@@ -6,7 +6,7 @@ namespace PayBridge\Plaid\Admin;
 
 use PayBridge\Plaid\Payment\PaymentAlerts;
 
-/** Persistent admin notices for ACH returns and payments needing review. */
+/** Persistent admin notices for ACH returns, refund problems and payments needing review. */
 final class AdminNotices
 {
     public const DISMISS_ACTION = 'pbfp_dismiss_alert';
@@ -30,13 +30,8 @@ final class AdminNotices
             $order = wc_get_order($alert['order_id']);
             $link = $order instanceof \WC_Order ? $order->get_edit_order_url() : '';
             $dismiss = wp_nonce_url(add_query_arg(array('action' => self::DISMISS_ACTION, 'alert' => rawurlencode($key)), admin_url('admin-post.php')), self::DISMISS_ACTION);
-            $message = match ($alert['type']) {
-                /* translators: 1: order number, 2: ACH return code */
-                'returned' => sprintf(__('PayBridge: the bank payment for order #%1$s was RETURNED (%2$s). The funds were reversed.', 'paybridge-for-plaid'), $alert['order_number'], '' === $alert['code'] ? '—' : $alert['code']),
-                /* translators: 1: order number, 2: reason code */
-                default => sprintf(__('PayBridge: order #%1$s requires manual payment review (%2$s).', 'paybridge-for-plaid'), $alert['order_number'], '' === $alert['code'] ? '—' : $alert['code']),
-            };
-            echo '<div class="notice notice-error"><p><strong>' . esc_html($message) . '</strong> ';
+            $critical = in_array($alert['type'], PaymentAlerts::CRITICAL, true);
+            echo '<div class="notice ' . esc_attr($critical ? 'notice-error' : 'notice-warning') . ' pbfp-alert"><p><strong>' . esc_html(PaymentAlerts::message($alert)) . '</strong> ';
             if ('' !== $link) {
                 echo '<a href="' . esc_url($link) . '">' . esc_html__('Review order', 'paybridge-for-plaid') . '</a> · ';
             }

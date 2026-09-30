@@ -94,9 +94,73 @@ final class Command
         if (! $order instanceof \WC_Order || Settings::GATEWAY_ID !== $order->get_payment_method()) {
             \WP_CLI::error('Not a PayBridge order.');
         }
-        ( new Container() )->synchronizer()->sync($order);
+        $container = new Container();
+        $container->synchronizer()->sync($order);
+        $container->refunds()->sync_order($order);
         $order = wc_get_order($order->get_id());
+        $container->monitor()->refresh($order);
         \WP_CLI::success(sprintf('Order %d: payment state %s, order status %s.', $order->get_id(), (string) $order->get_meta('_pbfp_payment_state', true), $order->get_status()));
+    }
+
+    /**
+     * Lists the Plaid refunds PayBridge recorded for an order.
+     *
+     * ## OPTIONS
+     *
+     * <order-id>
+     * : WooCommerce order ID.
+     *
+     * @param list<string>          $args
+     * @param array<string, string> $assoc_args
+     */
+    public function refunds(array $args, array $assoc_args): void
+    {
+        $order = wc_get_order(absint($args[0] ?? 0));
+        if (! $order instanceof \WC_Order || Settings::GATEWAY_ID !== $order->get_payment_method()) {
+            \WP_CLI::error('Not a PayBridge order.');
+        }
+        $refunds = ( new Container() )->refunds();
+        foreach ($refunds->for_order($order) as $record) {
+            \WP_CLI::line(sprintf('#%d  $%s  %s  refund=%s  wc_refund=%d  origin=%s  code=%s  updated=%s', $record->id, $record->amount, $record->status, '' === $record->refund_id ? '-' : $record->refund_id, $record->wc_refund_id, $record->origin, '' === $record->failure_code ? '-' : $record->failure_code, $record->updated_at));
+        }
+        $eligibility = $refunds->eligibility($order);
+        \WP_CLI::line(sprintf('Refunded: $%s; refundable now: %s', $eligibility->refunded, $eligibility->allowed ? '$' . $eligibility->remaining : 'no (' . $eligibility->code . ')'));
+    }
+
+    /**
+     * Sandbox only: asks Plaid to move a refund to its next state (refund.posted, refund.settled,
+     * refund.failed or refund.returned). Production refuses Sandbox endpoints.
+     *
+     * ## OPTIONS
+     *
+     * <refund-id>
+     * : Plaid refund ID.
+     *
+     * <event-type>
+     * : refund.posted | refund.settled | refund.failed | refund.returned
+     *
+     * @subcommand simulate-refund
+     *
+     * @param list<string>          $args
+     * @param array<string, string> $assoc_args
+     */
+    public function simulate_refund(array $args, array $assoc_args): void
+    {
+        $settings = Settings::load();
+        if ('sandbox' !== $settings->environment_name()) {
+            \WP_CLI::error('Refund simulation is only available in the Sandbox environment.');
+        }
+        $refund_id = (string) ($args[0] ?? '');
+        $event = (string) ($args[1] ?? '');
+        if (! preg_match('/^[A-Za-z0-9\-]{1,64}$/', $refund_id) || ! in_array($event, array('refund.posted', 'refund.settled', 'refund.failed', 'refund.returned'), true)) {
+            \WP_CLI::error('Usage: wp paybridge-plaid simulate-refund <refund-id> <refund.posted|refund.settled|refund.failed|refund.returned>');
+        }
+        $body = array('refund_id' => $refund_id, 'event_type' => $event);
+        if ('refund.returned' === $event) {
+            $body['failure_reason'] = array('failure_code' => 'R01', 'description' => 'Sandbox simulated return');
+        }
+        $response = ( new Container($settings) )->client()->post('/sandbox/transfer/refund/simulate', $body);
+        \WP_CLI::success('Plaid accepted the simulation (request_id ' . $response->request_id . ').');
     }
 
     /**

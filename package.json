@@ -59,6 +59,7 @@
   },
   "devDependencies": {
     "@parcel/transformer-sass": "^2.16.4",
+    "axe-core": "4.13.0",
     "parcel": "^2.16.4",
     "sass": "^1.104.1",
     "typescript": "^7.0.2"

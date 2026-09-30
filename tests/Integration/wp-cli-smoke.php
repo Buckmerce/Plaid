@@ -15,14 +15,21 @@ use PayBridge\Plaid\Settings\Settings;
 global $wpdb;
 pbfp_configure();
 
-// Schema v1 exists, is verified and uses only PayBridge-owned names.
+// Schema v2 exists, is verified and uses only PayBridge-owned names.
 pbfp_assert(Installer::schema_is_valid(), 'Fresh activation must create a valid schema.');
-pbfp_assert_same('1', get_option(Installer::OPTION), 'Schema version must start at 1.');
-foreach (array('paybridge_plaid_events', 'paybridge_plaid_payment_locks') as $suffix) {
+pbfp_assert_same('2', get_option(Installer::OPTION), 'Schema version 2 (refunds, monitoring projection).');
+foreach (array('paybridge_plaid_events', 'paybridge_plaid_payment_locks', 'paybridge_plaid_refunds') as $suffix) {
     pbfp_assert_same($wpdb->prefix . $suffix, $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->prefix . $suffix)), 'Missing table ' . $suffix);
 }
 $unique = $wpdb->get_results("SHOW INDEX FROM {$wpdb->prefix}paybridge_plaid_events WHERE Key_name = 'environment_event'", ARRAY_A);
 pbfp_assert(2 === count($unique) && '0' === (string) $unique[0]['Non_unique'], 'Event identity must be UNIQUE(environment, event_id).');
+foreach (array('idempotency_key' => 1, 'environment_refund' => 2, 'wc_refund_id' => 1) as $key_name => $columns) {
+    $index = $wpdb->get_results($wpdb->prepare("SHOW INDEX FROM {$wpdb->prefix}paybridge_plaid_refunds WHERE Key_name = %s", $key_name), ARRAY_A);
+    pbfp_assert($columns === count($index) && '0' === (string) $index[0]['Non_unique'], 'Refund identity must be UNIQUE: ' . $key_name);
+}
+foreach (array('payment_state', 'account_fp', 'monitor_until') as $column) {
+    pbfp_assert(null !== $wpdb->get_row($wpdb->prepare("SHOW COLUMNS FROM {$wpdb->prefix}paybridge_plaid_payment_locks LIKE %s", $column)), 'Payment index column ' . $column);
+}
 
 // HPOS mode under test and compatibility declaration.
 $expect_hpos = 'yes' === getenv('PAYBRIDGE_PLAID_EXPECT_HPOS');
@@ -37,9 +44,13 @@ $gateway = pbfp_gateway();
 pbfp_assert_same('paybridge_plaid', $gateway->id, 'Gateway ID.');
 pbfp_assert_same('woocommerce_paybridge_plaid_settings', $gateway->get_option_key(), 'Settings option name.');
 $fields = array_keys($gateway->get_form_fields());
-foreach (array('enabled', 'title', 'description', 'environment', 'client_id', 'secret', 'funding_account_id', 'network', 'ach_class', 'debug', 'reconciliation_enabled', 'delete_data_on_uninstall') as $field) {
+foreach (array('enabled', 'title', 'description', 'environment', 'client_id', 'secret', 'funding_account_id', 'link_customization_name', 'statement_descriptor', 'network', 'confirmation_state', 'debug', 'delete_data_on_uninstall') as $field) {
     pbfp_assert(in_array($field, $fields, true), 'Missing setting ' . $field);
 }
+pbfp_assert(! in_array('ach_class', $fields, true), 'ACH class is not configurable: Transfer UI debits are always WEB.');
+pbfp_assert(! in_array('reconciliation_enabled', $fields, true), 'Monitoring of existing payments cannot be switched off.');
+pbfp_assert($gateway->supports('refunds'), 'Native refunds are supported.');
+pbfp_assert($gateway->supports('products'), 'Products are supported.');
 foreach ($fields as $field) {
     pbfp_assert(! preg_match('/shop|crypto|direction|system|sci|api_password/i', $field), 'Obsolete setting ' . $field);
 }
@@ -68,6 +79,15 @@ $_POST = $post + array('save' => 'pbfp_reset_secret');
 $_POST[$key] = '';
 $gateway->process_admin_options();
 pbfp_assert_same('', Settings::load()->secret(), 'Reset must clear the stored secret.');
+pbfp_configure();
+$_POST = $post;
+$_POST[$key] = '';
+$_POST[$gateway->get_field_key('statement_descriptor')] = 'my-store <b>!';
+$gateway->process_admin_options();
+pbfp_assert_same('MYSTORE', Settings::load()->statement_descriptor(), 'Statement descriptor is stripped of markup and normalized to Plaid ACH rules.');
+$_POST[$gateway->get_field_key('statement_descriptor')] = '€€€';
+$gateway->process_admin_options();
+pbfp_assert_same('PAYMENT', Settings::load()->statement_descriptor(), 'An unusable descriptor falls back to PAYMENT.');
 $_POST = array();
 pbfp_configure();
 
@@ -86,6 +106,11 @@ pbfp_assert(! $is_available(array('secret' => '')), 'Missing Secret must hide th
 pbfp_assert(! $is_available(array('environment' => 'development')), 'Invalid environment must hide the gateway.');
 pbfp_assert(! $is_available(array(), 'EUR'), 'Unsupported currency must hide the gateway.');
 pbfp_assert(! $is_available(array('environment' => 'production')), 'Production without HTTPS must hide the gateway.');
+$https_home = static fn ($home) => str_replace('http://', 'https://', (string) $home);
+add_filter('option_home', $https_home);
+pbfp_assert(! $is_available(array('environment' => 'production', 'link_customization_name' => '')), 'Production without a Link customization must hide the gateway.');
+pbfp_assert($is_available(array('environment' => 'production', 'link_customization_name' => 'one_account')), 'Complete Production configuration over HTTPS is available.');
+remove_filter('option_home', $https_home);
 pbfp_configure();
 
 // REST routes and Blocks registration.
@@ -110,9 +135,21 @@ pbfp_assert(as_has_scheduled_action(Scheduler::RECONCILE_HOOK, array(), 'paybrid
 $cli_commands = WP_CLI::get_root_command()->get_subcommands();
 pbfp_assert(isset($cli_commands['paybridge-plaid']), 'wp paybridge-plaid is registered.');
 $sub = array_keys($cli_commands['paybridge-plaid']->get_subcommands());
-foreach (array('status', 'test-connection', 'sync-events', 'reconcile', 'sync-order', 'fire-sandbox-webhook') as $command) {
+foreach (array('status', 'test-connection', 'sync-events', 'reconcile', 'sync-order', 'refunds', 'simulate-refund', 'fire-sandbox-webhook') as $command) {
     pbfp_assert(in_array($command, $sub, true), 'Missing CLI subcommand ' . $command);
 }
+
+// Upgrade from schema 1 (0.1.0): forward-only migration, verified, existing payments keep their account.
+$locks_table = $wpdb->prefix . 'paybridge_plaid_payment_locks';
+$wpdb->query("ALTER TABLE {$locks_table} DROP INDEX payment_state, DROP COLUMN payment_state, DROP COLUMN account_fp, DROP COLUMN monitor_until");
+$wpdb->query("DROP TABLE {$wpdb->prefix}paybridge_plaid_refunds");
+$wpdb->query($wpdb->prepare("INSERT INTO {$locks_table} (order_id, environment, status, attempts, attempt_id, transfer_intent_id, created_at, updated_at) VALUES (%d, 'sandbox', 'created', 1, %s, 'legacy-intent', UTC_TIMESTAMP(), UTC_TIMESTAMP())", 987654321, str_repeat('c', 32)));
+update_option(Installer::OPTION, '1');
+pbfp_assert(! Installer::schema_is_valid(), 'A schema 1 database is detected as outdated.');
+Installer::install();
+pbfp_assert(Installer::schema_is_valid() && '2' === get_option(Installer::OPTION), 'Schema 1 → 2 migration verified.');
+pbfp_assert_same(Settings::load()->account_fingerprint(), (string) $wpdb->get_var("SELECT account_fp FROM {$locks_table} WHERE order_id = 987654321"), 'Existing payments are attributed to the configured Plaid account.');
+$wpdb->query("DELETE FROM {$locks_table} WHERE order_id = 987654321");
 
 // Only documented PayBridge options exist (docs/DATA_MODEL.md §9).
 global $wpdb;
@@ -131,6 +168,8 @@ $documented_options = array(
     'paybridge_plaid_last_webhook_rejection',
     'paybridge_plaid_first_intent_at_sandbox',
     'paybridge_plaid_first_intent_at_production',
+    'paybridge_plaid_event_sync_failures',
+    'paybridge_plaid_last_link_token_error',
 );
 $paybridge_options = $wpdb->get_col($wpdb->prepare("SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s", 'paybridge%', 'woocommerce_paybridge%'));
 pbfp_assert(array() === array_diff($paybridge_options, $documented_options), 'Undocumented PayBridge options: ' . implode(', ', array_diff($paybridge_options, $documented_options)));

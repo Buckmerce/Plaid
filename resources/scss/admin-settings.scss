@@ -1,10 +1,20 @@
-// PayBridge for Plaid — gateway settings screen. All selectors are .pbfp- namespaced.
+// PayBridge for Plaid — admin screens (settings, diagnostics, order list, order panel).
+// All selectors are .pbfp- namespaced. Colors meet WCAG AA contrast on white.
+
+// Text colors reach ≥ 4.5:1 on white and white text ≥ 4.5:1 on them (WCAG 2.2 AA).
+$pbfp-ok: #007017;
+$pbfp-fail: #b32d2e;
+$pbfp-warn: #7a5400;
+$pbfp-info: #2271b1;
+$pbfp-ok-border: #00a32a;
 
 .pbfp-copy-field {
 	display: flex;
+	flex-wrap: wrap;
 	gap: 8px;
 	align-items: center;
 	max-width: 760px;
+	margin-top: 12px;
 
 	input {
 		flex: 1 1 auto;
@@ -20,12 +30,100 @@
 	max-width: 760px;
 
 	&--ok {
-		border-left-color: #00a32a;
+		border-left-color: $pbfp-ok-border;
 	}
 
 	&--warning {
-		border-left-color: #d63638;
+		border-left-color: $pbfp-fail;
 		list-style: disc inside;
+	}
+}
+
+.pbfp-status-panel {
+	max-width: 900px;
+	padding: 12px 16px;
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-left-width: 4px;
+
+	&--ready {
+		border-left-color: $pbfp-ok-border;
+	}
+
+	&--disabled {
+		border-left-color: $pbfp-info;
+	}
+
+	&--incomplete,
+	&--attention {
+		border-left-color: $pbfp-fail;
+	}
+
+	h3 {
+		margin-top: 0;
+	}
+}
+
+.pbfp-badge {
+	display: inline-block;
+	margin-left: 6px;
+	padding: 2px 8px;
+	border-radius: 3px;
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 1.6;
+	vertical-align: middle;
+	color: #fff;
+	background: $pbfp-info;
+
+	&--ready {
+		background: $pbfp-ok;
+	}
+
+	&--incomplete,
+	&--attention,
+	&--production {
+		background: $pbfp-fail;
+	}
+
+	&--sandbox {
+		background: $pbfp-warn;
+	}
+}
+
+.pbfp-checklist {
+	margin: 8px 0 12px;
+}
+
+.pbfp-check {
+	margin: 0 0 4px;
+
+	&__result {
+		display: inline-block;
+		min-width: 44px;
+		font-weight: 600;
+	}
+
+	&--pass .pbfp-check__result {
+		color: $pbfp-ok;
+	}
+
+	&--fail .pbfp-check__result {
+		color: $pbfp-fail;
+	}
+
+	&--warn .pbfp-check__result {
+		color: $pbfp-warn;
+	}
+
+	&--info .pbfp-check__result {
+		color: $pbfp-info;
+	}
+
+	&__help {
+		display: block;
+		margin-left: 48px;
+		color: #50575e;
 	}
 }
 
@@ -33,4 +131,45 @@
 	display: flex;
 	gap: 12px;
 	align-items: center;
+}
+
+.pbfp-order-panel {
+	h4 {
+		margin: 16px 0 6px;
+	}
+
+	.pbfp-refund--problem td {
+		color: $pbfp-fail;
+	}
+}
+
+.pbfp-order-actions .button {
+	margin: 0 4px 4px 0;
+}
+
+mark.pbfp-list-badge {
+	&--critical {
+		background: #f8d7da;
+		color: #761919;
+	}
+
+	&--warning {
+		background: #fcf0d4;
+		color: #6b4a00;
+	}
+
+	&--failed {
+		background: #eba3a3;
+		color: #761919;
+	}
+
+	&--pending {
+		background: #f8dda7;
+		color: #573b00;
+	}
+
+	&--ok {
+		background: #c6e1c6;
+		color: #2c4700;
+	}
 }

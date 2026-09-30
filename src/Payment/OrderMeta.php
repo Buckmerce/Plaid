@@ -22,8 +22,28 @@ final class OrderMeta
     public const MANUAL_REVIEW_REASON = '_pbfp_manual_review_reason';
     /** Latest expiration (UTC ISO-8601) of any Link token issued for the active Transfer Intent. */
     public const LINK_TOKEN_EXPIRES_AT = '_pbfp_link_token_expires_at';
-    /** Audit trail of Transfer Intents that were retired and replaced by a new attempt. */
+    /** Audit trail of payment attempts that were retired and replaced by a new attempt. */
     public const RETIRED_ATTEMPTS = '_pbfp_retired_attempts';
+    /** Merchant alert/email for the current attempt's ACH return was already sent. */
+    public const RETURN_ALERTED = '_pbfp_return_alerted';
+
+    /** Non-secret identity of the Plaid account that created the current attempt (ADR-0015). */
+    public const ACCOUNT_FINGERPRINT = '_pbfp_account_fingerprint';
+    /** Provider timestamps (UTC ISO-8601) of the current transfer. */
+    public const TRANSFER_CREATED_AT = '_pbfp_transfer_created_at';
+    public const SETTLED_AT = '_pbfp_settled_at';
+    public const FUNDS_AVAILABLE_AT = '_pbfp_funds_available_at';
+    public const RETURNED_AT = '_pbfp_returned_at';
+    /** Return windows reported by /transfer/get (YYYY-MM-DD) and the expected funds date. */
+    public const STANDARD_RETURN_WINDOW = '_pbfp_standard_return_window';
+    public const UNAUTHORIZED_RETURN_WINDOW = '_pbfp_unauthorized_return_window';
+    public const EXPECTED_FUNDS_AVAILABLE_DATE = '_pbfp_expected_funds_available_date';
+    /** 'yes' when the last /transfer/get reported the transfer as cancellable. */
+    public const TRANSFER_CANCELLABLE = '_pbfp_transfer_cancellable';
+    /** Sanitized provider description of a failure or return (never raw payloads). */
+    public const FAILURE_DESCRIPTION = '_pbfp_failure_description';
+    /** Manual review was resolved by a merchant (who, when, decision) — kept for audit. */
+    public const MANUAL_REVIEW_RESOLUTION = '_pbfp_manual_review_resolution';
 
     private function __construct()
     {

@@ -38,6 +38,7 @@ set_transient('pbfp_connection_test_1', array('status' => 'connected'), 600);
 $run_uninstall();
 pbfp_assert(false !== get_option('woocommerce_paybridge_plaid_settings'), 'Settings retained by default.');
 pbfp_assert($wpdb->prefix . 'paybridge_plaid_events' === $wpdb->get_var("SHOW TABLES LIKE '{$wpdb->prefix}paybridge_plaid_events'"), 'Event table retained by default.');
+pbfp_assert($wpdb->prefix . 'paybridge_plaid_refunds' === $wpdb->get_var("SHOW TABLES LIKE '{$wpdb->prefix}paybridge_plaid_refunds'"), 'Refund history retained by default.');
 
 // Explicit cleanup: only PayBridge-owned data is removed.
 pbfp_configure(array('delete_data_on_uninstall' => 'yes'));
@@ -47,7 +48,7 @@ pbfp_assert(false === get_option('woocommerce_paybridge_plaid_settings'), 'Setti
 pbfp_assert(false === get_option('paybridge_plaid_schema_version'), 'Schema version removed on cleanup.');
 pbfp_assert(false === get_option('paybridge_plaid_last_reconciliation'), 'Operational options removed on cleanup.');
 pbfp_assert(false === get_transient('pbfp_connection_test_1'), 'PayBridge transients removed on cleanup.');
-foreach (array('paybridge_plaid_events', 'paybridge_plaid_payment_locks') as $suffix) {
+foreach (array('paybridge_plaid_events', 'paybridge_plaid_payment_locks', 'paybridge_plaid_refunds') as $suffix) {
     pbfp_assert(null === $wpdb->get_var("SHOW TABLES LIKE '{$wpdb->prefix}{$suffix}'"), 'Table removed on cleanup: ' . $suffix);
 }
 pbfp_assert($wpdb->prefix . 'other_gateway_events' === $wpdb->get_var("SHOW TABLES LIKE '{$wpdb->prefix}other_gateway_events'"), 'Another plugin table must never be dropped.');
