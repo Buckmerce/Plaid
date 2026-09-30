@@ -80,7 +80,7 @@ fi
 for hpos in no yes; do
     "${wp_cli[@]}" wc hpos sync >/dev/null 2>&1 || true
     "${wp_cli[@]}" option update woocommerce_custom_orders_table_enabled "$hpos" >/dev/null
-    for suite in wp-cli-smoke wp-cli-payment-flow wp-cli-webhook-rest; do
+    for suite in wp-cli-smoke wp-cli-payment-flow wp-cli-webhook-rest wp-cli-refunds wp-cli-lifecycle; do
         PAYBRIDGE_PLAID_EXPECT_HPOS="$hpos" "${wp_cli[@]}" eval-file "$base_dir/tests/Integration/$suite.php" --use-include
     done
     PAYBRIDGE_PLAID_EXPECT_HPOS="$hpos" PAYBRIDGE_PLAID_SITE="$site_dir" php "$base_dir/tests/Integration/concurrency.php"

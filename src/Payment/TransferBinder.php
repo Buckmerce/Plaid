@@ -21,7 +21,8 @@ final class TransferBinder
     public function __construct(
         private readonly TransferService $transfers,
         private readonly OrderPaymentProjector $projector,
-        private readonly PaymentLockStore $locks
+        private readonly PaymentLockStore $locks,
+        private readonly ?PaymentMonitor $monitor = null
     ) {
     }
 
@@ -58,6 +59,7 @@ final class TransferBinder
         $order->update_meta_data(OrderMeta::TRANSFER_STATUS, $transfer->status);
         $order->update_meta_data(OrderMeta::REQUEST_ID, $transfer->request_id);
         $order->update_meta_data(OrderMeta::LAST_SYNC_AT, gmdate('c'));
+        self::record_transfer_details($order, $transfer);
         OrderPersistence::save($order, array(OrderMeta::TRANSFER_ID => $transfer->id));
         if ('' === $stored_transfer) {
             $order->set_transaction_id($transfer->id);
@@ -70,20 +72,47 @@ final class TransferBinder
     /** Projects an authoritative /transfer/get status (stale/duplicate safe). */
     public function apply_transfer_status(\WC_Order $order, Transfer $transfer, string $source): void
     {
+        // Return windows and dates first: monitoring decisions are made from them.
+        self::record_transfer_details($order, $transfer);
+        $order->save();
         $state = PaymentState::from_plaid_transfer_status($transfer->status);
-        if (null === $state) {
-            return;
+        if (null !== $state) {
+            $this->projector->transition($order, $state, array(
+                'source' => $source,
+                'transfer_id' => $transfer->id,
+                'failure_code' => $transfer->failure_code,
+                'return_code' => $transfer->return_code(),
+                'description' => $transfer->failure_description,
+            ));
         }
-        $this->projector->transition($order, $state, array(
-            'source' => $source,
-            'transfer_id' => $transfer->id,
-            'failure_code' => $transfer->failure_code,
-            'return_code' => '' !== $transfer->failure_code ? $transfer->failure_code : $transfer->ach_return_code,
-            'description' => $transfer->failure_description,
-        ));
         $order->update_meta_data(OrderMeta::TRANSFER_STATUS, $transfer->status);
         $order->update_meta_data(OrderMeta::LAST_SYNC_AT, gmdate('c'));
         $order->save();
+        $this->monitor?->refresh($order);
+    }
+
+    /**
+     * Stores the provider dates that decide how long a payment is monitored (ADR-0014).
+     * A value Plaid no longer reports is kept: windows only ever become known, never unknown.
+     */
+    public static function record_transfer_details(\WC_Order $order, Transfer $transfer): void
+    {
+        $created = '' === $transfer->created ? false : strtotime($transfer->created);
+        if (false !== $created && '' === (string) $order->get_meta(OrderMeta::TRANSFER_CREATED_AT, true)) {
+            $order->update_meta_data(OrderMeta::TRANSFER_CREATED_AT, gmdate('c', $created));
+        }
+        foreach (
+            array(
+                OrderMeta::STANDARD_RETURN_WINDOW => $transfer->standard_return_window,
+                OrderMeta::UNAUTHORIZED_RETURN_WINDOW => $transfer->unauthorized_return_window,
+                OrderMeta::EXPECTED_FUNDS_AVAILABLE_DATE => $transfer->expected_funds_available_date,
+            ) as $key => $value
+        ) {
+            if ('' !== $value) {
+                $order->update_meta_data($key, $value);
+            }
+        }
+        $order->update_meta_data(OrderMeta::TRANSFER_CANCELLABLE, $transfer->cancellable ? 'yes' : 'no');
     }
 
     public static function intent_matches_snapshot(TransferIntent $intent, PaymentSnapshot $snapshot): bool

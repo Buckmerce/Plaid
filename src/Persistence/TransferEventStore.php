@@ -44,6 +44,8 @@ final class TransferEventStore
             'ach_return_code' => $event->ach_return_code,
             'failure_description' => substr($event->failure_description, 0, 255),
             'timestamp' => $event->timestamp,
+            'refund_id' => $event->refund_id,
+            'event_amount' => $event->event_amount,
         ));
         $timestamp = strtotime($event->timestamp);
         $result = $wpdb->query($wpdb->prepare(
@@ -55,7 +57,7 @@ final class TransferEventStore
             substr($event->event_type, 0, 64),
             substr($event->transfer_id, 0, 64),
             (string) $data,
-            $event->is_lifecycle_event() ? self::RECEIVED : self::IGNORED,
+            $event->is_processable() ? self::RECEIVED : self::IGNORED,
             false === $timestamp ? gmdate('Y-m-d H:i:s') : gmdate('Y-m-d H:i:s', $timestamp)
         ));
         if (false === $result) {

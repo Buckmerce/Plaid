@@ -7,25 +7,31 @@ namespace PayBridge\Plaid;
 use PayBridge\Plaid\Background\EventSyncService;
 use PayBridge\Plaid\Background\ReconciliationService;
 use PayBridge\Plaid\Logging\Logger;
+use PayBridge\Plaid\Payment\ManualActions;
 use PayBridge\Plaid\Payment\OrderLocator;
 use PayBridge\Plaid\Payment\OrderPaymentProjector;
 use PayBridge\Plaid\Payment\OrderSynchronizer;
 use PayBridge\Plaid\Payment\PaymentAlerts;
 use PayBridge\Plaid\Payment\PaymentAttemptService;
 use PayBridge\Plaid\Payment\PaymentCompletionService;
+use PayBridge\Plaid\Payment\PaymentMonitor;
 use PayBridge\Plaid\Payment\TransferBinder;
 use PayBridge\Plaid\Payment\TransferEventProcessor;
 use PayBridge\Plaid\Persistence\EventCursor;
 use PayBridge\Plaid\Persistence\PaymentLockStore;
+use PayBridge\Plaid\Persistence\RefundStore;
 use PayBridge\Plaid\Persistence\TransferEventStore;
 use PayBridge\Plaid\Plaid\Client\PlaidClientInterface;
 use PayBridge\Plaid\Plaid\Link\LinkTokenService;
 use PayBridge\Plaid\Plaid\PlaidClientFactory;
+use PayBridge\Plaid\Plaid\Refund\TransferRefundService;
 use PayBridge\Plaid\Plaid\Transfer\TransferEventService;
 use PayBridge\Plaid\Plaid\Transfer\TransferService;
 use PayBridge\Plaid\Plaid\TransferIntent\TransferIntentService;
 use PayBridge\Plaid\Plaid\Webhook\VerificationKeyProvider;
 use PayBridge\Plaid\Plaid\Webhook\WebhookVerificationService;
+use PayBridge\Plaid\Refund\RefundEventHandler;
+use PayBridge\Plaid\Refund\RefundService;
 use PayBridge\Plaid\Settings\Settings;
 
 /**
@@ -79,12 +85,65 @@ final class Container
 
     public function projector(): OrderPaymentProjector
     {
-        return $this->shared(OrderPaymentProjector::class, fn (): OrderPaymentProjector => new OrderPaymentProjector($this->settings(), $this->logger(), $this->alerts()));
+        return $this->shared(OrderPaymentProjector::class, fn (): OrderPaymentProjector => new OrderPaymentProjector($this->settings(), $this->logger(), $this->alerts(), $this->monitor(), $this->refunds()));
+    }
+
+    public function monitor(): PaymentMonitor
+    {
+        return $this->shared(PaymentMonitor::class, fn (): PaymentMonitor => new PaymentMonitor($this->locks()));
+    }
+
+    public function refund_store(): RefundStore
+    {
+        return $this->shared(RefundStore::class, static fn (): RefundStore => new RefundStore());
+    }
+
+    public function plaid_refunds(): TransferRefundService
+    {
+        return $this->shared(TransferRefundService::class, fn (): TransferRefundService => new TransferRefundService($this->client()));
+    }
+
+    /** Usable without credentials (eligibility, admin screens); Plaid is contacted only when needed. */
+    public function refunds(): RefundService
+    {
+        return $this->shared(RefundService::class, fn (): RefundService => new RefundService(
+            $this->settings(),
+            fn (): TransferRefundService => $this->plaid_refunds(),
+            fn (): TransferService => $this->transfers(),
+            $this->refund_store(),
+            $this->alerts(),
+            $this->logger()
+        ));
+    }
+
+    public function refund_events(): RefundEventHandler
+    {
+        return $this->shared(RefundEventHandler::class, fn (): RefundEventHandler => new RefundEventHandler(
+            $this->refunds(),
+            $this->refund_store(),
+            new OrderLocator($this->locks()),
+            fn (): TransferRefundService => $this->plaid_refunds(),
+            fn (): TransferService => $this->transfers(),
+            $this->logger()
+        ));
+    }
+
+    public function manual_actions(): ManualActions
+    {
+        return $this->shared(ManualActions::class, fn (): ManualActions => new ManualActions(
+            $this->settings(),
+            $this->transfers(),
+            $this->intents(),
+            $this->binder(),
+            $this->locks(),
+            $this->alerts(),
+            $this->logger()
+        ));
     }
 
     public function binder(): TransferBinder
     {
-        return $this->shared(TransferBinder::class, fn (): TransferBinder => new TransferBinder($this->transfers(), $this->projector(), $this->locks()));
+        return $this->shared(TransferBinder::class, fn (): TransferBinder => new TransferBinder($this->transfers(), $this->projector(), $this->locks(), $this->monitor()));
     }
 
     public function locks(): PaymentLockStore
@@ -101,7 +160,8 @@ final class Container
             $this->binder(),
             $this->projector(),
             $this->locks(),
-            $this->logger()
+            $this->logger(),
+            $this->monitor()
         ));
     }
 
@@ -135,7 +195,8 @@ final class Container
             $this->transfers(),
             $this->binder(),
             $this->projector(),
-            $this->logger()
+            $this->logger(),
+            $this->refund_events()
         ));
     }
 
@@ -158,7 +219,9 @@ final class Container
             $this->event_sync(),
             $this->synchronizer(),
             $this->locks(),
-            $this->logger()
+            $this->logger(),
+            $this->monitor(),
+            $this->refunds()
         ));
     }
 

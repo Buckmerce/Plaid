@@ -42,7 +42,7 @@ final class PayBridge_Test_Plaid_Mock
     /** @return array<string, mixed> */
     private static function empty_state(): array
     {
-        return array('intents' => array(), 'transfers' => array(), 'tokens' => array(), 'events' => array(), 'next_event_id' => 1, 'calls' => array(), 'fail' => array());
+        return array('intents' => array(), 'transfers' => array(), 'tokens' => array(), 'events' => array(), 'refunds' => array(), 'refund_keys' => array(), 'next_event_id' => 1, 'calls' => array(), 'fail' => array());
     }
 
     /** @param array<string, mixed> $state */
@@ -59,7 +59,7 @@ final class PayBridge_Test_Plaid_Mock
         wp_cache_delete(self::STATE, 'options');
     }
 
-    /** Queue a failure for the next call to $path: timeout|timeout_after_create|server_error|rate_limit|reject|delay:<seconds>|key_fail|amount:<value>. */
+    /** Queue a failure for the next call to $path: timeout|timeout_after_create|server_error|server_error_after_create|rate_limit|reject|delay:<seconds>|key_fail|amount:<value>. */
     public static function fail_next(string $path, string $mode): void
     {
         $state = self::state();
@@ -115,6 +115,10 @@ final class PayBridge_Test_Plaid_Mock
         if ('server_error' === $failure) {
             return self::error(500, 'API_ERROR', 'INTERNAL_SERVER_ERROR', 'an unexpected error occurred');
         }
+        if ('server_error_after_create' === $failure && '/transfer/refund/create' === $path) {
+            self::refund_create($body);
+            return self::error(502, 'API_ERROR', 'INTERNAL_SERVER_ERROR', 'bad gateway after the refund was created');
+        }
         if ('rate_limit' === $failure) {
             return self::error(429, 'RATE_LIMIT_EXCEEDED', 'RATE_LIMIT', 'rate limit exceeded for this endpoint');
         }
@@ -135,6 +139,18 @@ final class PayBridge_Test_Plaid_Mock
                 return self::link_token_create($body);
             case '/transfer/get':
                 return self::transfer_get($body);
+            case '/transfer/cancel':
+                return self::transfer_cancel($body);
+            case '/transfer/refund/create':
+                $response = self::refund_create($body);
+                return 'timeout_after_create' === $failure ? new WP_Error('http_request_failed', 'cURL error 28: response lost after refund create') : $response;
+            case '/transfer/refund/get':
+                $refund = self::state()['refunds'][(string) ($body['refund_id'] ?? '')] ?? null;
+                return null === $refund ? self::error(400, 'INVALID_INPUT', 'INVALID_FIELD', 'refund not found') : self::ok(array('refund' => $refund));
+            case '/transfer/refund/cancel':
+                return self::refund_cancel($body);
+            case '/sandbox/transfer/refund/simulate':
+                return self::refund_simulate($body);
             case '/transfer/event/sync':
                 return self::event_sync($body);
             case '/transfer/configuration/get':
@@ -208,6 +224,9 @@ final class PayBridge_Test_Plaid_Mock
         if (array('transfer') !== ($body['products'] ?? null) || array('US') !== ($body['country_codes'] ?? null) || '' === (string) ($body['user']['client_user_id'] ?? '')) {
             return self::error(400, 'INVALID_REQUEST', 'INVALID_FIELD', 'invalid link token request');
         }
+        if ('invalid_customization' === ($body['link_customization_name'] ?? '')) {
+            return self::error(400, 'INVALID_INPUT', 'INVALID_LINK_CUSTOMIZATION', 'the link customization is not valid for the request');
+        }
         $intent_id = (string) ($body['transfer']['intent_id'] ?? '');
         $state = self::state();
         if (! isset($state['intents'][$intent_id]) || 'PENDING' !== $state['intents'][$intent_id]['status']) {
@@ -247,6 +266,7 @@ final class PayBridge_Test_Plaid_Mock
         $state['transfers'][$transfer_id] = array(
             'id' => $transfer_id, 'type' => 'debit', 'amount' => $transfer_amount ?? $intent['amount'], 'iso_currency_code' => 'USD',
             'status' => 'pending', 'failure_reason' => null, 'metadata' => $intent['metadata'], 'network' => $intent['network'], 'ach_class' => $intent['ach_class'],
+            'created' => gmdate('Y-m-d\TH:i:s\Z'),
         );
         self::save($state);
         self::add_event($transfer_id, 'pending');
@@ -296,7 +316,7 @@ final class PayBridge_Test_Plaid_Mock
         $state['events'][] = array(
             'event_id' => $event_id, 'event_type' => $type, 'timestamp' => gmdate('Y-m-d\TH:i:s\Z', $timestamp ?? time()), 'transfer_id' => $transfer_id, 'transfer_type' => 'debit',
             'transfer_amount' => $transfer['amount'], 'intent_id' => null, 'failure_reason' => $failure, 'account_id' => 'acc', 'funding_account_id' => '', 'ledger_id' => 'ledger-test',
-            'originator_client_id' => null, 'refund_id' => null, 'sweep_amount' => null, 'sweep_id' => null,
+            'originator_client_id' => null, 'refund_id' => null, 'sweep_amount' => null, 'sweep_id' => null, 'event_amount' => $transfer['amount'],
         );
         $state['next_event_id'] = $event_id + 1;
         if (isset(PayBridge_Test_Plaid_Mock_Status::RANK[$type])) {
@@ -306,14 +326,155 @@ final class PayBridge_Test_Plaid_Mock
                 $state['transfers'][$transfer_id]['failure_reason'] = $failure;
             }
         }
+        if ('settled' === $type && empty($state['transfers'][$transfer_id]['standard_return_window'])) {
+            // Plaid: standard window = settlement + 3 business days, unauthorized = + 61 business days.
+            $settled = $timestamp ?? time();
+            $state['transfers'][$transfer_id]['standard_return_window'] = gmdate('Y-m-d', $settled + 5 * DAY_IN_SECONDS);
+            $state['transfers'][$transfer_id]['unauthorized_return_window'] = gmdate('Y-m-d', $settled + 87 * DAY_IN_SECONDS);
+            $state['transfers'][$transfer_id]['expected_funds_available_date'] = gmdate('Y-m-d', $settled + 2 * DAY_IN_SECONDS);
+        }
         self::save($state);
     }
 
     /** @param array<string, mixed> $body */
     private static function transfer_get(array $body): array
     {
-        $transfer = self::state()['transfers'][(string) ($body['transfer_id'] ?? '')] ?? null;
-        return null === $transfer ? self::error(400, 'INVALID_INPUT', 'INVALID_TRANSFER_ID', 'transfer not found') : self::ok(array('transfer' => $transfer));
+        $state = self::state();
+        $transfer = $state['transfers'][(string) ($body['transfer_id'] ?? '')] ?? null;
+        if (null === $transfer) {
+            return self::error(400, 'INVALID_INPUT', 'INVALID_TRANSFER_ID', 'transfer not found');
+        }
+        $transfer['cancellable'] = 'pending' === $transfer['status'];
+        $transfer['refunds'] = array_values(array_filter($state['refunds'], static fn (array $refund): bool => $refund['transfer_id'] === $transfer['id']));
+        $transfer += array('created' => gmdate('Y-m-d\TH:i:s\Z'), 'standard_return_window' => null, 'unauthorized_return_window' => null, 'expected_funds_available_date' => null);
+        return self::ok(array('transfer' => $transfer));
+    }
+
+    /** @param array<string, mixed> $body */
+    private static function transfer_cancel(array $body): array
+    {
+        $transfer_id = (string) ($body['transfer_id'] ?? '');
+        $transfer = self::state()['transfers'][$transfer_id] ?? null;
+        if (null === $transfer) {
+            return self::error(400, 'INVALID_INPUT', 'INVALID_TRANSFER_ID', 'transfer not found');
+        }
+        if ('pending' !== $transfer['status']) {
+            return self::error(400, 'TRANSFER_ERROR', 'TRANSFER_NOT_CANCELLABLE', 'transfer is not cancellable');
+        }
+        self::add_event($transfer_id, 'cancelled');
+        return self::ok(array());
+    }
+
+    /**
+     * /transfer/refund/create per docs/api/api/products/transfer/refunds.md: idempotency_key
+     * (≤ 50) dedupes, at most 10 refunds, total ≤ transfer amount, no refunds of cancelled,
+     * failed or returned transfers; Sandbox $1.11 → returned and $2.22 → failed immediately.
+     *
+     * @param array<string, mixed> $body
+     */
+    private static function refund_create(array $body): array
+    {
+        $key = (string) ($body['idempotency_key'] ?? '');
+        $amount = (string) ($body['amount'] ?? '');
+        $transfer_id = (string) ($body['transfer_id'] ?? '');
+        if ('' === $key || strlen($key) > 50) {
+            return self::error(400, 'INVALID_REQUEST', 'INVALID_FIELD', 'idempotency_key must be 1-50 characters');
+        }
+        if (! preg_match('/^(?:0|[1-9][0-9]*)\.[0-9]{2}$/', $amount) || '0.00' === $amount) {
+            return self::error(400, 'INVALID_REQUEST', 'INVALID_FIELD', 'amount must be a positive decimal string with two digits');
+        }
+        $state = self::state();
+        if (isset($state['refund_keys'][$key])) {
+            $existing = $state['refunds'][$state['refund_keys'][$key]];
+            if ($existing['amount'] !== $amount || $existing['transfer_id'] !== $transfer_id) {
+                return self::error(400, 'INVALID_REQUEST', 'INVALID_FIELD', 'idempotency key reused with different parameters');
+            }
+            return self::ok(array('refund' => $existing));
+        }
+        $transfer = $state['transfers'][$transfer_id] ?? null;
+        if (null === $transfer) {
+            return self::error(400, 'INVALID_INPUT', 'INVALID_TRANSFER_ID', 'transfer not found');
+        }
+        if (in_array($transfer['status'], array('cancelled', 'failed', 'returned'), true)) {
+            return self::error(400, 'TRANSFER_ERROR', 'TRANSFER_NOT_REFUNDABLE', 'transfers in a cancelled, failed or returned state cannot be refunded');
+        }
+        $existing = array_filter($state['refunds'], static fn (array $refund): bool => $refund['transfer_id'] === $transfer_id);
+        if (count($existing) >= 10) {
+            return self::error(400, 'TRANSFER_ERROR', 'TRANSFER_REFUND_LIMIT_REACHED', 'a transfer can have at most 10 refunds');
+        }
+        $cents = static fn (string $value): int => (int) round(((float) $value) * 100);
+        $total = $cents($amount);
+        foreach ($existing as $refund) {
+            if (! in_array($refund['status'], array('failed', 'cancelled'), true)) {
+                $total += $cents($refund['amount']);
+            }
+        }
+        if ($total > $cents($transfer['amount'])) {
+            return self::error(400, 'INVALID_REQUEST', 'INVALID_FIELD', 'refund amount exceeds the refundable amount of the transfer');
+        }
+        $id = wp_generate_uuid4();
+        $state['refunds'][$id] = array('id' => $id, 'transfer_id' => $transfer_id, 'amount' => $amount, 'status' => 'pending', 'failure_reason' => null, 'ledger_id' => 'ledger-test', 'created' => gmdate('Y-m-d\TH:i:s\Z'), 'network_trace_id' => null);
+        $state['refund_keys'][$key] = $id;
+        self::save($state);
+        self::add_refund_event($id, 'refund.pending');
+        $plan = array('1.11' => array('refund.posted', 'refund.settled', 'refund.returned'), '2.22' => array('refund.failed'))[$amount] ?? array();
+        foreach ($plan as $type) {
+            self::add_refund_event($id, $type, 'refund.returned' === $type ? 'R01' : '');
+        }
+        return self::ok(array('refund' => self::state()['refunds'][$id]));
+    }
+
+    /** @param array<string, mixed> $body */
+    private static function refund_cancel(array $body): array
+    {
+        $refund_id = (string) ($body['refund_id'] ?? '');
+        $refund = self::state()['refunds'][$refund_id] ?? null;
+        if (null === $refund) {
+            return self::error(400, 'INVALID_INPUT', 'INVALID_FIELD', 'refund not found');
+        }
+        if ('pending' !== $refund['status']) {
+            return self::error(400, 'TRANSFER_ERROR', 'TRANSFER_REFUND_NOT_CANCELLABLE', 'refund was already submitted to the network');
+        }
+        self::add_refund_event($refund_id, 'refund.cancelled');
+        return self::ok(array());
+    }
+
+    /** @param array<string, mixed> $body */
+    private static function refund_simulate(array $body): array
+    {
+        $refund_id = (string) ($body['refund_id'] ?? '');
+        $type = (string) ($body['event_type'] ?? '');
+        $refund = self::state()['refunds'][$refund_id] ?? null;
+        $allowed = array('pending' => array('refund.failed', 'refund.posted'), 'posted' => array('refund.returned', 'refund.settled'));
+        if (null === $refund || ! in_array($type, $allowed[$refund['status']] ?? array(), true)) {
+            return self::error(400, 'INVALID_REQUEST', 'INVALID_FIELD', 'event type is incompatible with the refund status');
+        }
+        self::add_refund_event($refund_id, $type, (string) ($body['failure_reason']['failure_code'] ?? ''));
+        return self::ok(array());
+    }
+
+    public static function add_refund_event(string $refund_id, string $type, string $code = ''): void
+    {
+        $state = self::state();
+        $refund = $state['refunds'][$refund_id];
+        $transfer = $state['transfers'][$refund['transfer_id']];
+        $status = substr($type, strlen('refund.'));
+        $failure = null;
+        if ('returned' === $status) {
+            $failure = array('failure_code' => '' === $code ? 'R01' : $code, 'ach_return_code' => '' === $code ? 'R01' : $code, 'description' => 'Refund returned');
+        } elseif ('failed' === $status) {
+            $failure = array('failure_code' => null, 'ach_return_code' => null, 'description' => 'The refund failed');
+        }
+        $event_id = (int) $state['next_event_id'];
+        $state['events'][] = array(
+            'event_id' => $event_id, 'event_type' => $type, 'timestamp' => gmdate('Y-m-d\TH:i:s\Z'), 'transfer_id' => $refund['transfer_id'], 'transfer_type' => $transfer['type'],
+            'transfer_amount' => $refund['amount'], 'intent_id' => null, 'failure_reason' => $failure, 'account_id' => 'acc', 'funding_account_id' => '', 'ledger_id' => 'ledger-test',
+            'originator_client_id' => null, 'refund_id' => $refund_id, 'sweep_amount' => null, 'sweep_id' => null, 'event_amount' => $refund['amount'],
+        );
+        $state['next_event_id'] = $event_id + 1;
+        $state['refunds'][$refund_id]['status'] = $status;
+        $state['refunds'][$refund_id]['failure_reason'] = $failure;
+        self::save($state);
     }
 
     /** @param array<string, mixed> $body */

@@ -14,18 +14,25 @@ use PayBridge\Plaid\Settings\Settings;
  * projects it idempotently onto WooCommerce statuses, notes, alerts and hooks.
  * Projection is re-applied on duplicate evidence so a crash between the state
  * write and payment_complete() is repaired by the next replay.
+ *
+ * Returned payments keep their history (ADR-0012): the WooCommerce status becomes
+ * "failed" (unpaid, excluded from revenue, payable again by the customer), while the paid
+ * date, transaction ID, transfer ID, notes and Plaid timestamps stay on the order.
  */
 final class OrderPaymentProjector
 {
     public function __construct(
         private readonly Settings $settings,
         private readonly Logger $logger,
-        private readonly PaymentAlerts $alerts
+        private readonly PaymentAlerts $alerts,
+        private readonly ?PaymentMonitor $monitor = null,
+        private readonly ?ReturnListener $return_listener = null,
+        private readonly MerchantNotifier $notifier = new MerchantNotifier()
     ) {
     }
 
     /**
-     * @param array{source:string, transfer_id?:string, event_id?:string, failure_code?:string, return_code?:string, description?:string, reason?:string} $context
+     * @param array{source:string, transfer_id?:string, event_id?:string, failure_code?:string, return_code?:string, description?:string, reason?:string, occurred_at?:string} $context
      * @return string PaymentStateMachine decision.
      */
     public function transition(\WC_Order $order, string $to, array $context): string
@@ -52,14 +59,18 @@ final class OrderPaymentProjector
         if (PaymentStateMachine::APPLY === $decision) {
             $order->update_meta_data(OrderMeta::PAYMENT_STATE, $to);
             if ('' !== ($context['failure_code'] ?? '')) {
-                $order->update_meta_data(OrderMeta::FAILURE_CODE, $this->code($context['failure_code']));
+                $order->update_meta_data(OrderMeta::FAILURE_CODE, self::code($context['failure_code']));
             }
             if (PaymentState::RETURNED === $to && '' !== ($context['return_code'] ?? '')) {
-                $order->update_meta_data(OrderMeta::RETURN_CODE, $this->code($context['return_code']));
+                $order->update_meta_data(OrderMeta::RETURN_CODE, self::code($context['return_code']));
+            }
+            if (in_array($to, array(PaymentState::FAILED, PaymentState::RETURNED), true) && '' !== ($context['description'] ?? '')) {
+                $order->update_meta_data(OrderMeta::FAILURE_DESCRIPTION, self::text($context['description']));
             }
             if (PaymentState::MANUAL_REVIEW === $to) {
-                $order->update_meta_data(OrderMeta::MANUAL_REVIEW_REASON, $this->code($context['reason'] ?? 'manual_review'));
+                $order->update_meta_data(OrderMeta::MANUAL_REVIEW_REASON, self::code($context['reason'] ?? 'manual_review'));
             }
+            $this->record_timestamp($order, $to, $context['occurred_at'] ?? '');
             // Persist and verify the new state before any WooCommerce side effect.
             OrderPersistence::save($order, array(OrderMeta::PAYMENT_STATE => $to));
             $order->add_order_note($this->note($to, $context));
@@ -70,15 +81,36 @@ final class OrderPaymentProjector
                 'source' => $context['source'],
                 'transfer_id' => $context['transfer_id'] ?? '',
                 'event_id' => $context['event_id'] ?? '',
+                'environment' => (string) $order->get_meta(OrderMeta::ENVIRONMENT, true),
             ));
         }
         if (in_array($decision, array(PaymentStateMachine::APPLY, PaymentStateMachine::NOOP), true)) {
             $this->project($order, $to, $context, PaymentStateMachine::APPLY === $decision);
             if (PaymentStateMachine::APPLY === $decision) {
+                $this->monitor?->refresh($order);
                 do_action('paybridge_plaid_payment_state_changed', $order, '' === $from ? 'new' : $from, $to);
             }
         }
         return $decision;
+    }
+
+    /** First provider timestamp of a lifecycle milestone; later duplicates never overwrite it. */
+    private function record_timestamp(\WC_Order $order, string $state, string $occurred_at): void
+    {
+        $key = array(
+            PaymentState::SETTLED => OrderMeta::SETTLED_AT,
+            PaymentState::FUNDS_AVAILABLE => OrderMeta::FUNDS_AVAILABLE_AT,
+            PaymentState::RETURNED => OrderMeta::RETURNED_AT,
+        )[$state] ?? '';
+        if ('' === $key || '' !== (string) $order->get_meta($key, true)) {
+            return;
+        }
+        $time = '' === $occurred_at ? false : strtotime($occurred_at);
+        $order->update_meta_data($key, gmdate('c', false === $time ? time() : $time));
+        if (PaymentState::FUNDS_AVAILABLE === $state && '' === (string) $order->get_meta(OrderMeta::SETTLED_AT, true)) {
+            // Funds are only available after settlement; the return windows count from it.
+            $order->update_meta_data(OrderMeta::SETTLED_AT, gmdate('c', false === $time ? time() : $time));
+        }
     }
 
     /** @param array<string, string> $context */
@@ -120,29 +152,84 @@ final class OrderPaymentProjector
                 }
                 break;
             case PaymentState::RETURNED:
-                if (! $order->has_status(array('failed', 'refunded'))) {
-                    // A returned ACH debit reversed the funds: the order is no longer paid.
-                    $order->update_status('failed', __('ACH return received: the bank payment was reversed.', 'paybridge-for-plaid'));
-                }
-                if ('yes' !== $order->get_meta('_pbfp_return_alerted', true)) {
-                    $code = (string) $order->get_meta(OrderMeta::RETURN_CODE, true);
-                    $this->alerts->add($order, 'returned', $code);
-                    $this->email_merchant($order, $code);
-                    $order->update_meta_data('_pbfp_return_alerted', 'yes');
-                    $order->save();
-                    do_action('paybridge_plaid_payment_returned', $order, $code);
-                }
+                $this->project_return($order, $transfer_id);
                 break;
             case PaymentState::MANUAL_REVIEW:
                 if ($order->has_status(array('pending', 'failed'))) {
                     $order->update_status('on-hold');
                 }
                 if ($changed) {
-                    $this->alerts->add($order, 'manual_review', (string) $order->get_meta(OrderMeta::MANUAL_REVIEW_REASON, true));
-                    do_action('paybridge_plaid_payment_manual_review', $order, (string) $order->get_meta(OrderMeta::MANUAL_REVIEW_REASON, true));
+                    $reason = (string) $order->get_meta(OrderMeta::MANUAL_REVIEW_REASON, true);
+                    $this->alerts->add($order, PaymentAlerts::MANUAL_REVIEW, $reason);
+                    $this->notifier->send(
+                        $order,
+                        /* translators: %s: order number */
+                        sprintf(__('Bank payment for order #%s needs review', 'paybridge-for-plaid'), $order->get_order_number()),
+                        sprintf(
+                            /* translators: 1: order number, 2: reason code */
+                            __("PayBridge stopped automatic processing of the bank payment for order #%1\$s (%2\$s). No order was fulfilled automatically. Open the order to see the Plaid identifiers and decide how to proceed.", 'paybridge-for-plaid'),
+                            $order->get_order_number(),
+                            '' === $reason ? 'manual_review' : $reason
+                        )
+                    );
+                    do_action('paybridge_plaid_payment_manual_review', $order, $reason);
                 }
                 break;
         }
+    }
+
+    /**
+     * A returned ACH debit reversed the funds. The order stops being paid, but its history is
+     * kept; the merchant is alerted once per attempt, with a stronger alert when refunds were
+     * already issued for the same payment (the merchant may lose both).
+     */
+    private function project_return(\WC_Order $order, string $transfer_id): void
+    {
+        if (! $order->has_status(array('failed', 'refunded'))) {
+            $order->update_status('failed', __('ACH return received: the bank payment was reversed. The original payment details are kept on this order.', 'paybridge-for-plaid'));
+        }
+        if ('yes' === $order->get_meta(OrderMeta::RETURN_ALERTED, true)) {
+            return;
+        }
+        $code = (string) $order->get_meta(OrderMeta::RETURN_CODE, true);
+        $exposure = null === $this->return_listener ? array('count' => 0, 'amount' => '0.00') : $this->return_listener->on_payment_returned($order, $transfer_id);
+        if ($exposure['count'] > 0) {
+            $this->alerts->add($order, PaymentAlerts::RETURNED_AFTER_REFUND, $code, '', $exposure['amount']);
+            $order->add_order_note(sprintf(
+                /* translators: 1: refunded amount, 2: ACH return code */
+                __('PayBridge: CRITICAL — the bank payment was returned (%2$s) after refunds of $%1$s were issued. The customer may have received this money twice. Contact the customer before taking further action.', 'paybridge-for-plaid'),
+                $exposure['amount'],
+                '' === $code ? '—' : $code
+            ));
+            $this->notifier->send(
+                $order,
+                /* translators: %s: order number */
+                sprintf(__('URGENT: ACH return after refund for order #%s', 'paybridge-for-plaid'), $order->get_order_number()),
+                sprintf(
+                    /* translators: 1: order number, 2: ACH return code, 3: refunded amount */
+                    __("The bank payment for order #%1\$s was returned (%2\$s) after you refunded $%3\$s. The customer's bank reversed the payment, so the customer may have received this money twice and you may lose both the payment and the refund. Pending refunds were cancelled where Plaid still allowed it; check the order notes.", 'paybridge-for-plaid'),
+                    $order->get_order_number(),
+                    '' === $code ? __('no return code', 'paybridge-for-plaid') : $code,
+                    $exposure['amount']
+                )
+            );
+        } else {
+            $this->alerts->add($order, PaymentAlerts::RETURNED, $code);
+            $this->notifier->send(
+                $order,
+                /* translators: %s: order number */
+                sprintf(__('ACH return received for order #%s', 'paybridge-for-plaid'), $order->get_order_number()),
+                sprintf(
+                    /* translators: 1: order number, 2: ACH return code */
+                    __('The bank payment for order #%1$s was returned (%2$s). The funds were reversed. The order is now Failed; its original payment details are kept.', 'paybridge-for-plaid'),
+                    $order->get_order_number(),
+                    '' === $code ? __('no return code', 'paybridge-for-plaid') : $code
+                )
+            );
+        }
+        $order->update_meta_data(OrderMeta::RETURN_ALERTED, 'yes');
+        $order->save();
+        do_action('paybridge_plaid_payment_returned', $order, $code);
     }
 
     private function confirm(\WC_Order $order, string $transfer_id): void
@@ -150,39 +237,23 @@ final class OrderPaymentProjector
         if ($order->is_paid() || $order->has_status(array('cancelled', 'refunded'))) {
             return;
         }
+        if (null !== $order->get_date_paid('edit') && AttemptHistory::has_returned_attempt($order)) {
+            // Re-payment after a return: the order is paid by this attempt. The earlier paid
+            // date stays in the attempt history (ADR-0012), not on the order.
+            $order->set_date_paid(time());
+        }
         // WooCommerce decides processing vs completed and handles stock/emails.
         $order->payment_complete($transfer_id);
         do_action('paybridge_plaid_payment_confirmed', $order, $transfer_id);
-    }
-
-    private function email_merchant(\WC_Order $order, string $code): void
-    {
-        $recipient = (string) get_option('admin_email');
-        if ('' === $recipient || ! is_email($recipient)) {
-            return;
-        }
-        $subject = sprintf(
-            /* translators: 1: site name, 2: order number */
-            __('[%1$s] ACH return received for order #%2$s', 'paybridge-for-plaid'),
-            wp_specialchars_decode((string) get_bloginfo('name'), ENT_QUOTES),
-            $order->get_order_number()
-        );
-        $body = sprintf(
-            /* translators: 1: order number, 2: ACH return code, 3: order admin URL */
-            __("The bank payment for order #%1\$s was returned (%2\$s). The funds were reversed.\n\nReview the order: %3\$s", 'paybridge-for-plaid'),
-            $order->get_order_number(),
-            '' === $code ? __('no return code', 'paybridge-for-plaid') : $code,
-            $order->get_edit_order_url()
-        );
-        wp_mail($recipient, $subject, $body);
     }
 
     /** @param array<string, string> $context */
     private function note(string $state, array $context): string
     {
         $transfer = '' !== ($context['transfer_id'] ?? '') ? ' ' . sprintf(/* translators: %s: Plaid transfer ID */ __('Transfer ID: %s.', 'paybridge-for-plaid'), $context['transfer_id']) : '';
-        $code = $this->code($context['return_code'] ?? ($context['failure_code'] ?? ''));
+        $code = self::code($context['return_code'] ?? ($context['failure_code'] ?? ''));
         $reason = '' !== $code ? ' (' . $code . ')' : '';
+        $description = '' !== ($context['description'] ?? '') ? ' ' . self::text($context['description']) : '';
         switch ($state) {
             case PaymentState::INTENT_CREATED:
                 return __('PayBridge: Plaid Transfer Intent created. Waiting for the customer to authorize the bank payment.', 'paybridge-for-plaid');
@@ -201,21 +272,29 @@ final class OrderPaymentProjector
             case PaymentState::SETTLED:
                 return __('PayBridge: transfer settled.', 'paybridge-for-plaid') . $transfer;
             case PaymentState::FUNDS_AVAILABLE:
-                return __('PayBridge: funds available.', 'paybridge-for-plaid') . $transfer;
+                return __('PayBridge: funds available. The customer\'s bank can still return the payment within the ACH return windows; PayBridge keeps monitoring it.', 'paybridge-for-plaid') . $transfer;
             case PaymentState::FAILED:
-                return __('PayBridge: transfer failed; no funds were moved', 'paybridge-for-plaid') . $reason . '.' . $transfer;
+                return __('PayBridge: transfer failed; no funds were moved', 'paybridge-for-plaid') . $reason . '.' . $description . $transfer;
             case PaymentState::CANCELLED:
                 return __('PayBridge: transfer cancelled.', 'paybridge-for-plaid') . $transfer;
             case PaymentState::RETURNED:
-                return __('PayBridge: ACH RETURN — the bank payment was returned and the funds reversed', 'paybridge-for-plaid') . $reason . '.' . $transfer;
+                return __('PayBridge: ACH RETURN — the bank payment was returned and the funds reversed', 'paybridge-for-plaid') . $reason . '.' . $description . $transfer;
             case PaymentState::MANUAL_REVIEW:
-                return __('PayBridge: payment requires manual review', 'paybridge-for-plaid') . ' (' . $this->code($context['reason'] ?? 'manual_review') . ').' . $transfer;
+                return __('PayBridge: payment requires manual review', 'paybridge-for-plaid') . ' (' . self::code($context['reason'] ?? 'manual_review') . ').' . $transfer;
         }
         return sprintf(/* translators: %s: payment state */ __('PayBridge: payment state changed to %s.', 'paybridge-for-plaid'), $state);
     }
 
-    private function code(string $code): string
+    public static function code(string $code): string
     {
         return substr(preg_replace('/[^A-Za-z0-9_\-]/', '', $code) ?? '', 0, 64);
+    }
+
+    /** Provider free text reduced to a short, markup-free sentence. */
+    public static function text(string $text): string
+    {
+        $text = wp_strip_all_tags($text);
+        $text = preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $text) ?? '';
+        return trim(mb_substr(trim($text), 0, 200));
     }
 }

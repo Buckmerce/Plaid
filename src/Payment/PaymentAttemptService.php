@@ -6,6 +6,7 @@ namespace PayBridge\Plaid\Payment;
 
 use PayBridge\Plaid\Exception\ConfigurationException;
 use PayBridge\Plaid\Exception\PaymentAttemptBusyException;
+use PayBridge\Plaid\Gateway\GatewayAvailability;
 use PayBridge\Plaid\Exception\PaymentException;
 use PayBridge\Plaid\Exception\PersistenceException;
 use PayBridge\Plaid\Logging\Logger;
@@ -16,6 +17,7 @@ use PayBridge\Plaid\Persistence\PaymentLockStore;
 use PayBridge\Plaid\Persistence\PaymentReservation;
 use PayBridge\Plaid\Plaid\DTO\LinkToken;
 use PayBridge\Plaid\Plaid\DTO\TransferIntent;
+use PayBridge\Plaid\Plaid\Exception\PlaidApiException;
 use PayBridge\Plaid\Plaid\Exception\PlaidException;
 use PayBridge\Plaid\Plaid\Link\LinkTokenService;
 use PayBridge\Plaid\Plaid\TransferIntent\TransferIntentRequest;
@@ -44,6 +46,9 @@ final class PaymentAttemptService
     public const OUTCOME_READY = 'ready';
     public const OUTCOME_TRANSFER = 'transfer';
 
+    /** Last Link token creation error (time, Plaid error code) for merchant diagnostics. */
+    public const LAST_LINK_ERROR_OPTION = 'paybridge_plaid_last_link_token_error';
+
     private const REUSE = 'reuse';
     private const REPLACE = 'replace';
 
@@ -54,7 +59,8 @@ final class PaymentAttemptService
         private readonly TransferBinder $binder,
         private readonly OrderPaymentProjector $projector,
         private readonly PaymentLockStore $locks,
-        private readonly Logger $logger
+        private readonly Logger $logger,
+        private readonly ?PaymentMonitor $monitor = null
     ) {
     }
 
@@ -101,9 +107,15 @@ final class PaymentAttemptService
                     $this->settings->link_customization_name()
                 );
             } catch (PlaidException $exception) {
+                if ($exception instanceof PlaidApiException && ! $exception->is_transient()) {
+                    // e.g. INVALID_LINK_CUSTOMIZATION: the merchant must fix the configuration.
+                    update_option(self::LAST_LINK_ERROR_OPTION, array('at' => gmdate('c'), 'code' => strtoupper($exception->safe_code()), 'request_id' => $exception->request_id()), false);
+                }
+                $this->logger->log('error', 'link_token_create_failed', array('order_id' => $order->get_id(), 'transfer_intent_id' => $intent_id, 'request_id' => $exception->request_id(), 'error_code' => $exception->safe_code()));
                 // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Chained previous exception for diagnostics; the message is a fixed string.
                 throw new PaymentException('Plaid Link could not be started.', 0, $exception);
             }
+            delete_option(self::LAST_LINK_ERROR_OPTION);
             $expires = strtotime($token->expiration);
             if (false === $expires) {
                 throw new PaymentException('Plaid returned an invalid Link token expiration.');
@@ -118,6 +130,8 @@ final class PaymentAttemptService
             if (PaymentState::INTENT_CREATED === (string) $saved->get_meta(OrderMeta::PAYMENT_STATE, true)) {
                 $this->projector->transition($saved, PaymentState::INTENT_PENDING, array('source' => 'link_token'));
             }
+            // The authorization window moved: keep checking the intent while the token is usable.
+            $this->monitor?->refresh($this->reload($order->get_id()));
             $this->logger->log('info', 'link_token_issued', array('order_id' => $order->get_id(), 'transfer_intent_id' => $intent_id, 'request_id' => $token->request_id));
             return $token;
         });
@@ -153,6 +167,11 @@ final class PaymentAttemptService
         $currency = strtoupper((string) $order->get_currency());
         if (Money::SUPPORTED_CURRENCY !== $currency) {
             throw new PaymentException('Only USD orders can be paid by bank.');
+        }
+        // New money movement requires a gateway that accepts new payments (enabled and complete).
+        $problems = GatewayAvailability::problems($this->settings, $currency, GatewayAvailability::site_uses_https());
+        if (array() !== $problems) {
+            throw new ConfigurationException('Pay by Bank does not accept new payments: ' . esc_html(implode(', ', $problems)));
         }
         $amount = Money::transfer_amount((string) $order->get_total('edit'));
 
@@ -258,8 +277,11 @@ final class PaymentAttemptService
     /** @throws PaymentException */
     private function create_intent(\WC_Order $order, DatabaseMutex $mutex, string $environment, string $amount, string $currency): void
     {
+        // Validated before anything is reserved: a legal name is never invented.
+        $user = TransferIntentRequest::user_from_order($order);
         $snapshot = PaymentSnapshot::create($order->get_id(), $amount, $currency, $environment);
-        $reservation = $this->locks->acquire($order->get_id(), $environment, $snapshot->attempt_id);
+        $account = $this->settings->account_fingerprint();
+        $reservation = $this->locks->acquire($order->get_id(), $environment, $snapshot->attempt_id, $account);
         if (PaymentReservation::ERROR === $reservation->status) {
             throw new PersistenceException('The payment reservation could not be created.');
         }
@@ -285,12 +307,17 @@ final class PaymentAttemptService
             throw new PaymentException('The payment is not in a state that allows a new bank payment.');
         }
         try {
+            if ('' !== (string) $order->get_meta(OrderMeta::PAYMENT_SNAPSHOT, true)) {
+                // A previous attempt that never got an intent (failed or unknown creation) stays auditable.
+                AttemptHistory::archive($order, 'replaced_' . ('' === $from ? 'new' : $from));
+            }
+            foreach (AttemptHistory::ATTEMPT_KEYS as $key) {
+                $order->delete_meta_data($key);
+            }
             $order->update_meta_data(OrderMeta::PAYMENT_STATE, PaymentState::INTENT_CREATING);
             $order->update_meta_data(OrderMeta::PAYMENT_SNAPSHOT, $snapshot->to_json());
             $order->update_meta_data(OrderMeta::ENVIRONMENT, $environment);
-            foreach (array(OrderMeta::TRANSFER_INTENT_ID, OrderMeta::TRANSFER_INTENT_STATUS, OrderMeta::TRANSFER_ID, OrderMeta::TRANSFER_STATUS, OrderMeta::FAILURE_CODE, OrderMeta::RETURN_CODE, OrderMeta::LINK_TOKEN_EXPIRES_AT, OrderMeta::LAST_EVENT_ID) as $key) {
-                $order->delete_meta_data($key);
-            }
+            $order->update_meta_data(OrderMeta::ACCOUNT_FINGERPRINT, $account);
             // The snapshot must be durable before any remote side effect.
             OrderPersistence::save($order, array(
                 OrderMeta::PAYMENT_STATE => PaymentState::INTENT_CREATING,
@@ -323,10 +350,9 @@ final class PaymentAttemptService
         try {
             $request = TransferIntentRequest::build(
                 $snapshot,
-                (string) $order->get_order_number(),
-                TransferIntentRequest::user_from_order($order),
+                $this->settings->statement_descriptor(),
+                $user,
                 $this->settings->network(),
-                $this->settings->ach_class(),
                 $this->settings->funding_account_id(),
                 SiteMarker::current()
             );
@@ -387,30 +413,15 @@ final class PaymentAttemptService
         if (! $this->locks->retire($order->get_id(), $intent_id)) {
             throw new PersistenceException('The previous payment attempt could not be retired.');
         }
-        $retired = $order->get_meta(OrderMeta::RETIRED_ATTEMPTS, true);
-        $retired = is_array($retired) ? $retired : array();
-        $retired[] = array(
-            'transfer_intent_id' => $intent_id,
-            'transfer_id' => (string) $order->get_meta(OrderMeta::TRANSFER_ID, true),
-            'payment_state' => (string) $order->get_meta(OrderMeta::PAYMENT_STATE, true),
-            'snapshot' => (string) $order->get_meta(OrderMeta::PAYMENT_SNAPSHOT, true),
-            'failure_code' => (string) $order->get_meta(OrderMeta::FAILURE_CODE, true),
-            'return_code' => (string) $order->get_meta(OrderMeta::RETURN_CODE, true),
-            'reason' => $reason,
-            'retired_at' => gmdate('c'),
-        );
-        $order->update_meta_data(OrderMeta::RETIRED_ATTEMPTS, array_slice($retired, -20));
-        foreach (array(OrderMeta::PAYMENT_STATE, OrderMeta::PAYMENT_SNAPSHOT, OrderMeta::TRANSFER_INTENT_ID, OrderMeta::TRANSFER_INTENT_STATUS, OrderMeta::TRANSFER_ID, OrderMeta::TRANSFER_STATUS, OrderMeta::LINK_TOKEN_EXPIRES_AT, OrderMeta::LAST_EVENT_ID, '_pbfp_return_alerted') as $key) {
-            $order->delete_meta_data($key);
-        }
+        $entry = AttemptHistory::archive($order, $reason);
         OrderPersistence::save($order, array(OrderMeta::PAYMENT_STATE => null, OrderMeta::TRANSFER_INTENT_ID => null, OrderMeta::TRANSFER_ID => null));
         $order->add_order_note(sprintf(
             /* translators: 1: Plaid Transfer Intent ID, 2: reason code */
-            __('PayBridge: previous bank payment attempt retired (intent %1$s, %2$s). A new attempt may start.', 'paybridge-for-plaid'),
+            __('PayBridge: previous bank payment attempt retired (intent %1$s, %2$s). Its details are kept in the payment history; a new attempt may start.', 'paybridge-for-plaid'),
             $intent_id,
             $reason
         ));
-        $this->logger->log('info', 'payment_attempt_retired', array('order_id' => $order->get_id(), 'transfer_intent_id' => $intent_id, 'reason' => $reason));
+        $this->logger->log('info', 'payment_attempt_retired', array('order_id' => $order->get_id(), 'attempt_id' => $entry['attempt_id'], 'transfer_intent_id' => $intent_id, 'transfer_id' => $entry['transfer_id'], 'reason' => $reason));
     }
 
     private function record_state(int $order_id, string $state, string $code): void

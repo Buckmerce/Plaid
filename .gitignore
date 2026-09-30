@@ -24,6 +24,8 @@
 
 # Browser / E2E local data
 /.playwright-cli/
+/tests/E2E/output/
+*.trace.zip
 
 # Local environment / secrets
 .env

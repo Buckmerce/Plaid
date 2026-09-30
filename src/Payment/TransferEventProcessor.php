@@ -14,6 +14,7 @@ use PayBridge\Plaid\Plaid\Exception\PlaidApiException;
 use PayBridge\Plaid\Plaid\Exception\PlaidException;
 use PayBridge\Plaid\Plaid\Transfer\TransferService;
 use PayBridge\Plaid\Plaid\TransferIntent\TransferIntentService;
+use PayBridge\Plaid\Refund\RefundEventHandler;
 use PayBridge\Plaid\Support\Money;
 use PayBridge\Plaid\Support\SiteMarker;
 
@@ -29,13 +30,20 @@ final class TransferEventProcessor
         private readonly TransferService $transfers,
         private readonly TransferBinder $binder,
         private readonly OrderPaymentProjector $projector,
-        private readonly Logger $logger
+        private readonly Logger $logger,
+        private readonly ?RefundEventHandler $refund_events = null
     ) {
     }
 
     /** @return array{status:string, order_id:int, error_code:string} */
     public function process(TransferEvent $event, string $environment): array
     {
+        if ($event->is_refund_event()) {
+            // Refund events carry the original transfer_id; they never touch the payment state.
+            return null === $this->refund_events
+                ? array('status' => TransferEventStore::RETRY, 'order_id' => 0, 'error_code' => 'refunds_unavailable')
+                : $this->refund_events->process($event, $environment);
+        }
         if (! $event->is_lifecycle_event()) {
             return array('status' => TransferEventStore::IGNORED, 'order_id' => 0, 'error_code' => '');
         }
@@ -76,6 +84,7 @@ final class TransferEventProcessor
                     'failure_code' => $event->failure_code,
                     'return_code' => $event->return_code(),
                     'description' => $event->failure_description,
+                    'occurred_at' => $event->timestamp,
                 ));
                 $order = wc_get_order($order->get_id());
                 if ($order instanceof \WC_Order) {
@@ -152,7 +161,7 @@ final class TransferEventProcessor
             if ($environment !== (string) $candidate->get_meta(OrderMeta::ENVIRONMENT, true)) {
                 return $ignore('environment_mismatch', $candidate->get_id());
             }
-            if ('' !== $attempt_id && self::is_retired_attempt($candidate, $attempt_id)) {
+            if ('' !== $attempt_id && AttemptHistory::is_retired($candidate, $attempt_id)) {
                 return $ignore('retired_attempt', $candidate->get_id());
             }
             $snapshot = PaymentSnapshot::from_json((string) $candidate->get_meta(OrderMeta::PAYMENT_SNAPSHOT, true));
@@ -181,17 +190,5 @@ final class TransferEventProcessor
         } catch (PlaidException | \PayBridge\Plaid\Exception\PaymentAttemptBusyException $exception) {
             return null;
         }
-    }
-
-    private static function is_retired_attempt(\WC_Order $order, string $attempt_id): bool
-    {
-        $retired = $order->get_meta(OrderMeta::RETIRED_ATTEMPTS, true);
-        foreach (is_array($retired) ? $retired : array() as $attempt) {
-            $snapshot = is_array($attempt) ? PaymentSnapshot::from_json((string) ($attempt['snapshot'] ?? '')) : null;
-            if (null !== $snapshot && hash_equals($snapshot->attempt_id, $attempt_id)) {
-                return true;
-            }
-        }
-        return false;
     }
 }

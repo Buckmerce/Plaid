@@ -44,7 +44,7 @@ function harness( { responses = [], plaid = true, restNonce = '' } = {} ) {
 			linkTokenUrl: 'https://shop.test/wp-json/paybridge-for-plaid/v1/link-token',
 			completeUrl: 'https://shop.test/wp-json/paybridge-for-plaid/v1/complete',
 			returnUrl: 'https://shop.test/checkout/order-received/42/?key=wc_order_abc123',
-			i18n: { preparing: 'preparing', opening: 'opening', verifying: 'verifying', submitted: 'submitted', exited: 'exited', incomplete: 'incomplete', insufficient: 'insufficient', failed: 'failed', unverified: 'unverified', review: 'review', error: 'error', unavailable: 'unavailable', retry: 'Try again' },
+			i18n: { preparing: 'preparing', opening: 'opening', verifying: 'verifying', submitted: 'submitted', exited: 'exited', incomplete: 'incomplete', insufficient: 'insufficient', failed: 'failed', unverified: 'unverified', review: 'review', error: 'error', unavailable: 'unavailable', notPayable: 'notPayable', missingName: 'missingName', rateLimited: 'rateLimited', retry: 'Try again' },
 		},
 		location: { assign: ( url ) => redirects.push( url ) },
 		setTimeout: ( fn ) => setImmediate( fn ),
@@ -139,11 +139,30 @@ test( 'failed authorization and Link errors allow retry; manual review does not'
 } );
 
 test( 'server errors and a missing Plaid Link script are recoverable', async () => {
-	const error = harness( { responses: [ { status: 503, body: { code: 'paybridge_unavailable' } } ] } );
+	const error = harness( { responses: [ { status: 500, body: { code: 'internal_server_error' } } ] } );
 	error.button.listeners.click();
 	await tick();
 	assert.equal( error.status.textContent, 'error' );
 	assert.equal( error.button.disabled, false );
+
+	const unavailable = harness( { responses: [ { status: 503, body: { code: 'paybridge_unavailable' } } ] } );
+	unavailable.button.listeners.click();
+	await tick();
+	assert.equal( unavailable.status.textContent, 'notPayable', 'a gateway that does not accept new payments is explained' );
+	assert.equal( unavailable.button.disabled, false );
+
+	const limited = harness( { responses: [ { status: 429, body: { code: 'paybridge_rate_limited' } } ] } );
+	limited.button.listeners.click();
+	await tick();
+	assert.equal( limited.status.textContent, 'rateLimited' );
+	assert.equal( limited.button.disabled, false );
+
+	const noName = harness( { responses: [ { status: 400, body: { code: 'paybridge_missing_name' } } ] } );
+	noName.button.listeners.click();
+	await tick();
+	assert.equal( noName.status.textContent, 'missingName' );
+	assert.equal( noName.button.disabled, true, 'retrying cannot fix a missing account holder name' );
+	assert.equal( noName.handlers.length, 0 );
 
 	const noPlaid = harness( { plaid: false } );
 	noPlaid.button.listeners.click();

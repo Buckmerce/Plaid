@@ -85,7 +85,30 @@ const VERIFY_DELAY_MS = 4000;
 		setBusy( false );
 		button.textContent = message( 'retry' ) || idleLabel;
 		setStatus( key, true );
+		// Return focus to the action after Plaid's window closed or an error was announced.
 		button.focus();
+	};
+
+	/** A payment that cannot continue from this page: announce why and keep the button disabled. */
+	const stop = ( key: string ): void => {
+		setBusy( true );
+		button.setAttribute( 'aria-disabled', 'true' );
+		setStatus( key, true );
+	};
+
+	/** Server error codes that deserve a specific message. */
+	const errorKey = ( error: unknown ): string => {
+		const code = error instanceof Error ? error.message : '';
+		switch ( code ) {
+			case 'paybridge_unavailable':
+				return 'notPayable';
+			case 'paybridge_rate_limited':
+				return 'rateLimited';
+			case 'paybridge_missing_name':
+				return 'missingName';
+			default:
+				return 'error';
+		}
 	};
 
 	const post = async ( url: string ): Promise< ServerResponse > => {
@@ -167,7 +190,12 @@ const VERIFY_DELAY_MS = 4000;
 		try {
 			result = await post( config.linkTokenUrl );
 		} catch ( error ) {
-			allowRetry( 'error' );
+			const key = errorKey( error );
+			if ( 'missingName' === key ) {
+				stop( key );
+				return;
+			}
+			allowRetry( key );
 			return;
 		}
 		if ( 'submitted' === result.status ) {

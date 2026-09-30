@@ -6,7 +6,10 @@ namespace PayBridge\Plaid\REST;
 
 use PayBridge\Plaid\Checkout\PaymentAccess;
 use PayBridge\Plaid\Container;
+use PayBridge\Plaid\Exception\ConfigurationException;
+use PayBridge\Plaid\Exception\MissingAccountHolderNameException;
 use PayBridge\Plaid\Exception\PaymentAttemptBusyException;
+use PayBridge\Plaid\Gateway\PayBridgeGateway;
 use PayBridge\Plaid\Exception\PayBridgeException;
 use PayBridge\Plaid\Logging\Logger;
 use PayBridge\Plaid\Payment\CompletionResult;
@@ -19,7 +22,10 @@ use PayBridge\Plaid\Payment\CompletionResult;
 final class RestRoutes
 {
     public const NAMESPACE = 'paybridge-for-plaid/v1';
+    /** Each Link token is a Plaid API call; a real customer needs a handful per order. */
     private const LINK_TOKENS_PER_WINDOW = 15;
+    /** Each completion check is a Plaid /transfer/intent/get call. */
+    private const COMPLETIONS_PER_WINDOW = 40;
     private const RATE_WINDOW_SECONDS = 600;
 
     public function __construct(private readonly PaymentAccess $access = new PaymentAccess())
@@ -88,6 +94,11 @@ final class RestRoutes
             $token = ( new Container() )->attempts()->issue_link_token($order);
         } catch (PaymentAttemptBusyException $exception) {
             return new \WP_Error('paybridge_busy', __('Your bank payment is being prepared. Please try again in a few seconds.', 'paybridge-for-plaid'), array('status' => 409));
+        } catch (MissingAccountHolderNameException $exception) {
+            return new \WP_Error('paybridge_missing_name', PayBridgeGateway::legal_name_message() . ' ' . __('If you cannot change it, please contact the store.', 'paybridge-for-plaid'), array('status' => 400));
+        } catch (ConfigurationException $exception) {
+            ( new Logger() )->log('warning', 'link_token_unavailable', array('order_id' => $order->get_id(), 'error_code' => Logger::fingerprint($exception->getMessage())));
+            return new \WP_Error('paybridge_unavailable', __('Pay by Bank is not available for this order right now. Please contact the store or choose another payment method.', 'paybridge-for-plaid'), array('status' => 503));
         } catch (PayBridgeException $exception) {
             ( new Logger() )->log('warning', 'link_token_failed', array('order_id' => $order->get_id(), 'error_code' => Logger::fingerprint($exception->getMessage())));
             return new \WP_Error('paybridge_unavailable', __('The bank payment could not be started. Please try again.', 'paybridge-for-plaid'), array('status' => 503));
@@ -105,6 +116,9 @@ final class RestRoutes
         $order = wc_get_order((int) $request->get_param('order_id'));
         if (! $order instanceof \WC_Order) {
             return new \WP_Error('paybridge_forbidden', __('This payment session is not valid.', 'paybridge-for-plaid'), array('status' => 403));
+        }
+        if (! $this->consume_rate_limit('complete', $order->get_id(), self::COMPLETIONS_PER_WINDOW)) {
+            return new \WP_Error('paybridge_rate_limited', __('Too many attempts. Please wait a few minutes and try again.', 'paybridge-for-plaid'), array('status' => 429));
         }
         try {
             $result = ( new Container() )->completion()->complete($order);

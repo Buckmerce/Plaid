@@ -27,6 +27,21 @@ final class Fields
     }
 
     /**
+     * A calendar date (YYYY-MM-DD) such as a return window, or '' when absent or not a
+     * valid date. Invalid provider dates are dropped instead of being trusted.
+     *
+     * @param array<string, mixed> $data
+     */
+    public static function optional_date(array $data, string $key): string
+    {
+        $value = self::optional_string($data, $key);
+        if (! preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $value, $parts) || ! checkdate((int) $parts[2], (int) $parts[3], (int) $parts[1])) {
+            return '';
+        }
+        return $value;
+    }
+
+    /**
      * @param array<string, mixed> $data
      * @return array<string, mixed>
      */

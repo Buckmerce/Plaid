@@ -29,11 +29,16 @@ final class PlaidClient implements PlaidClientInterface
         '/transfer/intent/get',
         '/link/token/create',
         '/transfer/get',
+        '/transfer/cancel',
         '/transfer/event/sync',
+        '/transfer/refund/create',
+        '/transfer/refund/get',
+        '/transfer/refund/cancel',
         '/transfer/configuration/get',
         '/transfer/ledger/get',
         '/webhook_verification_key/get',
         '/sandbox/transfer/simulate',
+        '/sandbox/transfer/refund/simulate',
         '/sandbox/transfer/fire_webhook',
     );
 

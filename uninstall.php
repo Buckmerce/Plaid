@@ -3,8 +3,8 @@
 /**
  * Uninstall is deliberately conservative (docs/DATA_MODEL.md §8):
  * - PayBridge scheduled actions are always removed;
- * - settings, event history and tables are deleted only when the merchant
- *   enabled "Uninstall cleanup";
+ * - settings, event and refund history and tables are deleted only when the
+ *   merchant enabled "Uninstall cleanup";
  * - payment records stored on WooCommerce orders are never deleted;
  * - nothing owned by another plugin is touched.
  */
@@ -40,6 +40,8 @@ foreach (
         'paybridge_plaid_last_webhook_rejection',
         'paybridge_plaid_first_intent_at_sandbox',
         'paybridge_plaid_first_intent_at_production',
+        'paybridge_plaid_event_sync_failures',
+        'paybridge_plaid_last_link_token_error',
     ) as $pbfp_option
 ) {
     delete_option($pbfp_option);
@@ -67,7 +69,7 @@ foreach (array('_transient_pbfp_', '_transient_timeout_pbfp_') as $pbfp_prefix) 
 }
 
 // Table names derive only from the trusted WordPress prefix and fixed PayBridge suffixes.
-foreach (array('paybridge_plaid_events', 'paybridge_plaid_payment_locks') as $pbfp_table_suffix) {
+foreach (array('paybridge_plaid_events', 'paybridge_plaid_payment_locks', 'paybridge_plaid_refunds') as $pbfp_table_suffix) {
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange -- Merchant opted in to removing PayBridge-owned tables.
     $wpdb->query($wpdb->prepare('DROP TABLE IF EXISTS %i', $wpdb->prefix . $pbfp_table_suffix));
 }

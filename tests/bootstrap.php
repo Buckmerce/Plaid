@@ -117,3 +117,67 @@ if (! function_exists('wc_site_is_https')) {
         return true;
     }
 }
+if (! function_exists('home_url')) {
+    function home_url(string $path = ''): string
+    {
+        return 'https://store.example.test' . $path;
+    }
+}
+if (! function_exists('wp_salt')) {
+    function wp_salt(string $scheme = 'auth'): string
+    {
+        return 'unit-test-salt-' . $scheme;
+    }
+}
+if (! function_exists('delete_option')) {
+    function delete_option(string $name): bool
+    {
+        unset(PayBridgeTestStore::$options[$name]);
+        return true;
+    }
+}
+
+if (! class_exists('WC_Order')) {
+    /**
+     * Minimal order double for pure unit tests of policies that read order meta.
+     * Integration tests (tests/Integration) always use real WooCommerce orders.
+     */
+    class WC_Order
+    {
+        /** @param array<string, mixed> $meta */
+        public function __construct(private array $meta = array(), private string $payment_method = 'paybridge_plaid', private int $id = 1001)
+        {
+        }
+
+        public function get_id(): int
+        {
+            return $this->id;
+        }
+
+        public function get_payment_method(): string
+        {
+            return $this->payment_method;
+        }
+
+        /** @return mixed */
+        public function get_meta(string $key, bool $single = true)
+        {
+            return $this->meta[$key] ?? '';
+        }
+
+        public function update_meta_data(string $key, mixed $value): void
+        {
+            $this->meta[$key] = $value;
+        }
+
+        public function delete_meta_data(string $key): void
+        {
+            unset($this->meta[$key]);
+        }
+
+        public function get_date_paid(string $context = 'view'): ?\DateTimeInterface
+        {
+            return null;
+        }
+    }
+}

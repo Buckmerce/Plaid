@@ -29,12 +29,12 @@ final class PlaidServicesTest extends TestCase
     public function test_intent_request_is_derived_from_server_side_snapshot(): void
     {
         $snapshot = PaymentSnapshot::create(1001, '11.11', 'USD', 'sandbox');
-        $request = TransferIntentRequest::build($snapshot, '1001', array('legal_name' => 'Anne Charleston', 'email_address' => 'anne@example.com'), 'same-day-ach', 'web', '');
+        $request = TransferIntentRequest::build($snapshot, 'PAYMENT', array('legal_name' => 'Anne Charleston', 'email_address' => 'anne@example.com'), 'same-day-ach', '');
         self::assertSame('PAYMENT', $request['mode']);
         self::assertSame('11.11', $request['amount']);
         self::assertSame('USD', $request['iso_currency_code']);
-        self::assertSame('Order 1001', $request['description']);
-        self::assertSame('web', $request['ach_class']);
+        self::assertSame('PAYMENT', $request['description'], 'A stable purpose word, not an order number (Plaid description recommendations).');
+        self::assertSame('web', $request['ach_class'], 'Transfer UI debits are always WEB.');
         self::assertSame('same-day-ach', $request['network']);
         self::assertArrayNotHasKey('funding_account_id', $request, 'Plaid Ledger accounts reject funding_account_id.');
         self::assertSame(array('pbfp_order_id' => '1001', 'pbfp_attempt_id' => $snapshot->attempt_id, 'pbfp_environment' => 'sandbox'), $request['metadata']);
@@ -42,24 +42,39 @@ final class PlaidServicesTest extends TestCase
             self::assertLessThanOrEqual(40, strlen($key));
             self::assertMatchesRegularExpression('/^[\x20-\x7E]*$/', $value);
         }
-        $legacy = TransferIntentRequest::build($snapshot, '1001', array('legal_name' => 'A'), 'ach', 'ppd', 'fa-1');
+        $legacy = TransferIntentRequest::build($snapshot, 'STORE', array('legal_name' => 'A B'), 'ach', 'fa-1');
         self::assertSame('fa-1', $legacy['funding_account_id']);
-        $marked = TransferIntentRequest::build($snapshot, '1001', array('legal_name' => 'A'), 'ach', 'web', '', 'abcdef0123456789');
+        self::assertSame('web', $legacy['ach_class']);
+        $marked = TransferIntentRequest::build($snapshot, 'PAYMENT', array('legal_name' => 'A B'), 'ach', '', 'abcdef0123456789');
         self::assertSame('abcdef0123456789', $marked['metadata']['pbfp_site'], 'Site marker distinguishes stores sharing a Plaid account.');
         self::assertCount(4, $marked['metadata']);
     }
 
-    public function test_description_is_ascii_and_at_most_15_characters(): void
+    public function test_description_is_the_normalized_statement_descriptor_within_ach_limits(): void
     {
-        self::assertSame('Order 123456789', TransferIntentRequest::description('1234567890123'));
-        self::assertSame('Order WC-17', TransferIntentRequest::description('WC-17'));
-        self::assertMatchesRegularExpression('/^Order [A-Za-z0-9\-]{1,9}$/', TransferIntentRequest::description('WC-17 <script>'));
-        self::assertSame('Order payment', TransferIntentRequest::description('ÜÖ'));
-        foreach (array('1', str_repeat('9', 40), 'Ñandú-7') as $number) {
-            $description = TransferIntentRequest::description($number);
+        self::assertSame('PAYMENT', TransferIntentRequest::description('payment'));
+        self::assertSame('MY STORE', TransferIntentRequest::description('My Store'));
+        self::assertSame('PAYMENT', TransferIntentRequest::description('ÜÖ'), 'Nothing usable left → the documented default.');
+        self::assertSame('PAYMENT', TransferIntentRequest::description(''));
+        foreach (array('1', str_repeat('9', 40), 'Ñandú-7', '<script>x</script>') as $input) {
+            $description = TransferIntentRequest::description($input);
             self::assertGreaterThanOrEqual(1, strlen($description));
-            self::assertLessThanOrEqual(15, strlen($description));
+            self::assertLessThanOrEqual(10, strlen($description), 'ACH descriptions show at most 10 characters.');
+            self::assertMatchesRegularExpression('/^[A-Z0-9 ]+$/', $description);
         }
+    }
+
+    public function test_legal_name_is_never_invented(): void
+    {
+        self::assertSame('Anne Charleston', TransferIntentRequest::legal_name('Anne', 'Charleston'));
+        self::assertSame('Anne Marie Charleston', TransferIntentRequest::legal_name('  Anne   Marie ', " Charleston\t"));
+        self::assertSame('', TransferIntentRequest::legal_name('', 'Charleston'), 'Missing first name fails.');
+        self::assertSame('', TransferIntentRequest::legal_name('Anne', ''), 'Missing last name fails.');
+        self::assertSame('', TransferIntentRequest::legal_name('', ''), 'Empty name fails; never "Customer".');
+        self::assertSame('', TransferIntentRequest::legal_name('  ', "\t"));
+        self::assertSame('', TransferIntentRequest::legal_name('<>', '<>'), 'Markup-only input is not a name.');
+        self::assertSame('José Nuñez', TransferIntentRequest::legal_name('José', 'Nuñez'));
+        self::assertSame(100, mb_strlen(TransferIntentRequest::legal_name(str_repeat('a', 80), str_repeat('b', 80))));
     }
 
     public function test_intent_get_parses_the_documented_schema(): void

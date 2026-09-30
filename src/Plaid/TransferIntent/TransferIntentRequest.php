@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace PayBridge\Plaid\Plaid\TransferIntent;
 
+use PayBridge\Plaid\Exception\MissingAccountHolderNameException;
 use PayBridge\Plaid\Payment\PaymentSnapshot;
+use PayBridge\Plaid\Settings\Settings;
 
 /**
  * Builds the /transfer/intent/create request exclusively from server-side
@@ -12,19 +14,22 @@ use PayBridge\Plaid\Payment\PaymentSnapshot;
  */
 final class TransferIntentRequest
 {
+    public const LEGAL_NAME_MAX = 100;
+
     /**
-     * @param array{legal_name:string, email_address?:string, phone_number?:string} $user
+     * @param array{legal_name:string, email_address?:string} $user
      * @return array<string, mixed>
      */
-    public static function build(PaymentSnapshot $snapshot, string $order_number, array $user, string $network, string $ach_class, string $funding_account_id, string $site_marker = ''): array
+    public static function build(PaymentSnapshot $snapshot, string $statement_descriptor, array $user, string $network, string $funding_account_id, string $site_marker = ''): array
     {
         $body = array(
             'mode' => 'PAYMENT',
             'amount' => $snapshot->amount,
             'iso_currency_code' => $snapshot->currency,
-            'description' => self::description($order_number),
+            'description' => self::description($statement_descriptor),
             'network' => $network,
-            'ach_class' => $ach_class,
+            // Transfer UI is an Internet-authorized consumer debit: always WEB (ADR-0013).
+            'ach_class' => Settings::ACH_CLASS,
             'user' => $user,
             // Correlation only: ASCII strings, no secrets and no personal data.
             'metadata' => array(
@@ -43,26 +48,31 @@ final class TransferIntentRequest
         return $body;
     }
 
-    /** Plaid requires 1–15 characters. Keep it ASCII so it is valid on bank statements. */
-    public static function description(string $order_number): string
+    /**
+     * Plaid requires 1–15 characters and recommends a stable, purpose-describing word that
+     * fits the 10-character ACH limit; variable data such as order numbers belong in metadata
+     * (docs/api/transfer/creating-transfers.md#description-field-recommendations).
+     */
+    public static function description(string $statement_descriptor): string
     {
-        $number = preg_replace('/[^A-Za-z0-9\-]/', '', $order_number) ?? '';
-        $description = '' === $number ? 'Order payment' : 'Order ' . $number;
-        return substr($description, 0, 15);
+        $description = Settings::normalize_statement_descriptor($statement_descriptor);
+        return '' === $description ? Settings::DEFAULT_STATEMENT_DESCRIPTOR : $description;
     }
 
     /**
-     * Legal name and contact details from the order billing data.
+     * Account holder details from the order billing data. The legal name is never invented:
+     * without a billing first and last name the payment cannot start.
      *
      * @return array{legal_name:string, email_address?:string}
+     * @throws MissingAccountHolderNameException
      */
     public static function user_from_order(\WC_Order $order): array
     {
-        $name = trim(preg_replace('/\s+/', ' ', $order->get_billing_first_name() . ' ' . $order->get_billing_last_name()) ?? '');
+        $name = self::legal_name((string) $order->get_billing_first_name(), (string) $order->get_billing_last_name());
         if ('' === $name) {
-            $name = trim((string) $order->get_billing_company());
+            throw new MissingAccountHolderNameException('The order has no billing first and last name for the account holder.');
         }
-        $user = array('legal_name' => '' === $name ? 'Customer' : substr($name, 0, 100));
+        $user = array('legal_name' => $name);
         $email = (string) $order->get_billing_email();
         if ('' !== $email && is_email($email)) {
             $user['email_address'] = $email;
@@ -70,5 +80,26 @@ final class TransferIntentRequest
         // phone_number is intentionally omitted: Plaid validates it against real
         // numbering plans and malformed store data would block the payment.
         return $user;
+    }
+
+    /**
+     * The individual's legal name: billing first + last name, both required. A company name
+     * is never substituted, because Transfer UI authorizes a consumer (WEB) debit.
+     */
+    public static function legal_name(string $first_name, string $last_name): string
+    {
+        $first = self::clean_name($first_name);
+        $last = self::clean_name($last_name);
+        if ('' === $first || '' === $last) {
+            return '';
+        }
+        return trim(mb_substr($first . ' ' . $last, 0, self::LEGAL_NAME_MAX));
+    }
+
+    private static function clean_name(string $value): string
+    {
+        // Control characters and markup never belong in a legal name.
+        $value = preg_replace('/[\x00-\x1F\x7F<>]/u', '', $value) ?? '';
+        return trim(preg_replace('/\s+/u', ' ', $value) ?? '');
     }
 }

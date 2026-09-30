@@ -8,17 +8,28 @@ use PayBridge\Plaid\Container;
 use PayBridge\Plaid\Exception\ConfigurationException;
 use PayBridge\Plaid\Plaid\Exception\PlaidApiException;
 use PayBridge\Plaid\Plaid\Exception\PlaidException;
+use PayBridge\Plaid\Plaid\Exception\PlaidNetworkException;
 use PayBridge\Plaid\Settings\Settings;
 
 /**
- * Read-only Plaid connectivity check (/transfer/configuration/get and
- * /transfer/ledger/get). Stores a non-secret result for the current admin.
+ * Read-only Plaid readiness check (/transfer/configuration/get and /transfer/ledger/get).
+ * Classifies failures so the merchant knows what to fix, and stores a non-secret result.
  */
 final class ConnectionTester
 {
     public const ACTION = 'pbfp_test_connection';
     public const TRANSIENT_PREFIX = 'pbfp_connection_test_';
     public const LAST_RESULT_OPTION = 'paybridge_plaid_last_connection_test';
+
+    public const CONNECTED = 'connected';
+    public const NOT_CONFIGURED = 'not_configured';
+    public const INVALID_CREDENTIALS = 'invalid_credentials';
+    public const PRODUCT_NOT_ENABLED = 'product_not_enabled';
+    public const PERMISSION_DENIED = 'permission_denied';
+    public const RATE_LIMITED = 'rate_limited';
+    public const PLAID_UNAVAILABLE = 'plaid_unavailable';
+    public const NETWORK_ERROR = 'network_error';
+    public const REJECTED = 'rejected';
 
     public function register(): void
     {
@@ -39,45 +50,90 @@ final class ConnectionTester
         exit;
     }
 
-    /** @return array{status:string, environment:string, ledger?:string, error_code?:string, request_id?:string} */
+    /** @return array{status:string, environment:string, ledger?:string, error_code?:string, request_id?:string, issues?:list<string>} */
     public function test(Settings $settings): array
     {
         $environment = $settings->environment_name();
         try {
-            $container = new Container($settings);
-            $client = $container->client();
+            $client = ( new Container($settings) )->client();
             $client->post('/transfer/configuration/get', array());
             $ledger = 'unknown';
             try {
                 $client->post('/transfer/ledger/get', array());
                 $ledger = 'enabled';
             } catch (PlaidApiException $exception) {
-                $ledger = 'not_available';
+                $ledger = $exception->is_transient() ? 'unknown' : 'not_available';
+            } catch (PlaidException $exception) {
+                $ledger = 'unknown';
             }
-            return array('status' => 'connected', 'environment' => $environment, 'ledger' => $ledger);
+            $issues = array();
+            if ($settings->link_customization_required() && '' === $settings->link_customization_name()) {
+                $issues[] = 'missing_link_customization';
+            }
+            if ('enabled' === $ledger && '' !== $settings->funding_account_id()) {
+                $issues[] = 'funding_account_conflict';
+            }
+            if ('not_available' === $ledger && '' === $settings->funding_account_id()) {
+                $issues[] = 'funding_account_required';
+            }
+            return array('status' => self::CONNECTED, 'environment' => $environment, 'ledger' => $ledger, 'issues' => $issues);
         } catch (ConfigurationException $exception) {
-            return array('status' => 'not_configured', 'environment' => $environment);
+            return array('status' => self::NOT_CONFIGURED, 'environment' => $environment);
         } catch (PlaidApiException $exception) {
-            return array('status' => 'rejected', 'environment' => $environment, 'error_code' => $exception->error_code, 'request_id' => $exception->request_id());
+            return array('status' => self::classify($exception), 'environment' => $environment, 'error_code' => $exception->error_code, 'request_id' => $exception->request_id());
+        } catch (PlaidNetworkException $exception) {
+            return array('status' => self::NETWORK_ERROR, 'environment' => $environment);
         } catch (PlaidException $exception) {
-            return array('status' => 'unreachable', 'environment' => $environment, 'request_id' => $exception->request_id());
+            return array('status' => self::PLAID_UNAVAILABLE, 'environment' => $environment, 'request_id' => $exception->request_id());
         }
+    }
+
+    public static function classify(PlaidApiException $exception): string
+    {
+        $code = strtoupper($exception->error_code);
+        return match (true) {
+            in_array($code, array('INVALID_API_KEYS', 'UNAUTHORIZED_ENVIRONMENT', 'INVALID_CLIENT_ID', 'INVALID_SECRET'), true) => self::INVALID_CREDENTIALS,
+            in_array($code, array('INVALID_PRODUCT', 'PRODUCT_NOT_ENABLED', 'PRODUCTS_NOT_SUPPORTED', 'SANDBOX_PRODUCT_NOT_ENABLED'), true) => self::PRODUCT_NOT_ENABLED,
+            in_array($code, array('UNAUTHORIZED_ACCESS', 'UNAUTHORIZED_ROUTE_ACCESS', 'ADDITIONAL_CONSENT_REQUIRED'), true) => self::PERMISSION_DENIED,
+            429 === $exception->http_status || 'RATE_LIMIT_EXCEEDED' === strtoupper($exception->error_type) => self::RATE_LIMITED,
+            $exception->is_ambiguous() || 'PLANNED_MAINTENANCE' === $code => self::PLAID_UNAVAILABLE,
+            default => self::REJECTED,
+        };
     }
 
     /** @param array<string, mixed> $result */
     public static function message(array $result): string
     {
         $status = (string) ($result['status'] ?? '');
-        $code = preg_replace('/[^A-Z_]/', '', (string) ($result['error_code'] ?? '')) ?? '';
-        return match ($status) {
-            'connected' => 'enabled' === ($result['ledger'] ?? '')
+        $code = preg_replace('/[^A-Z_]/', '', strtoupper((string) ($result['error_code'] ?? ''))) ?? '';
+        $code = '' === $code ? 'UNKNOWN' : $code;
+        $message = match ($status) {
+            self::CONNECTED => 'enabled' === ($result['ledger'] ?? '')
                 ? __('Connected to Plaid Transfer. Plaid Ledger is enabled (leave Funding Account ID empty).', 'paybridge-for-plaid')
                 : __('Connected to Plaid Transfer.', 'paybridge-for-plaid'),
-            'not_configured' => __('Enter the Client ID and Secret, save, then test again.', 'paybridge-for-plaid'),
+            self::NOT_CONFIGURED => __('Configuration incomplete: enter the Client ID and Secret, save, then test again.', 'paybridge-for-plaid'),
             /* translators: %s: Plaid error code such as INVALID_API_KEYS */
-            'rejected' => sprintf(__('Plaid rejected the request (%s). Check the credentials, the environment and that Transfer is enabled for your account.', 'paybridge-for-plaid'), '' === $code ? 'UNKNOWN' : $code),
-            'unreachable' => __('Plaid could not be reached from this server. Check outbound HTTPS connectivity.', 'paybridge-for-plaid'),
+            self::INVALID_CREDENTIALS => sprintf(__('Invalid Plaid credentials (%s): check the Client ID and that the Secret belongs to the selected environment.', 'paybridge-for-plaid'), $code),
+            /* translators: %s: Plaid error code */
+            self::PRODUCT_NOT_ENABLED => sprintf(__('Plaid Transfer is not enabled for this Plaid account/environment (%s). Request Transfer access in the Plaid Dashboard.', 'paybridge-for-plaid'), $code),
+            /* translators: %s: Plaid error code */
+            self::PERMISSION_DENIED => sprintf(__('Plaid denied access to Transfer (%s). Your team may not be approved for this environment yet.', 'paybridge-for-plaid'), $code),
+            self::RATE_LIMITED => __('Plaid rate-limited the check. Wait a minute and test again.', 'paybridge-for-plaid'),
+            self::PLAID_UNAVAILABLE => __('Plaid is temporarily unavailable or returned an unexpected response. Try again later; see status.plaid.com.', 'paybridge-for-plaid'),
+            self::NETWORK_ERROR => __('Plaid could not be reached from this server (network error). Check outbound HTTPS connectivity and firewall rules.', 'paybridge-for-plaid'),
+            /* translators: %s: Plaid error code */
+            self::REJECTED => sprintf(__('Plaid rejected the request (%s). Check the credentials, the environment and that Transfer is enabled for your account.', 'paybridge-for-plaid'), $code),
             default => __('No connection test has been run.', 'paybridge-for-plaid'),
         };
+        $issues = is_array($result['issues'] ?? null) ? $result['issues'] : array();
+        foreach ($issues as $issue) {
+            $message .= ' ' . match ((string) $issue) {
+                'missing_link_customization' => __('Link customization missing: Production requires one with Account Select “Enabled for one account”.', 'paybridge-for-plaid'),
+                'funding_account_conflict' => __('Plaid Ledger is enabled, so remove the Funding Account ID (Plaid rejects it).', 'paybridge-for-plaid'),
+                'funding_account_required' => __('No Plaid Ledger was found: enter your Funding Account ID from the Plaid Dashboard.', 'paybridge-for-plaid'),
+                default => '',
+            };
+        }
+        return trim($message);
     }
 }

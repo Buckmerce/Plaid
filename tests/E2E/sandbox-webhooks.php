@@ -112,7 +112,7 @@ switch ($step) {
 
     case 'pre-webhook':
         $ids = $transfer_ids();
-        $check(3 === count(array_filter($ids)), 'Every Sandbox order is bound to its Plaid transfer after Transfer UI');
+        $check(count($orders) === count(array_filter($ids)) && count($orders) >= 4, 'Every Sandbox order is bound to its Plaid transfer after Transfer UI');
         $placeholders = implode(', ', array_fill(0, count($ids), '%s'));
         // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders -- Test-only dynamic IN list.
         $synced = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i WHERE transfer_id IN ({$placeholders})", $events_table, ...array_values($ids)));
@@ -163,6 +163,7 @@ switch ($step) {
             '11.11' => array('state' => 'funds_available', 'paid' => true, 'event' => 'funds_available'),
             '22.22' => array('state' => 'failed', 'paid' => false, 'event' => 'failed'),
             '33.33' => array('state' => 'returned', 'paid' => false, 'event' => 'returned', 'return' => 'R01'),
+            '11.11-full' => array('state' => 'funds_available', 'paid' => true, 'event' => 'funds_available'),
         );
         $ids = $transfer_ids();
         foreach ($expect as $amount => $want) {

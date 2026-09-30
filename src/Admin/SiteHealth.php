@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace PayBridge\Plaid\Admin;
 
-use PayBridge\Plaid\Background\EventSyncService;
 use PayBridge\Plaid\Background\Scheduler;
-use PayBridge\Plaid\Gateway\GatewayAvailability;
-use PayBridge\Plaid\Persistence\Installer;
+use PayBridge\Plaid\Persistence\PaymentEpoch;
 use PayBridge\Plaid\Settings\Settings;
 
 /** Site Health tests. Messages never include credential values. */
@@ -33,44 +31,38 @@ final class SiteHealth
     public function test_configuration(): array
     {
         $settings = Settings::load();
-        if (! $settings->enabled()) {
-            return $this->result('good', __('PayBridge for Plaid is disabled', 'paybridge-for-plaid'), __('The gateway is not enabled, so no checks apply.', 'paybridge-for-plaid'));
+        $status = ConfigurationStatus::evaluate($settings);
+        $problems = array_values(array_filter($status['checks'], static fn (array $check): bool => in_array($check['result'], array(ConfigurationStatus::FAIL, ConfigurationStatus::WARN), true)));
+        $details = implode(' ', array_map(static fn (array $check): string => $check['label'] . ('' !== $check['help'] ? ': ' . $check['help'] : '') . '.', $problems));
+        if (! $settings->enabled() && null === PaymentEpoch::get($settings->environment_name())) {
+            return $this->result('good', __('PayBridge for Plaid is not in use', 'paybridge-for-plaid'), __('The gateway is disabled and no bank payments exist in the configured environment.', 'paybridge-for-plaid'));
         }
-        if (! Installer::schema_is_valid()) {
-            return $this->result('critical', __('PayBridge database tables are invalid', 'paybridge-for-plaid'), __('Deactivate and reactivate the plugin to recreate its tables.', 'paybridge-for-plaid'));
-        }
-        $problems = GatewayAvailability::problems($settings, get_woocommerce_currency(), GatewayAvailability::site_uses_https());
-        if (in_array(GatewayAvailability::PRODUCTION_REQUIRES_HTTPS, $problems, true)) {
-            return $this->result('critical', __('PayBridge Production requires HTTPS', 'paybridge-for-plaid'), __('Pay by Bank is hidden until the site uses HTTPS.', 'paybridge-for-plaid'));
-        }
-        if (array() !== $problems) {
-            return $this->result('recommended', __('PayBridge for Plaid configuration is incomplete', 'paybridge-for-plaid'), implode(' ', array_map(array(GatewayAvailability::class, 'label'), $problems)));
-        }
-        $connection = get_option(ConnectionTester::LAST_RESULT_OPTION, array());
-        if (is_array($connection) && isset($connection['status']) && 'connected' !== $connection['status']) {
-            return $this->result('recommended', __('The last Plaid connection test failed', 'paybridge-for-plaid'), ConnectionTester::message($connection));
-        }
-        return $this->result('good', __('PayBridge for Plaid is configured', 'paybridge-for-plaid'), __('Credentials are present and the configuration allows Pay by Bank.', 'paybridge-for-plaid'));
+        return match ($status['level']) {
+            ConfigurationStatus::INCOMPLETE => $this->result('critical', __('PayBridge for Plaid configuration is incomplete', 'paybridge-for-plaid'), $details),
+            ConfigurationStatus::ATTENTION => $this->result('recommended', __('PayBridge for Plaid needs attention', 'paybridge-for-plaid'), $details),
+            ConfigurationStatus::DISABLED => $this->result('good', __('PayBridge for Plaid is disabled for new payments', 'paybridge-for-plaid'), __('Existing bank payments are still monitored.', 'paybridge-for-plaid')),
+            default => $this->result('good', __('PayBridge for Plaid is configured', 'paybridge-for-plaid'), $settings->is_production() ? __('Production is ready to accept bank payments.', 'paybridge-for-plaid') : __('Sandbox is ready for test payments.', 'paybridge-for-plaid')),
+        };
     }
 
     /** @return array<string, mixed> */
     public function test_background(): array
     {
         $settings = Settings::load();
-        if (! $settings->enabled()) {
-            return $this->result('good', __('PayBridge background processing is idle', 'paybridge-for-plaid'), __('The gateway is not enabled.', 'paybridge-for-plaid'));
+        $checks = ConfigurationStatus::background_checks($settings);
+        $failed = array_values(array_filter($checks, static fn (array $check): bool => ConfigurationStatus::FAIL === $check['result']));
+        $warned = array_values(array_filter($checks, static fn (array $check): bool => ConfigurationStatus::WARN === $check['result']));
+        $describe = static fn (array $list): string => implode(' ', array_map(static fn (array $check): string => $check['label'] . ('' !== $check['help'] ? ': ' . $check['help'] : '') . '.', $list));
+        if (array() !== $failed) {
+            return $this->result('critical', __('PayBridge cannot follow bank payments in the background', 'paybridge-for-plaid'), $describe($failed));
         }
-        if (! function_exists('as_has_scheduled_action')) {
-            return $this->result('critical', __('Action Scheduler is unavailable', 'paybridge-for-plaid'), __('PayBridge cannot process Plaid transfer events without Action Scheduler.', 'paybridge-for-plaid'));
+        if (array() !== $warned) {
+            return $this->result('recommended', __('PayBridge background processing needs attention', 'paybridge-for-plaid'), $describe($warned));
         }
-        if ($settings->reconciliation_enabled() && ! as_has_scheduled_action(Scheduler::RECONCILE_HOOK, array(), Scheduler::GROUP)) {
-            return $this->result('recommended', __('PayBridge reconciliation is not scheduled yet', 'paybridge-for-plaid'), __('It is scheduled automatically on the next admin or cron request.', 'paybridge-for-plaid'));
+        if (! Scheduler::maintenance_active($settings)) {
+            return $this->result('good', __('PayBridge background processing is idle', 'paybridge-for-plaid'), __('No bank payments need monitoring.', 'paybridge-for-plaid'));
         }
-        $error = get_option(EventSyncService::LAST_ERROR_OPTION, array());
-        if (is_array($error) && isset($error['at'])) {
-            return $this->result('recommended', __('The last Plaid event sync failed', 'paybridge-for-plaid'), __('PayBridge will retry automatically. See WooCommerce → Status → Logs (paybridge-for-plaid).', 'paybridge-for-plaid'));
-        }
-        return $this->result('good', __('PayBridge background processing is healthy', 'paybridge-for-plaid'), __('Transfer event sync and reconciliation are available.', 'paybridge-for-plaid'));
+        return $this->result('good', __('PayBridge background processing is healthy', 'paybridge-for-plaid'), __('Transfer event sync and reconciliation are running.', 'paybridge-for-plaid'));
     }
 
     /** @return array<string, mixed> */
