@@ -315,7 +315,7 @@ async page => {
 	await page.locator( 'button.refund-items' ).click();
 	await page.locator( '#refund_amount' ).fill( '5.00' );
 	const refundButton = page.locator( 'button.do-api-refund' );
-	assert( ( await refundButton.textContent() ).includes( 'Pay by Bank' ), 'WooCommerce offers “Refund via Pay by Bank”.' );
+	assert( ( await refundButton.textContent() ).includes( 'via PayBridge for Plaid' ), 'WooCommerce offers an automatic refund through the gateway.' );
 	page.once( 'dialog', ( dialog ) => dialog.accept() );
 	await Promise.all( [ page.waitForNavigation( { timeout: 30000 } ), refundButton.click() ] );
 	state = await json( '/?pbfp_e2e_order=' + firstPaidOrder );

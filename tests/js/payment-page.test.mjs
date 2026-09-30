@@ -129,6 +129,17 @@ test( 'failed authorization and Link errors allow retry; manual review does not'
 	assert.equal( exited.status.textContent, 'exited' );
 	assert.equal( exited.button.disabled, false );
 
+	// Plaid calls onExit(null) when the customer closes Link: the server is asked first, then the
+	// customer is told the connection was closed (verified with genuine Plaid Sandbox Link).
+	const closed = harness( { responses: [ { status: 200, body: { status: 'ready', link_token: 't' } }, { status: 200, body: { status: 'incomplete', reason: '' } } ] } );
+	closed.button.listeners.click();
+	await tick();
+	closed.handlers[ 0 ].config.onExit( null, {} );
+	await tick();
+	assert.equal( closed.requests[ 1 ].url, 'https://shop.test/wp-json/paybridge-for-plaid/v1/complete', 'a user exit is verified server-side' );
+	assert.equal( closed.status.textContent, 'exited' );
+	assert.equal( closed.button.disabled, false );
+
 	const review = harness( { responses: [ { status: 200, body: { status: 'ready', link_token: 't' } }, { status: 200, body: { status: 'incomplete', reason: 'MANUAL_REVIEW' } } ] } );
 	review.button.listeners.click();
 	await tick();

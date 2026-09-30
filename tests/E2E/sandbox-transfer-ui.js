@@ -27,7 +27,15 @@ async page => {
 		assert( data.ok, 'Switched the store to the ' + kind + ' checkout page.' );
 		return data.checkout;
 	};
+	const diagnose = async ( label, error ) => {
+		await page.screenshot( { path: 'sandbox-failure-' + label + '.png', fullPage: true } ).catch( () => undefined );
+		const linkText = await page.frameLocator( 'iframe[id^="plaid-link-iframe"]' ).locator( 'body' ).innerText( { timeout: 3000 } ).catch( () => '(no Plaid Link frame)' );
+		const buttons = await page.frameLocator( 'iframe[id^="plaid-link-iframe"]' ).locator( 'button' ).evaluateAll( ( nodes ) => nodes.map( ( n ) => ( n.getAttribute( 'aria-label' ) || '' ) + '|' + n.textContent.trim().slice( 0, 40 ) ) ).catch( () => [] );
+		const status = await page.locator( '[data-pbfp-status]' ).textContent().catch( () => '' );
+		throw new Error( 'SANDBOX STEP FAILED (' + label + ') at ' + page.url() + ' status="' + status + '" link="' + linkText.replace( /\s+/g, ' ' ).slice( 0, 400 ) + '" buttons=' + JSON.stringify( buttons ).slice( 0, 600 ) + ' :: ' + ( error && error.message ? error.message.split( '\n' )[ 0 ] : String( error ) ) );
+	};
 	for ( const [ key, productId ] of Object.entries( config.products ) ) {
+	  try {
 		// One payment goes through the Checkout block, the others through the Classic checkout.
 		const amount = key.split( '-' )[ 0 ];
 		const kind = key === config.blocksAmount ? 'blocks' : 'classic';
@@ -65,10 +73,12 @@ async page => {
 		if ( key === config.exitAmount ) {
 			// The customer closes the genuine Plaid Link window before paying, then tries again.
 			await page.locator( '[data-pbfp-pay]' ).click();
-			await link.getByRole( 'button', { name: 'Continue without phone number' } ).waitFor( { timeout: 60000 } );
-			await link.getByRole( 'button', { name: /close/i } ).first().click();
-			const confirmExit = link.getByRole( 'button', { name: /^(exit|yes, exit|exit plaid|leave)$/i } ).first();
-			await confirmExit.click( { timeout: 8000 } ).catch( () => undefined );
+			await page.locator( 'iframe[id^="plaid-link-iframe"]' ).waitFor( { state: 'visible', timeout: 60000 } );
+			const close = link.locator( 'button[aria-label*="close" i], button[aria-label*="exit" i]' ).first();
+			await close.waitFor( { state: 'visible', timeout: 60000 } );
+			await close.click();
+			// Plaid asks "Are you sure? Your progress will be lost if you exit." → "Yes, exit".
+			await link.getByRole( 'button', { name: 'Yes, exit' } ).click( { timeout: 20000 } );
 			await page.waitForFunction( () => ( document.querySelector( '[data-pbfp-status]' ) || {} ).textContent?.includes( 'closed before' ), null, { timeout: 30000 } );
 			assert( await page.locator( '[data-pbfp-pay]' ).isEnabled(), 'After exiting Plaid Link the payment can be retried.' );
 			exits.push( key );
@@ -90,6 +100,9 @@ async page => {
 		await link.getByRole( 'button', { name: 'Continue' } ).click( { timeout: 60000 } );
 		await page.waitForURL( /order-received\/\d+/, { timeout: 60000 } );
 		results[ key ] = orderId;
+	  } catch ( error ) {
+		await diagnose( key, error );
+	  }
 	}
 	await useCheckout( 'classic' );
 	assert( exits.length === 1, 'The Link exit scenario ran.' );

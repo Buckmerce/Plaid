@@ -43,7 +43,8 @@ jobs:
           for pair in "header:$header" "constant:$constant" "readme:$stable" "package.json:$package"; do
             [[ "${pair#*:}" == "$VERSION" ]] || { echo "::error::${pair%%:*} version ${pair#*:} != tag $VERSION"; exit 1; }
           done
-          grep -q "^## $VERSION" CHANGELOG.md || { echo "::error::CHANGELOG.md has no section for $VERSION"; exit 1; }
+          # readme.txt is tracked and shipped in the ZIP; its changelog is the release changelog.
+          grep -qxF "= $VERSION =" readme.txt || { echo "::error::readme.txt has no changelog section for $VERSION"; exit 1; }
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           [[ "$VERSION" == *-* ]] && echo "prerelease=true" >> "$GITHUB_OUTPUT" || echo "prerelease=false" >> "$GITHUB_OUTPUT"
 
@@ -92,5 +93,5 @@ jobs:
             "dist/paybridge-for-plaid-$VERSION.zip" \
             "dist/paybridge-for-plaid-$VERSION.zip.sha256" \
             --title "PayBridge for Plaid $VERSION" \
-            --notes "Release ZIP SHA-256: \`$SHA\` (built and tested once by the quality gate of this workflow run). See CHANGELOG.md." \
+            --notes "Release ZIP SHA-256: \`$SHA\` (built and tested once by the quality gate of this workflow run). See the changelog in readme.txt." \
             --verify-tag "${flags[@]}"

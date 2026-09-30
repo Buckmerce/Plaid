@@ -98,34 +98,49 @@ final class RefundStore
 
     public function find(int $id): ?RefundRecord
     {
-        return $this->one('id = %d', array($id));
+        global $wpdb;
+        return self::record($wpdb->get_row($wpdb->prepare('SELECT * FROM %i WHERE id = %d LIMIT 1', Installer::refunds_table(), $id), ARRAY_A));
     }
 
     public function find_by_wc_refund(int $wc_refund_id): ?RefundRecord
     {
-        return $wc_refund_id > 0 ? $this->one('wc_refund_id = %d', array($wc_refund_id)) : null;
+        global $wpdb;
+        if ($wc_refund_id < 1) {
+            return null;
+        }
+        return self::record($wpdb->get_row($wpdb->prepare('SELECT * FROM %i WHERE wc_refund_id = %d LIMIT 1', Installer::refunds_table(), $wc_refund_id), ARRAY_A));
     }
 
     public function find_by_idempotency_key(string $key): ?RefundRecord
     {
-        return '' !== $key ? $this->one('idempotency_key = %s', array($key)) : null;
+        global $wpdb;
+        if ('' === $key) {
+            return null;
+        }
+        return self::record($wpdb->get_row($wpdb->prepare('SELECT * FROM %i WHERE idempotency_key = %s LIMIT 1', Installer::refunds_table(), $key), ARRAY_A));
     }
 
     public function find_by_refund_id(string $environment, string $refund_id): ?RefundRecord
     {
-        return '' !== $refund_id ? $this->one('environment = %s AND refund_id = %s', array($environment, $refund_id)) : null;
+        global $wpdb;
+        if ('' === $refund_id) {
+            return null;
+        }
+        return self::record($wpdb->get_row($wpdb->prepare('SELECT * FROM %i WHERE environment = %s AND refund_id = %s LIMIT 1', Installer::refunds_table(), $environment, $refund_id), ARRAY_A));
     }
 
     /** @return list<RefundRecord> Oldest first. */
     public function for_order(int $order_id): array
     {
-        return $this->many('order_id = %d ORDER BY id ASC LIMIT 100', array($order_id));
+        global $wpdb;
+        return self::records($wpdb->get_results($wpdb->prepare('SELECT * FROM %i WHERE order_id = %d ORDER BY id ASC LIMIT 100', Installer::refunds_table(), $order_id), ARRAY_A));
     }
 
     /** @return list<RefundRecord> Oldest first. */
     public function for_transfer(string $environment, string $transfer_id): array
     {
-        return $this->many('environment = %s AND transfer_id = %s ORDER BY id ASC LIMIT 100', array($environment, $transfer_id));
+        global $wpdb;
+        return self::records($wpdb->get_results($wpdb->prepare('SELECT * FROM %i WHERE environment = %s AND transfer_id = %s ORDER BY id ASC LIMIT 100', Installer::refunds_table(), $environment, $transfer_id), ARRAY_A));
     }
 
     /** The create call returned a refund: records its ID and status. Only the reservation owner may do this. */
@@ -242,10 +257,15 @@ final class RefundStore
     /** @return list<RefundRecord> Refunds of the configured Plaid account whose next check is due. */
     public function due(string $environment, string $account_fp, int $limit): array
     {
-        return $this->many(
-            "environment = %s AND (account_fp IS NULL OR %s = '' OR account_fp = %s) AND reconcile_after IS NOT NULL AND reconcile_after <= UTC_TIMESTAMP() ORDER BY reconcile_after ASC LIMIT %d",
-            array($environment, $account_fp, $account_fp, max(1, min(100, $limit)))
-        );
+        global $wpdb;
+        return self::records($wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM %i WHERE environment = %s AND (account_fp IS NULL OR %s = '' OR account_fp = %s) AND reconcile_after IS NOT NULL AND reconcile_after <= UTC_TIMESTAMP() ORDER BY reconcile_after ASC LIMIT %d",
+            Installer::refunds_table(),
+            $environment,
+            $account_fp,
+            $account_fp,
+            max(1, min(100, $limit))
+        ), ARRAY_A));
     }
 
     /** @return array<string, int> Refund counts per status in one environment. */
@@ -278,25 +298,19 @@ final class RefundStore
         ));
     }
 
-    /** @param list<int|string> $args */
-    private function one(string $where, array $args): ?RefundRecord
+    private static function record(mixed $row): ?RefundRecord
     {
-        global $wpdb;
-        $row = $wpdb->get_row($wpdb->prepare('SELECT * FROM %i WHERE ' . $where . ' LIMIT 1', Installer::refunds_table(), ...$args), ARRAY_A); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $where is a fixed fragment with placeholders defined in this class.
         return is_array($row) ? RefundRecord::from_row($row) : null;
     }
 
-    /**
-     * @param list<int|string> $args
-     * @return list<RefundRecord>
-     */
-    private function many(string $where, array $args): array
+    /** @return list<RefundRecord> */
+    private static function records(mixed $rows): array
     {
-        global $wpdb;
-        $rows = $wpdb->get_results($wpdb->prepare('SELECT * FROM %i WHERE ' . $where, Installer::refunds_table(), ...$args), ARRAY_A); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $where is a fixed fragment with placeholders defined in this class.
         $records = array();
         foreach (is_array($rows) ? $rows : array() as $row) {
-            $records[] = RefundRecord::from_row($row);
+            if (is_array($row)) {
+                $records[] = RefundRecord::from_row($row);
+            }
         }
         return $records;
     }

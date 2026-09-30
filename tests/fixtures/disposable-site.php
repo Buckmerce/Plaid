@@ -11,3 +11,5 @@ if (! defined('PAYBRIDGE_PLAID_TEST_DATABASE') || true !== PAYBRIDGE_PLAID_TEST_
 // Test sites use self-signed/loopback hosts and run background work explicitly.
 add_filter('pre_option_woocommerce_allow_tracking', static fn (): string => 'no');
 add_filter('woocommerce_admin_disabled', '__return_true');
+// WooCommerce 11.1 shows a full-screen "first order" celebration on the order edit screen.
+add_filter('wc_order_milestone_egg_enabled', '__return_false');

@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # ngrok helpers for the public-HTTPS test mode (sourced, never executed).
 #
 # The agent reads its authtoken from the ngrok configuration file or from NGROK_AUTHTOKEN.

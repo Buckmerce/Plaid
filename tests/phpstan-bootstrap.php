@@ -8,7 +8,7 @@ foreach (
         'PAYBRIDGE_PLAID_DIR' => dirname(__DIR__) . '/',
         'PAYBRIDGE_PLAID_FILE' => '/tmp/paybridge-for-plaid.php',
         'PAYBRIDGE_PLAID_URL' => 'https://example.invalid/wp-content/plugins/paybridge-for-plaid/',
-        'PAYBRIDGE_PLAID_VERSION' => '0.1.0',
+        'PAYBRIDGE_PLAID_VERSION' => '1.0.0',
         'MINUTE_IN_SECONDS' => 60,
         'HOUR_IN_SECONDS' => 3600,
         'DAY_IN_SECONDS' => 86400,

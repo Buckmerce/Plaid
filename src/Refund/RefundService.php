@@ -347,7 +347,11 @@ final class RefundService implements ReturnListener
                     ),
                     PaymentAlerts::message(array('type' => $returned ? PaymentAlerts::REFUND_RETURNED : PaymentAlerts::REFUND_FAILED, 'order_number' => (string) $order->get_order_number(), 'code' => $code, 'amount' => $record->amount))
                 );
-                do_action($returned ? 'paybridge_plaid_refund_returned' : 'paybridge_plaid_refund_failed', $order, $record->refund_id, $code);
+                if ($returned) {
+                    do_action('paybridge_plaid_refund_returned', $order, $record->refund_id, $code);
+                } else {
+                    do_action('paybridge_plaid_refund_failed', $order, $record->refund_id, $code);
+                }
                 break;
             case RefundState::CANCELLED:
                 /* translators: %s: refund amount and Plaid refund ID */

@@ -72,6 +72,13 @@ jobs:
           coverage: none
       - run: find src tests paybridge-for-plaid.php uninstall.php -name '*.php' -not -path 'tests/phpstan-wp-root/*' -print0 | xargs -0 -n1 php -l > /dev/null
 
+  scripts-lint:
+    name: Shell scripts (shellcheck)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: shellcheck -x -P SCRIPTDIR -S warning scripts/*.sh scripts/lib/*.sh
+
   phpcs:
     name: PHPCS
     runs-on: ubuntu-latest
@@ -289,6 +296,11 @@ jobs:
           zip=$(ls dist/paybridge-for-plaid-*.zip)
           (cd dist && sha256sum -c "$(basename "$zip").sha256")
           bash scripts/verify-package.sh "$zip"
+          # Reproducible build: rebuilding this commit gives the same bytes as the tested artifact.
+          npm run build
+          PBFP_DIST_DIR=rebuild bash scripts/package.sh
+          cmp "rebuild/$(basename "$zip")" "$zip"
+          echo "Rebuild is byte-identical: $(sha256sum "$zip" | cut -d' ' -f1)"
 
   integration-mysql:
     name: Integration MySQL ${{ matrix.mysql }} (WP ${{ matrix.wordpress }}, WC ${{ matrix.woocommerce }}, PHP ${{ matrix.php }})
@@ -511,6 +523,7 @@ jobs:
     needs:
       - composer-validation
       - php-syntax
+      - scripts-lint
       - phpcs
       - phpstan
       - phpunit
@@ -536,7 +549,7 @@ jobs:
           RESULTS: ${{ toJSON(needs) }}
         run: |
           echo "$RESULTS" | jq -r 'to_entries[] | "\(.key)=\(.value.result)"'
-          for job in composer-validation php-syntax phpcs phpstan phpunit dependency-audit frontend-build typecheck javascript-lint package package-smoke source-package-parity integration-mysql integration-mariadb plugin-check browser-e2e; do
+          for job in composer-validation php-syntax scripts-lint phpcs phpstan phpunit dependency-audit frontend-build typecheck javascript-lint package package-smoke source-package-parity integration-mysql integration-mariadb plugin-check browser-e2e; do
             result=$(echo "$RESULTS" | jq -r --arg job "$job" '.[$job].result')
             [[ "$result" == success ]] || { echo "::error::$job: $result"; exit 1; }
           done

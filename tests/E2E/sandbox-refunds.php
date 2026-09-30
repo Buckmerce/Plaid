@@ -80,9 +80,14 @@ switch ($step) {
         $check($five[0]->id === $by_amount($partial, '5.00')['refund_id'], 'The recorded refund is the one Plaid created.');
         $age($partial);
         $calls = count($plaid_refunds($partial));
+        $local_rows = count($rows($partial));
+        $eligibility = ( new Container() )->refunds()->eligibility(wc_get_order($partial->get_id()));
+        $check($eligibility->allowed && '2.78' === $eligibility->remaining, 'PayBridge computes exactly $2.78 refundable while the three refunds are in flight.');
+        // WooCommerce's own limit refuses first here; PayBridge's stricter limit (refunds WooCommerce does
+        // not know about) is exercised in tests/Integration/wp-cli-refunds.php.
         $over = $refund(wc_get_order($partial->get_id()), '3.00');
-        $check($over instanceof WP_Error && str_contains($over->get_error_message(), '2.78'), 'Over-refund refused: only $2.78 remains while the other refunds are in flight.');
-        $check($calls === count($plaid_refunds($partial)), 'No Plaid refund for the refused over-refund.');
+        $check($over instanceof WP_Error, 'Over-refund of $3.00 refused' . ($over instanceof WP_Error ? ' (' . $over->get_error_message() . ')' : ''));
+        $check($calls === count($plaid_refunds($partial)) && $local_rows === count($rows($partial)), 'No Plaid refund and no refund record for the refused over-refund.');
         $result = $refund($full, '11.11');
         $check($result instanceof WC_Order_Refund, 'Full refund accepted by Plaid' . ($result instanceof WP_Error ? ': ' . $result->get_error_message() : ''));
         $check('refunded' === wc_get_order($full->get_id())->get_status(), 'WooCommerce marks the fully refunded order Refunded.');
