@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Refund;
+namespace Buckmerce\Plaid\Refund;
 
 /**
  * Refund states (docs/STATE_MACHINE.md §Refunds, ADR-0016). A refund is its own

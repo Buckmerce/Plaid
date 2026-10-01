@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Refund;
+namespace Buckmerce\Plaid\Refund;
 
-use PayBridge\Plaid\Payment\PaymentStateMachine;
+use Buckmerce\Plaid\Payment\PaymentStateMachine;
 
 /**
  * The only component that decides whether a refund state change is allowed.

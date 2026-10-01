@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Payment;
+namespace Buckmerce\Plaid\Payment;
 
-use PayBridge\Plaid\Persistence\PaymentLockStore;
+use Buckmerce\Plaid\Persistence\PaymentLockStore;
 
 /**
  * Projects an order's current payment attempt into the payment index: its state, when

@@ -9,30 +9,30 @@
  * $33.33 transfer scenarios. Like real Plaid clients, every client_id has its own
  * intents, transfers, refunds and transfer-event stream (event IDs start at 1 per
  * client), so account switches can be tested. State lives in a WordPress option so
- * separate PHP processes share it. It is inert unless PAYBRIDGE_PLAID_TEST_DATABASE is true.
+ * separate PHP processes share it. It is inert unless BUCKMERCE_PLAID_TEST_DATABASE is true.
  */
 
 declare(strict_types=1);
 
-if (! defined('PAYBRIDGE_PLAID_TEST_DATABASE') || true !== PAYBRIDGE_PLAID_TEST_DATABASE) {
+if (! defined('BUCKMERCE_PLAID_TEST_DATABASE') || true !== BUCKMERCE_PLAID_TEST_DATABASE) {
     return;
 }
 
 // Never use the host mailer on a disposable site; record mails for assertions.
 add_filter('pre_wp_mail', static function ($short_circuit, array $atts) {
-    $mails = get_option('pbfp_test_mails', array());
+    $mails = get_option('bmfp_test_mails', array());
     $mails = is_array($mails) ? $mails : array();
     $mails[] = array('to' => $atts['to'] ?? '', 'subject' => $atts['subject'] ?? '');
-    update_option('pbfp_test_mails', $mails, false);
+    update_option('bmfp_test_mails', $mails, false);
     return true;
 }, 10, 2);
 
-final class PayBridge_Test_Plaid_Mock
+final class Buckmerce_Test_Plaid_Mock
 {
-    public const STATE = 'pbfp_test_plaid_state';
-    public const KEY = 'pbfp_test_plaid_key';
-    public const KID = 'pbfp-test-kid-1';
-    /** Client of the integration suites (tests/Integration/helpers.php pbfp_configure()). */
+    public const STATE = 'bmfp_test_plaid_state';
+    public const KEY = 'bmfp_test_plaid_key';
+    public const KID = 'bmfp-test-kid-1';
+    /** Client of the integration suites (tests/Integration/helpers.php bmfp_configure()). */
     public const DEFAULT_CLIENT = 'test-client-id';
     /** Client of the request being handled (set by handle()). */
     private static string $client = self::DEFAULT_CLIENT;
@@ -61,7 +61,7 @@ final class PayBridge_Test_Plaid_Mock
     public static function reset(): void
     {
         delete_option(self::STATE);
-        delete_option('pbfp_test_mails');
+        delete_option('bmfp_test_mails');
         wp_cache_delete(self::STATE, 'options');
     }
 
@@ -166,6 +166,11 @@ final class PayBridge_Test_Plaid_Mock
                 return self::ok(array('balance' => array('available' => '100.00', 'pending' => '0.00'), 'is_default' => true, 'ledger_id' => 'ledger-test', 'name' => 'default'));
             case '/webhook_verification_key/get':
                 return self::verification_key($body);
+            case '/sandbox/transfer/fire_webhook':
+                // Plaid would now send a signed webhook to the URL; the double only accepts the request.
+                return is_string($body['webhook'] ?? null) && str_starts_with($body['webhook'], 'https://')
+                    ? self::ok(array())
+                    : self::error(400, 'INVALID_REQUEST', 'INVALID_FIELD', 'webhook must be an HTTPS URL');
             case '/sandbox/transfer/simulate':
                 $transfer_id = (string) ($body['transfer_id'] ?? '');
                 if (null === self::owned(self::state()['transfers'][$transfer_id] ?? null)) {
@@ -233,8 +238,8 @@ final class PayBridge_Test_Plaid_Mock
             return self::error(400, 'INVALID_REQUEST', 'INVALID_FIELD', 'invalid link token request');
         }
         if ('' === (string) ($body['link_customization_name'] ?? '')) {
-            // Plaid itself would fall back to its default customization; PayBridge must never rely on that (ADR-0020).
-            return self::error(400, 'INVALID_REQUEST', 'MISSING_FIELDS', 'test double: PayBridge must always send link_customization_name');
+            // Plaid itself would fall back to its default customization; Buckmerce must never rely on that (ADR-0020).
+            return self::error(400, 'INVALID_REQUEST', 'MISSING_FIELDS', 'test double: Buckmerce must always send link_customization_name');
         }
         if ('invalid_customization' === ($body['link_customization_name'] ?? '')) {
             return self::error(400, 'INVALID_INPUT', 'INVALID_LINK_CUSTOMIZATION', 'the link customization is not valid for the request');
@@ -331,9 +336,9 @@ final class PayBridge_Test_Plaid_Mock
             'transfer_amount' => $transfer['amount'], 'intent_id' => null, 'failure_reason' => $failure, 'account_id' => 'acc', 'funding_account_id' => '', 'ledger_id' => 'ledger-test',
             'originator_client_id' => null, 'refund_id' => null, 'sweep_amount' => null, 'sweep_id' => null, 'event_amount' => $transfer['amount'], 'client_id' => $client,
         );
-        if (isset(PayBridge_Test_Plaid_Mock_Status::RANK[$type])) {
+        if (isset(Buckmerce_Test_Plaid_Mock_Status::RANK[$type])) {
             $current = $state['transfers'][$transfer_id]['status'];
-            if (PayBridge_Test_Plaid_Mock_Status::RANK[$type] >= (PayBridge_Test_Plaid_Mock_Status::RANK[$current] ?? 0)) {
+            if (Buckmerce_Test_Plaid_Mock_Status::RANK[$type] >= (Buckmerce_Test_Plaid_Mock_Status::RANK[$current] ?? 0)) {
                 $state['transfers'][$transfer_id]['status'] = $type;
                 $state['transfers'][$transfer_id]['failure_reason'] = $failure;
             }
@@ -605,7 +610,7 @@ final class PayBridge_Test_Plaid_Mock
     /** Signs a webhook body exactly like Plaid's Plaid-Verification header. */
     public static function sign(string $body, array $claims = array(), string $kid = self::KID): string
     {
-        return \PayBridge\Plaid\Vendor\Firebase\JWT\JWT::encode($claims + array('iat' => time(), 'request_body_sha256' => hash('sha256', $body)), self::key()['pem'], 'ES256', $kid);
+        return \Buckmerce\Plaid\Vendor\Firebase\JWT\JWT::encode($claims + array('iat' => time(), 'request_body_sha256' => hash('sha256', $body)), self::key()['pem'], 'ES256', $kid);
     }
 
     /** @param array<string, mixed> $data */
@@ -626,12 +631,12 @@ final class PayBridge_Test_Plaid_Mock
     }
 }
 
-final class PayBridge_Test_Plaid_Mock_Status
+final class Buckmerce_Test_Plaid_Mock_Status
 {
     public const RANK = array('pending' => 1, 'posted' => 2, 'settled' => 3, 'funds_available' => 4, 'failed' => 9, 'cancelled' => 9, 'returned' => 10);
 }
 
-add_filter('pre_http_request', array(PayBridge_Test_Plaid_Mock::class, 'handle'), 10, 3);
+add_filter('pre_http_request', array(Buckmerce_Test_Plaid_Mock::class, 'handle'), 10, 3);
 
 // A disposable site must never reach the real network.
 add_filter('pre_http_request', static function ($preempt, array $args, string $url) {
@@ -642,5 +647,5 @@ add_filter('pre_http_request', static function ($preempt, array $args, string $u
     if (in_array($host, array('127.0.0.1', 'localhost'), true) || str_ends_with($host, '.test')) {
         return $preempt;
     }
-    return new WP_Error('pbfp_test_network_blocked', 'External HTTP is blocked on the disposable test site: ' . $host);
+    return new WP_Error('bmfp_test_network_blocked', 'External HTTP is blocked on the disposable test site: ' . $host);
 }, 99, 3);

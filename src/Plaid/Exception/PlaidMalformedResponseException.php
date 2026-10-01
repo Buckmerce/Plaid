@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Plaid\Exception;
+namespace Buckmerce\Plaid\Plaid\Exception;
 
 /** Plaid responded, but the body is not the documented schema. */
 final class PlaidMalformedResponseException extends PlaidException

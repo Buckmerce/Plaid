@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Plaid\Exception;
+namespace Buckmerce\Plaid\Plaid\Exception;
 
 /** Plaid returned a structured error object (error_type / error_code). */
 final class PlaidApiException extends PlaidException

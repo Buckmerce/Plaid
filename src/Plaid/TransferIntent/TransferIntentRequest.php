@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Plaid\TransferIntent;
+namespace Buckmerce\Plaid\Plaid\TransferIntent;
 
-use PayBridge\Plaid\Exception\MissingAccountHolderNameException;
-use PayBridge\Plaid\Payment\PaymentSnapshot;
-use PayBridge\Plaid\Settings\Settings;
+use Buckmerce\Plaid\Exception\MissingAccountHolderNameException;
+use Buckmerce\Plaid\Payment\PaymentSnapshot;
+use Buckmerce\Plaid\Settings\Settings;
 
 /**
  * Builds the /transfer/intent/create request exclusively from server-side
@@ -33,13 +33,13 @@ final class TransferIntentRequest
             'user' => $user,
             // Correlation only: ASCII strings, no secrets and no personal data.
             'metadata' => array(
-                'pbfp_order_id' => (string) $snapshot->order_id,
-                'pbfp_attempt_id' => $snapshot->attempt_id,
-                'pbfp_environment' => $snapshot->environment,
+                'bmfp_order_id' => (string) $snapshot->order_id,
+                'bmfp_attempt_id' => $snapshot->attempt_id,
+                'bmfp_environment' => $snapshot->environment,
             ),
         );
         if ('' !== $site_marker) {
-            $body['metadata']['pbfp_site'] = $site_marker;
+            $body['metadata']['bmfp_site'] = $site_marker;
         }
         if ('' !== $funding_account_id) {
             // Only valid for accounts without Plaid Ledger (ADR-0007).

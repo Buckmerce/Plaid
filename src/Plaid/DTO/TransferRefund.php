@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Plaid\DTO;
+namespace Buckmerce\Plaid\Plaid\DTO;
 
-use PayBridge\Plaid\Plaid\Exception\PlaidMalformedResponseException;
-use PayBridge\Plaid\Support\Decimal;
+use Buckmerce\Plaid\Plaid\Exception\PlaidMalformedResponseException;
+use Buckmerce\Plaid\Support\Decimal;
 
 /**
  * Normalized refund object of /transfer/refund/create, /transfer/refund/get and

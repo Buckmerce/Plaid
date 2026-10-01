@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Refund;
+namespace Buckmerce\Plaid\Refund;
 
-use PayBridge\Plaid\Payment\PaymentSnapshot;
+use Buckmerce\Plaid\Payment\PaymentSnapshot;
 
 /** Result of RefundPolicy::evaluate(). Amounts are two-decimal strings. */
 final class RefundEligibility

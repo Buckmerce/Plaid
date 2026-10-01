@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Persistence;
+namespace Buckmerce\Plaid\Persistence;
 
-use PayBridge\Plaid\Exception\PersistenceException;
-use PayBridge\Plaid\Refund\RefundRecord;
-use PayBridge\Plaid\Refund\RefundState;
-use PayBridge\Plaid\Settings\AccountScope;
+use Buckmerce\Plaid\Exception\PersistenceException;
+use Buckmerce\Plaid\Refund\RefundRecord;
+use Buckmerce\Plaid\Refund\RefundState;
+use Buckmerce\Plaid\Settings\AccountScope;
 
 // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; refund reservations and compare-and-set updates must bypass object caches.
 
 /**
- * Durable record of every refund PayBridge creates or discovers (ADR-0016).
+ * Durable record of every refund Buckmerce creates or discovers (ADR-0016).
  *
  * - The idempotency key is unique: one intended refund can never get two rows, and the
  *   same key is what Plaid receives, so a retried create cannot create a second refund.
@@ -72,7 +72,7 @@ final class RefundStore
     }
 
     /**
-     * Records a refund that exists at Plaid but was not created through PayBridge.
+     * Records a refund that exists at Plaid but was not created through Buckmerce.
      *
      * @param array{order_id:int, environment:string, account_fp:string, attempt_id:string, transfer_id:string, refund_id:string, amount:string, currency:string, status:string, failure_code:string} $fields
      * @throws PersistenceException

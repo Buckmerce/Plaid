@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Plaid\Webhook;
+namespace Buckmerce\Plaid\Plaid\Webhook;
 
-use PayBridge\Plaid\Plaid\Exception\WebhookVerificationException;
-use PayBridge\Plaid\Vendor\Firebase\JWT\JWK;
-use PayBridge\Plaid\Vendor\Firebase\JWT\JWT;
-use PayBridge\Plaid\Vendor\Firebase\JWT\Key;
+use Buckmerce\Plaid\Plaid\Exception\WebhookVerificationException;
+use Buckmerce\Plaid\Vendor\Firebase\JWT\JWK;
+use Buckmerce\Plaid\Vendor\Firebase\JWT\JWT;
+use Buckmerce\Plaid\Vendor\Firebase\JWT\Key;
 
 /**
  * Verifies the Plaid-Verification JWT exactly as documented in

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Persistence;
+namespace Buckmerce\Plaid\Persistence;
 
-use PayBridge\Plaid\Exception\PersistenceException;
+use Buckmerce\Plaid\Exception\PersistenceException;
 
 // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Advisory locks are connection state and must never be cached.
 
@@ -28,7 +28,7 @@ final class DatabaseMutex
             throw new PersistenceException('Database context unavailable.');
         }
         // MySQL lock names are limited to 64 characters; hash keeps them short and site-scoped.
-        $name = 'pbfp_' . substr(hash('sha256', $database . ':' . $wpdb->prefix . ':paybridge-plaid:' . $resource), 0, 48);
+        $name = 'bmfp_' . substr(hash('sha256', $database . ':' . $wpdb->prefix . ':buckmerce-plaid:' . $resource), 0, 48);
         if (isset(self::$held[$name])) {
             return false;
         }
@@ -70,13 +70,13 @@ final class DatabaseMutex
      * @template T
      * @param callable(self): T $callback
      * @return T
-     * @throws \PayBridge\Plaid\Exception\PaymentAttemptBusyException
+     * @throws \Buckmerce\Plaid\Exception\PaymentAttemptBusyException
      */
     public static function with(string $resource, callable $callback)
     {
         $mutex = new self();
         if (! $mutex->acquire($resource)) {
-            throw new \PayBridge\Plaid\Exception\PaymentAttemptBusyException('Another request is processing this payment. Please retry shortly.');
+            throw new \Buckmerce\Plaid\Exception\PaymentAttemptBusyException('Another request is processing this payment. Please retry shortly.');
         }
         try {
             return $callback($mutex);

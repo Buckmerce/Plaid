@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Persistence;
+namespace Buckmerce\Plaid\Persistence;
 
-use PayBridge\Plaid\Exception\PersistenceException;
-use PayBridge\Plaid\Settings\AccountScope;
-use PayBridge\Plaid\Settings\Settings;
+use Buckmerce\Plaid\Exception\PersistenceException;
+use Buckmerce\Plaid\Settings\AccountScope;
+use Buckmerce\Plaid\Settings\Settings;
 
 // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema introspection of plugin-owned tables must read the live database.
 
 /**
- * Creates and verifies the PayBridge-owned schema. PayBridge never reads,
+ * Creates and verifies the Buckmerce-owned schema. Buckmerce never reads,
  * migrates or deletes tables owned by any other plugin.
  *
  * Migrations are forward-only and idempotent: dbDelta() adds the columns/tables of the
@@ -26,27 +26,27 @@ use PayBridge\Plaid\Settings\Settings;
 final class Installer
 {
     public const SCHEMA_VERSION = '3';
-    public const OPTION = 'paybridge_plaid_schema_version';
+    public const OPTION = 'buckmerce_plaid_schema_version';
 
     public static function events_table(): string
     {
         global $wpdb;
-        return $wpdb->prefix . 'paybridge_plaid_events';
+        return $wpdb->prefix . 'buckmerce_plaid_events';
     }
 
     public static function locks_table(): string
     {
         global $wpdb;
-        return $wpdb->prefix . 'paybridge_plaid_payment_locks';
+        return $wpdb->prefix . 'buckmerce_plaid_payment_locks';
     }
 
     public static function refunds_table(): string
     {
         global $wpdb;
-        return $wpdb->prefix . 'paybridge_plaid_refunds';
+        return $wpdb->prefix . 'buckmerce_plaid_refunds';
     }
 
-    /** @return list<string> Every PayBridge-owned table (uninstall cleanup uses the same list). */
+    /** @return list<string> Every Buckmerce-owned table (uninstall cleanup uses the same list). */
     public static function tables(): array
     {
         return array(self::events_table(), self::locks_table(), self::refunds_table());
@@ -156,7 +156,7 @@ final class Installer
         // racing the migration steps; the next request finds the schema current.
         $mutex = new DatabaseMutex();
         if (! $mutex->acquire('schema-install')) {
-            throw new PersistenceException('A PayBridge schema installation is already running.');
+            throw new PersistenceException('A Buckmerce schema installation is already running.');
         }
         try {
             $previous = (string) get_option(self::OPTION, '');
@@ -167,7 +167,7 @@ final class Installer
             dbDelta($refunds_sql);
             self::migrate_account_scope();
             if (! self::schema_is_valid()) {
-                throw new PersistenceException('PayBridge database schema verification failed.');
+                throw new PersistenceException('Buckmerce database schema verification failed.');
             }
             self::backfill_account_fingerprint();
             if ('' !== $previous && version_compare($previous, '3', '<')) {
@@ -268,7 +268,7 @@ final class Installer
             return;
         }
         $wpdb->query($wpdb->prepare("UPDATE %i SET account_fp = %s WHERE account_fp IS NULL OR account_fp = ''", $table, AccountScope::LEGACY));
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange -- Forward-only migration of a PayBridge-owned table (schema 3).
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange -- Forward-only migration of a Buckmerce-owned table (schema 3).
         if (false === $wpdb->query($wpdb->prepare("ALTER TABLE %i MODIFY account_fp varchar(16) NOT NULL DEFAULT ''", $table))) {
             throw new PersistenceException('The refund account column could not be migrated.');
         }
@@ -286,7 +286,7 @@ final class Installer
         $wpdb->query($wpdb->prepare("UPDATE %i SET account_fp = %s WHERE account_fp = ''", self::events_table(), AccountScope::LEGACY));
         foreach (array(self::events_table() => 'environment_event', self::refunds_table() => 'environment_refund') as $table => $index) {
             $exists = $wpdb->get_var($wpdb->prepare('SHOW INDEX FROM %i WHERE Key_name = %s', $table, $index));
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange -- Forward-only migration of a PayBridge-owned table (schema 3).
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange -- Forward-only migration of a Buckmerce-owned table (schema 3).
             if (null !== $exists && false === $wpdb->query($wpdb->prepare('ALTER TABLE %i DROP INDEX %i', $table, $index))) {
                 throw new PersistenceException('An environment-scoped identity index could not be removed.');
             }

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Settings;
+namespace Buckmerce\Plaid\Settings;
 
 /**
  * Non-secret identity of a Plaid account (ADR-0015).
@@ -18,6 +18,6 @@ final class AccountIdentity
     public static function fingerprint(string $client_id): string
     {
         $client_id = strtolower(trim($client_id));
-        return '' === $client_id ? '' : substr(hash('sha256', 'paybridge-plaid-account:' . $client_id), 0, 16);
+        return '' === $client_id ? '' : substr(hash('sha256', 'buckmerce-plaid-account:' . $client_id), 0, 16);
     }
 }

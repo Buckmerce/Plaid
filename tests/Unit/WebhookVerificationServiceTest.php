@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Tests\Unit;
+namespace Buckmerce\Plaid\Tests\Unit;
 
-use PayBridge\Plaid\Plaid\Client\PlaidResponse;
-use PayBridge\Plaid\Plaid\Exception\PlaidApiException;
-use PayBridge\Plaid\Plaid\Exception\PlaidNetworkException;
-use PayBridge\Plaid\Plaid\Exception\WebhookVerificationException;
-use PayBridge\Plaid\Plaid\Webhook\VerificationKeyProvider;
-use PayBridge\Plaid\Plaid\Webhook\WebhookVerificationService;
-use PayBridge\Plaid\Tests\Support\FakePlaidClient;
-use PayBridge\Plaid\Vendor\Firebase\JWT\JWT;
+use Buckmerce\Plaid\Plaid\Client\PlaidResponse;
+use Buckmerce\Plaid\Plaid\Exception\PlaidApiException;
+use Buckmerce\Plaid\Plaid\Exception\PlaidNetworkException;
+use Buckmerce\Plaid\Plaid\Exception\WebhookVerificationException;
+use Buckmerce\Plaid\Plaid\Webhook\VerificationKeyProvider;
+use Buckmerce\Plaid\Plaid\Webhook\WebhookVerificationService;
+use Buckmerce\Plaid\Tests\Support\FakePlaidClient;
+use Buckmerce\Plaid\Vendor\Firebase\JWT\JWT;
 use PHPUnit\Framework\TestCase;
 
 /** Webhook security matrix (CLAUDE.md Task 55) against real ES256 signatures. */
@@ -33,7 +33,7 @@ final class WebhookVerificationServiceTest extends TestCase
 
     protected function setUp(): void
     {
-        \PayBridgeTestStore::reset();
+        \BuckmerceTestStore::reset();
     }
 
     /** @return array{string, array<string, mixed>} */
@@ -61,8 +61,8 @@ final class WebhookVerificationServiceTest extends TestCase
             }
             return new PlaidResponse(array('key' => $key ?? self::$jwk, 'request_id' => 'r'), 'r');
         });
-        $provider = new VerificationKeyProvider($client, static fn (string $k) => \PayBridgeTestStore::$transients[$k] ?? false, static function (string $k, $v, int $ttl): bool {
-            \PayBridgeTestStore::$transients[$k] = $v;
+        $provider = new VerificationKeyProvider($client, static fn (string $k) => \BuckmerceTestStore::$transients[$k] ?? false, static function (string $k, $v, int $ttl): bool {
+            \BuckmerceTestStore::$transients[$k] = $v;
             return true;
         });
         $clock = null === $now ? null : static fn (): int => $now;

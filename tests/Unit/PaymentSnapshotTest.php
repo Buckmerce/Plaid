@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Tests\Unit;
+namespace Buckmerce\Plaid\Tests\Unit;
 
-use PayBridge\Plaid\Payment\PaymentSnapshot;
+use Buckmerce\Plaid\Payment\PaymentSnapshot;
 use PHPUnit\Framework\TestCase;
 
 final class PaymentSnapshotTest extends TestCase

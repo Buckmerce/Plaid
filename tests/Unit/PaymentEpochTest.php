@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Tests\Unit;
+namespace Buckmerce\Plaid\Tests\Unit;
 
-use PayBridge\Plaid\Persistence\EventCursor;
-use PayBridge\Plaid\Persistence\PaymentEpoch;
-use PayBridge\Plaid\Settings\AccountIdentity;
-use PayBridge\Plaid\Settings\AccountScope;
-use PayBridge\Plaid\Settings\Settings;
+use Buckmerce\Plaid\Persistence\EventCursor;
+use Buckmerce\Plaid\Persistence\PaymentEpoch;
+use Buckmerce\Plaid\Settings\AccountIdentity;
+use Buckmerce\Plaid\Settings\AccountScope;
+use Buckmerce\Plaid\Settings\Settings;
 use PHPUnit\Framework\TestCase;
 
 final class PaymentEpochTest extends TestCase
@@ -17,7 +17,7 @@ final class PaymentEpochTest extends TestCase
 
     protected function setUp(): void
     {
-        \PayBridgeTestStore::reset();
+        \BuckmerceTestStore::reset();
         $this->sandbox_a = new AccountScope('sandbox', AccountIdentity::fingerprint('client-a'));
     }
 
@@ -32,7 +32,7 @@ final class PaymentEpochTest extends TestCase
         self::assertTrue(PaymentEpoch::mark($this->sandbox_a));
         $epoch = PaymentEpoch::get($this->sandbox_a);
         self::assertNotNull($epoch);
-        \PayBridgeTestStore::$options[PaymentEpoch::option_name($this->sandbox_a)] = (string) ($epoch - 500);
+        \BuckmerceTestStore::$options[PaymentEpoch::option_name($this->sandbox_a)] = (string) ($epoch - 500);
         self::assertTrue(PaymentEpoch::mark($this->sandbox_a));
         self::assertSame($epoch - 500, PaymentEpoch::get($this->sandbox_a), 'A later first payment never replaces the earliest epoch.');
         self::assertNull(PaymentEpoch::get(new AccountScope('production', $this->sandbox_a->account_fp)), 'Each environment has its own epoch.');
@@ -42,7 +42,7 @@ final class PaymentEpochTest extends TestCase
     {
         $production_a = new AccountScope('production', AccountIdentity::fingerprint('client-a'));
         $production_b = new AccountScope('production', AccountIdentity::fingerprint('client-b'));
-        \PayBridgeTestStore::$options[PaymentEpoch::option_name($production_a)] = (string) (time() - 400 * DAY_IN_SECONDS);
+        \BuckmerceTestStore::$options[PaymentEpoch::option_name($production_a)] = (string) (time() - 400 * DAY_IN_SECONDS);
         self::assertNull(PaymentEpoch::get($production_b), 'A new account in the same environment starts without an epoch.');
         self::assertTrue(PaymentEpoch::predates($production_b, gmdate('Y-m-d\TH:i:s\Z', time() - 10 * DAY_IN_SECONDS)), 'Account B never inherits account A\'s epoch.');
         self::assertTrue(PaymentEpoch::mark($production_b));
@@ -64,7 +64,7 @@ final class PaymentEpochTest extends TestCase
             self::assertFalse(PaymentEpoch::mark($scope), 'An epoch needs a real account and environment: payments fail closed.');
             self::assertNull(PaymentEpoch::get($scope));
         }
-        self::assertSame(array(), \PayBridgeTestStore::$options);
+        self::assertSame(array(), \BuckmerceTestStore::$options);
     }
 
     public function test_only_events_clearly_older_than_the_epoch_are_skipped(): void
@@ -91,12 +91,12 @@ final class PaymentEpochTest extends TestCase
         self::assertSame('1000', $cursor->get($production_a), 'Account A\'s cursor is preserved for audit.');
         $cursor->advance($production_a, '999');
         self::assertSame('1000', $cursor->get($production_a), 'A cursor never moves backwards.');
-        \PayBridgeTestStore::$options[EventCursor::OPTION_PREFIX . 'production'] = '5000';
+        \BuckmerceTestStore::$options[EventCursor::OPTION_PREFIX . 'production'] = '5000';
         self::assertSame('3', $cursor->get($production_b), 'The schema-2 per-environment cursor is never used.');
         $rotated = Settings::from_array(array('environment' => 'production', 'client_id' => 'client-a', 'secret' => 'rotated'))->account_scope();
         self::assertTrue($rotated->equals($production_a), 'Rotating the secret keeps the same stream.');
         self::assertSame('1000', $cursor->get($rotated), 'Secret rotation never resets the cursor.');
-        $this->expectException(\PayBridge\Plaid\Exception\PersistenceException::class);
+        $this->expectException(\Buckmerce\Plaid\Exception\PersistenceException::class);
         $cursor->advance(new AccountScope('production', AccountScope::LEGACY), '1');
     }
 }

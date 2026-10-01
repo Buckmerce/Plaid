@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Plaid\Refund;
+namespace Buckmerce\Plaid\Plaid\Refund;
 
-use PayBridge\Plaid\Plaid\Client\PlaidClientInterface;
-use PayBridge\Plaid\Plaid\DTO\TransferRefund;
-use PayBridge\Plaid\Plaid\Exception\PlaidMalformedResponseException;
-use PayBridge\Plaid\Support\Money;
+use Buckmerce\Plaid\Plaid\Client\PlaidClientInterface;
+use Buckmerce\Plaid\Plaid\DTO\TransferRefund;
+use Buckmerce\Plaid\Plaid\Exception\PlaidMalformedResponseException;
+use Buckmerce\Plaid\Support\Money;
 
 /**
  * Plaid /transfer/refund/create, /transfer/refund/get and /transfer/refund/cancel

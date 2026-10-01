@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Plaid\TransferIntent;
+namespace Buckmerce\Plaid\Plaid\TransferIntent;
 
-use PayBridge\Plaid\Plaid\Client\PlaidClientInterface;
-use PayBridge\Plaid\Plaid\DTO\TransferIntent;
+use Buckmerce\Plaid\Plaid\Client\PlaidClientInterface;
+use Buckmerce\Plaid\Plaid\DTO\TransferIntent;
 
 /** Plaid /transfer/intent/create and /transfer/intent/get (https://plaid.com/docs/api/products/transfer/account-linking/). */
 final class TransferIntentService

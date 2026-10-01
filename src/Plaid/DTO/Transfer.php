@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Plaid\DTO;
+namespace Buckmerce\Plaid\Plaid\DTO;
 
-use PayBridge\Plaid\Plaid\Exception\PlaidMalformedResponseException;
-use PayBridge\Plaid\Support\Decimal;
+use Buckmerce\Plaid\Plaid\Exception\PlaidMalformedResponseException;
+use Buckmerce\Plaid\Support\Decimal;
 
-/** Normalized /transfer/get transfer object (fields PayBridge relies on). */
+/** Normalized /transfer/get transfer object (fields Buckmerce relies on). */
 final class Transfer
 {
     public const STATUSES = array('pending', 'posted', 'settled', 'funds_available', 'cancelled', 'failed', 'returned');

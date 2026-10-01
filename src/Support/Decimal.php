@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Support;
+namespace Buckmerce\Plaid\Support;
 
 /** Decimal-string arithmetic helpers that never convert money to binary floating point. */
 final class Decimal

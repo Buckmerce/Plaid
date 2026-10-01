@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Tests\Unit;
+namespace Buckmerce\Plaid\Tests\Unit;
 
-use PayBridge\Plaid\Exception\InvalidPaymentStateTransition;
-use PayBridge\Plaid\Payment\PaymentState;
-use PayBridge\Plaid\Payment\PaymentStateMachine;
+use Buckmerce\Plaid\Exception\InvalidPaymentStateTransition;
+use Buckmerce\Plaid\Payment\PaymentState;
+use Buckmerce\Plaid\Payment\PaymentStateMachine;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

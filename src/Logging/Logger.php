@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Logging;
+namespace Buckmerce\Plaid\Logging;
 
-use PayBridge\Plaid\Settings\Settings;
+use Buckmerce\Plaid\Settings\Settings;
 
 /** Structured WooCommerce logger with mandatory recursive redaction. */
 final class Logger
 {
-    public const SOURCE = 'paybridge-for-plaid';
+    public const SOURCE = 'buckmerce-for-plaid';
 
     /** @param array<string, mixed> $context */
     public function log(string $level, string $event, array $context = array()): void

@@ -4,7 +4,7 @@
 
 declare(strict_types=1);
 
-if (! defined('PAYBRIDGE_PLAID_TEST_DATABASE') || true !== PAYBRIDGE_PLAID_TEST_DATABASE) {
+if (! defined('BUCKMERCE_PLAID_TEST_DATABASE') || true !== BUCKMERCE_PLAID_TEST_DATABASE) {
     return;
 }
 

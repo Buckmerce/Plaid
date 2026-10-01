@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Tests\Unit;
+namespace Buckmerce\Plaid\Tests\Unit;
 
-use PayBridge\Plaid\Plaid\Client\PlaidResponse;
-use PayBridge\Plaid\Plaid\DTO\Transfer;
-use PayBridge\Plaid\Plaid\DTO\TransferEvent;
-use PayBridge\Plaid\Plaid\DTO\TransferRefund;
-use PayBridge\Plaid\Plaid\Exception\PlaidMalformedResponseException;
-use PayBridge\Plaid\Plaid\Refund\TransferRefundService;
-use PayBridge\Plaid\Plaid\Transfer\TransferService;
-use PayBridge\Plaid\Refund\RefundMonitoringPolicy;
-use PayBridge\Plaid\Refund\RefundState;
-use PayBridge\Plaid\Tests\Support\FakePlaidClient;
+use Buckmerce\Plaid\Plaid\Client\PlaidResponse;
+use Buckmerce\Plaid\Plaid\DTO\Transfer;
+use Buckmerce\Plaid\Plaid\DTO\TransferEvent;
+use Buckmerce\Plaid\Plaid\DTO\TransferRefund;
+use Buckmerce\Plaid\Plaid\Exception\PlaidMalformedResponseException;
+use Buckmerce\Plaid\Plaid\Refund\TransferRefundService;
+use Buckmerce\Plaid\Plaid\Transfer\TransferService;
+use Buckmerce\Plaid\Refund\RefundMonitoringPolicy;
+use Buckmerce\Plaid\Refund\RefundState;
+use Buckmerce\Plaid\Tests\Support\FakePlaidClient;
 use PHPUnit\Framework\TestCase;
 
 /** Plaid refund, transfer-window and refund-event contracts (docs/api/PLAID_TRANSFER.md). */
@@ -28,10 +28,10 @@ final class RefundContractTest extends TestCase
     public function test_refund_create_sends_the_documented_fields_and_validates_the_response(): void
     {
         $client = (new FakePlaidClient())->on('/transfer/refund/create', static fn (array $body): PlaidResponse => new PlaidResponse(array('refund' => self::refund(), 'request_id' => 'req'), 'req'));
-        $refund = (new TransferRefundService($client))->create('t-1', '12.34', 'pbfp-key');
+        $refund = (new TransferRefundService($client))->create('t-1', '12.34', 'bmfp-key');
         self::assertSame('r-1', $refund->id);
         self::assertSame('pending', $refund->status);
-        self::assertSame(array('transfer_id' => 't-1', 'amount' => '12.34', 'idempotency_key' => 'pbfp-key'), $client->calls[0]['body']);
+        self::assertSame(array('transfer_id' => 't-1', 'amount' => '12.34', 'idempotency_key' => 'bmfp-key'), $client->calls[0]['body']);
     }
 
     public function test_refund_create_rejects_a_response_for_another_transfer_or_amount(): void
@@ -39,7 +39,7 @@ final class RefundContractTest extends TestCase
         foreach (array(array('transfer_id' => 't-2'), array('amount' => '12.35')) as $override) {
             $client = (new FakePlaidClient())->on('/transfer/refund/create', static fn (): PlaidResponse => new PlaidResponse(array('refund' => self::refund($override)), 'req'));
             try {
-                (new TransferRefundService($client))->create('t-1', '12.34', 'pbfp-key');
+                (new TransferRefundService($client))->create('t-1', '12.34', 'bmfp-key');
                 self::fail('Mismatched refund must not be accepted.');
             } catch (PlaidMalformedResponseException $exception) {
                 self::assertSame('plaid_malformed_response', $exception->safe_code());

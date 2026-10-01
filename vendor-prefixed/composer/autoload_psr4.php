@@ -6,5 +6,5 @@ $vendorDir = dirname(__DIR__);
 $baseDir = dirname($vendorDir);
 
 return array(
-    'PayBridge\\Plaid\\Vendor\\Firebase\\JWT\\' => array($vendorDir . '/firebase/php-jwt/src'),
+    'Buckmerce\\Plaid\\Vendor\\Firebase\\JWT\\' => array($vendorDir . '/firebase/php-jwt/src'),
 );

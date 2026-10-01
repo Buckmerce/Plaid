@@ -1,8 +1,8 @@
 {
-  "name": "paybridge-for-plaid",
+  "name": "buckmerce-for-plaid",
   "version": "1.0.0",
   "private": true,
-  "description": "PayBridge for Plaid — WooCommerce Pay by Bank (front-end build).",
+  "description": "Buckmerce – Bank Payments via Plaid for WooCommerce (front-end build).",
   "license": "GPL-2.0-or-later",
   "browserslist": [
     "defaults",

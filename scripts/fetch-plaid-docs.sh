@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Refreshes the LOCAL, git-ignored copy of the official Plaid pages PayBridge depends on
+# Refreshes the LOCAL, git-ignored copy of the official Plaid pages Buckmerce depends on
 # (docs/api/plaid-mirror/). Plaid publishes every docs page as Markdown at
 # https://plaid.com/docs/<path>/index.html.md. The copy is a reading aid only: the authority is
-# always the live page, and docs/api/PLAID_TRANSFER.md records what PayBridge verified and when.
+# always the live page, and docs/api/PLAID_TRANSFER.md records what Buckmerce verified and when.
 # Plaid's documentation is © Plaid Inc.; it is therefore not redistributed in this repository.
 # Usage: bash scripts/fetch-plaid-docs.sh
 set -euo pipefail

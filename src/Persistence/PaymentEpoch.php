@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Persistence;
+namespace Buckmerce\Plaid\Persistence;
 
-use PayBridge\Plaid\Settings\AccountScope;
+use Buckmerce\Plaid\Settings\AccountScope;
 
 /**
  * The moment this store created its first Transfer Intent with one Plaid account in one
  * environment (ADR-0011, account-scoped by ADR-0018).
  *
  * /transfer/event/sync returns the whole history of the Plaid account, which can belong to
- * other stores and integrations. An event older than the epoch cannot belong to a PayBridge
+ * other stores and integrations. An event older than the epoch cannot belong to a Buckmerce
  * transfer of this store, so it is classified without an extra /transfer/get call. The epoch
  * is written before the first remote intent creation; if it cannot be written, no intent is
  * created. Another account (even in the same environment) has its own epoch: a new account's
@@ -20,7 +20,7 @@ use PayBridge\Plaid\Settings\AccountScope;
 final class PaymentEpoch
 {
     /** Schema-2 per-environment options (kept for auditing) use this prefix + environment. */
-    public const OPTION_PREFIX = 'paybridge_plaid_first_intent_at_';
+    public const OPTION_PREFIX = 'buckmerce_plaid_first_intent_at_';
     /** Allowance for the difference between Plaid event timestamps and the local clock. */
     public const CLOCK_TOLERANCE_SECONDS = 3600;
 

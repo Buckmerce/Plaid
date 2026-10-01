@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Settings;
+namespace Buckmerce\Plaid\Settings;
 
-use PayBridge\Plaid\Plaid\PlaidEnvironment;
+use Buckmerce\Plaid\Plaid\PlaidEnvironment;
 
 /**
  * Immutable, validated view of the gateway settings option. All other code
@@ -12,8 +12,8 @@ use PayBridge\Plaid\Plaid\PlaidEnvironment;
  */
 final class Settings
 {
-    public const OPTION = 'woocommerce_paybridge_plaid_settings';
-    public const GATEWAY_ID = 'paybridge_plaid';
+    public const OPTION = 'woocommerce_buckmerce_plaid_settings';
+    public const GATEWAY_ID = 'buckmerce_plaid';
 
     public const NETWORKS = array('same-day-ach', 'ach');
     public const CONFIRMATION_STATES = array('funds_available', 'settled');
@@ -55,13 +55,13 @@ final class Settings
     public function title(): string
     {
         $title = $this->string('title');
-        return '' !== $title ? $title : __('Pay by Bank', 'paybridge-for-plaid');
+        return '' !== $title ? $title : __('Pay by Bank', 'buckmerce-for-plaid');
     }
 
     public function description(): string
     {
         $description = $this->string('description');
-        return '' !== $description ? $description : __('Securely pay directly from your bank account.', 'paybridge-for-plaid');
+        return '' !== $description ? $description : __('Securely pay directly from your bank account.', 'buckmerce-for-plaid');
     }
 
     public function environment_name(): string
@@ -102,7 +102,7 @@ final class Settings
         return AccountIdentity::fingerprint($this->client_id());
     }
 
-    /** The Plaid event stream PayBridge reads with the configured credentials (ADR-0018). */
+    /** The Plaid event stream Buckmerce reads with the configured credentials (ADR-0018). */
     public function account_scope(): AccountScope
     {
         return AccountScope::from_settings($this);
@@ -183,7 +183,7 @@ final class Settings
     }
 
     /**
-     * Whether PayBridge can read existing payments from Plaid: background maintenance
+     * Whether Buckmerce can read existing payments from Plaid: background maintenance
      * (event sync, reconciliation, refunds) depends on this, never on enabled().
      */
     public function can_reach_plaid(): bool

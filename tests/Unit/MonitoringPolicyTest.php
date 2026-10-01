@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Tests\Unit;
+namespace Buckmerce\Plaid\Tests\Unit;
 
-use PayBridge\Plaid\Payment\MonitoringPolicy;
-use PayBridge\Plaid\Payment\OrderMeta;
-use PayBridge\Plaid\Payment\PaymentMonitor;
-use PayBridge\Plaid\Payment\PaymentSnapshot;
-use PayBridge\Plaid\Payment\PaymentState;
+use Buckmerce\Plaid\Payment\MonitoringPolicy;
+use Buckmerce\Plaid\Payment\OrderMeta;
+use Buckmerce\Plaid\Payment\PaymentMonitor;
+use Buckmerce\Plaid\Payment\PaymentSnapshot;
+use Buckmerce\Plaid\Payment\PaymentState;
 use PHPUnit\Framework\TestCase;
 
 /** Return-window based monitoring (ADR-0014): follows the Plaid transfer, never the order date. */

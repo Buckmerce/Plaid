@@ -30,19 +30,19 @@ function harness( { responses = [], plaid = true, restNonce = '' } = {} ) {
 	const button = element( 'Connect bank and pay' );
 	const status = element();
 	status.classList.owner = status;
-	root.querySelector = ( selector ) => ( { '[data-pbfp-pay]': button, '[data-pbfp-status]': status }[ selector ] || null );
+	root.querySelector = ( selector ) => ( { '[data-bmfp-pay]': button, '[data-bmfp-status]': status }[ selector ] || null );
 	const requests = [];
 	const redirects = [];
 	const handlers = [];
 	const queue = [ ...responses ];
 	const window = {
-		paybridgePlaidPayment: {
+		buckmercePlaidPayment: {
 			orderId: 42,
 			orderKey: 'wc_order_abc123',
 			paymentNonce: '0123456789',
 			restNonce,
-			linkTokenUrl: 'https://shop.test/wp-json/paybridge-for-plaid/v1/link-token',
-			completeUrl: 'https://shop.test/wp-json/paybridge-for-plaid/v1/complete',
+			linkTokenUrl: 'https://shop.test/wp-json/buckmerce-for-plaid/v1/link-token',
+			completeUrl: 'https://shop.test/wp-json/buckmerce-for-plaid/v1/complete',
 			returnUrl: 'https://shop.test/checkout/order-received/42/?key=wc_order_abc123',
 			i18n: { preparing: 'preparing', opening: 'opening', verifying: 'verifying', submitted: 'submitted', exited: 'exited', incomplete: 'incomplete', insufficient: 'insufficient', failed: 'failed', unverified: 'unverified', review: 'review', error: 'error', unavailable: 'unavailable', notPayable: 'notPayable', missingName: 'missingName', returned: 'returned', rateLimited: 'rateLimited', retry: 'Try again' },
 		},
@@ -57,7 +57,7 @@ function harness( { responses = [], plaid = true, restNonce = '' } = {} ) {
 		const next = queue.shift() || { status: 200, body: { status: 'unverified' } };
 		return { ok: next.status >= 200 && next.status < 300, status: next.status, json: async () => next.body };
 	};
-	const context = vm.createContext( { window, document: { querySelector: ( selector ) => ( '.pbfp-payment' === selector ? root : null ) }, fetch, JSON, Promise, setImmediate } );
+	const context = vm.createContext( { window, document: { querySelector: ( selector ) => ( '.bmfp-payment' === selector ? root : null ) }, fetch, JSON, Promise, setImmediate } );
 	vm.runInContext( source, context );
 	return { root, button, status, requests, redirects, handlers };
 }
@@ -93,7 +93,7 @@ test( 'onSuccess only asks the server to verify and follows the server redirect'
 	await tick();
 	page.handlers[ 0 ].config.onSuccess( 'public-sandbox-x', { transfer_status: 'COMPLETE', accounts: [ { id: 'acc' } ] } );
 	await tick();
-	assert.equal( page.requests[ 1 ].url, 'https://shop.test/wp-json/paybridge-for-plaid/v1/complete' );
+	assert.equal( page.requests[ 1 ].url, 'https://shop.test/wp-json/buckmerce-for-plaid/v1/complete' );
 	assert.deepEqual( page.requests[ 1 ].body, { order_id: 42, order_key: 'wc_order_abc123', payment_nonce: '0123456789' }, 'no public token, metadata or status is sent' );
 	assert.deepEqual( page.redirects, [ 'https://shop.test/order-received/42/' ] );
 } );
@@ -136,7 +136,7 @@ test( 'failed authorization and Link errors allow retry; manual review does not'
 	await tick();
 	closed.handlers[ 0 ].config.onExit( null, {} );
 	await tick();
-	assert.equal( closed.requests[ 1 ].url, 'https://shop.test/wp-json/paybridge-for-plaid/v1/complete', 'a user exit is verified server-side' );
+	assert.equal( closed.requests[ 1 ].url, 'https://shop.test/wp-json/buckmerce-for-plaid/v1/complete', 'a user exit is verified server-side' );
 	assert.equal( closed.status.textContent, 'exited' );
 	assert.equal( closed.button.disabled, false );
 
@@ -156,26 +156,26 @@ test( 'server errors and a missing Plaid Link script are recoverable', async () 
 	assert.equal( error.status.textContent, 'error' );
 	assert.equal( error.button.disabled, false );
 
-	const unavailable = harness( { responses: [ { status: 503, body: { code: 'paybridge_unavailable' } } ] } );
+	const unavailable = harness( { responses: [ { status: 503, body: { code: 'buckmerce_unavailable' } } ] } );
 	unavailable.button.listeners.click();
 	await tick();
 	assert.equal( unavailable.status.textContent, 'notPayable', 'a gateway that does not accept new payments is explained' );
 	assert.equal( unavailable.button.disabled, false );
 
-	const limited = harness( { responses: [ { status: 429, body: { code: 'paybridge_rate_limited' } } ] } );
+	const limited = harness( { responses: [ { status: 429, body: { code: 'buckmerce_rate_limited' } } ] } );
 	limited.button.listeners.click();
 	await tick();
 	assert.equal( limited.status.textContent, 'rateLimited' );
 	assert.equal( limited.button.disabled, false );
 
-	const noName = harness( { responses: [ { status: 400, body: { code: 'paybridge_missing_name' } } ] } );
+	const noName = harness( { responses: [ { status: 400, body: { code: 'buckmerce_missing_name' } } ] } );
 	noName.button.listeners.click();
 	await tick();
 	assert.equal( noName.status.textContent, 'missingName' );
 	assert.equal( noName.button.disabled, true, 'retrying cannot fix a missing account holder name' );
 	assert.equal( noName.handlers.length, 0 );
 
-	const returned = harness( { responses: [ { status: 409, body: { code: 'paybridge_not_payable' } } ] } );
+	const returned = harness( { responses: [ { status: 409, body: { code: 'buckmerce_not_payable' } } ] } );
 	returned.button.listeners.click();
 	await tick();
 	assert.equal( returned.status.textContent, 'returned', 'a returned bank payment is explained' );

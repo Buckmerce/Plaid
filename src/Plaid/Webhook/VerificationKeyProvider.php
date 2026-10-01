@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Plaid\Webhook;
+namespace Buckmerce\Plaid\Plaid\Webhook;
 
-use PayBridge\Plaid\Plaid\Client\PlaidClientInterface;
-use PayBridge\Plaid\Plaid\Exception\PlaidApiException;
-use PayBridge\Plaid\Plaid\Exception\PlaidException;
-use PayBridge\Plaid\Plaid\Exception\WebhookVerificationException;
+use Buckmerce\Plaid\Plaid\Client\PlaidClientInterface;
+use Buckmerce\Plaid\Plaid\Exception\PlaidApiException;
+use Buckmerce\Plaid\Plaid\Exception\PlaidException;
+use Buckmerce\Plaid\Plaid\Exception\WebhookVerificationException;
 
 /**
  * Fetches and caches Plaid webhook verification JWKs by key ID via
@@ -45,7 +45,7 @@ final class VerificationKeyProvider
      */
     public function get(string $key_id): array
     {
-        $cache_key = 'pbfp_jwk_' . $this->client->environment()->name . '_' . substr(hash('sha256', $key_id), 0, 32);
+        $cache_key = 'bmfp_jwk_' . $this->client->environment()->name . '_' . substr(hash('sha256', $key_id), 0, 32);
         $cached = ($this->cache_get)($cache_key);
         if (is_array($cached)) {
             if (true === ($cached['unknown'] ?? false)) {
@@ -54,7 +54,7 @@ final class VerificationKeyProvider
             return $this->usable($cached, $key_id);
         }
 
-        $counter_key = 'pbfp_jwk_fetches_' . $this->client->environment()->name . '_' . gmdate('YmdHi');
+        $counter_key = 'bmfp_jwk_fetches_' . $this->client->environment()->name . '_' . gmdate('YmdHi');
         $fetches = ($this->cache_get)($counter_key);
         $fetches = is_int($fetches) ? $fetches : 0;
         if ($fetches >= self::MAX_FETCHES_PER_MINUTE) {

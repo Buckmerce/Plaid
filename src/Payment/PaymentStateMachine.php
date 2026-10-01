@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Payment;
+namespace Buckmerce\Plaid\Payment;
 
-use PayBridge\Plaid\Exception\InvalidPaymentStateTransition;
+use Buckmerce\Plaid\Exception\InvalidPaymentStateTransition;
 
 /** The only component that decides whether a payment state change is allowed. */
 final class PaymentStateMachine

@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Plaid\Client;
+namespace Buckmerce\Plaid\Plaid\Client;
 
-use PayBridge\Plaid\Exception\ConfigurationException;
-use PayBridge\Plaid\Logging\Logger;
-use PayBridge\Plaid\Plaid\Exception\PlaidApiException;
-use PayBridge\Plaid\Plaid\Exception\PlaidMalformedResponseException;
-use PayBridge\Plaid\Plaid\Exception\PlaidNetworkException;
-use PayBridge\Plaid\Plaid\PlaidEnvironment;
+use Buckmerce\Plaid\Exception\ConfigurationException;
+use Buckmerce\Plaid\Logging\Logger;
+use Buckmerce\Plaid\Plaid\Exception\PlaidApiException;
+use Buckmerce\Plaid\Plaid\Exception\PlaidMalformedResponseException;
+use Buckmerce\Plaid\Plaid\Exception\PlaidNetworkException;
+use Buckmerce\Plaid\Plaid\PlaidEnvironment;
 
 /**
  * The only component that performs HTTP calls to Plaid.
@@ -23,7 +23,7 @@ final class PlaidClient implements PlaidClientInterface
     public const API_VERSION = '2020-09-14';
     public const TIMEOUT_SECONDS = 30;
 
-    /** Endpoints PayBridge is allowed to call. Anything else is a programming error. */
+    /** Endpoints Buckmerce is allowed to call. Anything else is a programming error. */
     private const ALLOWED_PATHS = array(
         '/transfer/intent/create',
         '/transfer/intent/get',
@@ -89,7 +89,7 @@ final class PlaidClient implements PlaidClientInterface
                 'PLAID-CLIENT-ID' => $this->client_id,
                 'PLAID-SECRET' => $this->secret,
                 'Plaid-Version' => self::API_VERSION,
-                'User-Agent' => 'PayBridge-for-Plaid/' . (defined('PAYBRIDGE_PLAID_VERSION') ? PAYBRIDGE_PLAID_VERSION : 'dev'),
+                'User-Agent' => 'Buckmerce-for-Plaid/' . (defined('BUCKMERCE_PLAID_VERSION') ? BUCKMERCE_PLAID_VERSION : 'dev'),
             ),
             'body' => $json,
         );

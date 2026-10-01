@@ -2,7 +2,7 @@ async page => {
 	// Real Plaid Sandbox: drives the genuine Plaid Transfer UI (no test doubles).
 	// The configuration travels in the URL fragment, which browsers never send to a server or tunnel.
 	const baseUrl = page.url().replace( /[?#].*$/, '' ).replace( /\/$/, '' );
-	const config = JSON.parse( decodeURIComponent( ( page.url().match( /#pbfp_sandbox=([^&]+)/ ) || [] )[ 1 ] || '%7B%7D' ) );
+	const config = JSON.parse( decodeURIComponent( ( page.url().match( /#bmfp_sandbox=([^&]+)/ ) || [] )[ 1 ] || '%7B%7D' ) );
 	const assert = ( condition, message ) => {
 		if ( ! condition ) {
 			throw new Error( 'SANDBOX ASSERTION FAILED: ' + message );
@@ -22,7 +22,7 @@ async page => {
 	const checkouts = {};
 	const exits = [];
 	const useCheckout = async ( kind ) => {
-		const response = await page.goto( baseUrl + '/?pbfp_sandbox_checkout=' + kind, { waitUntil: 'domcontentloaded' } );
+		const response = await page.goto( baseUrl + '/?bmfp_sandbox_checkout=' + kind, { waitUntil: 'domcontentloaded' } );
 		const data = JSON.parse( await response.text() );
 		assert( data.ok, 'Switched the store to the ' + kind + ' checkout page.' );
 		return data.checkout;
@@ -31,7 +31,7 @@ async page => {
 		await page.screenshot( { path: 'sandbox-failure-' + label + '.png', fullPage: true } ).catch( () => undefined );
 		const linkText = await page.frameLocator( 'iframe[id^="plaid-link-iframe"]' ).locator( 'body' ).innerText( { timeout: 3000 } ).catch( () => '(no Plaid Link frame)' );
 		const buttons = await page.frameLocator( 'iframe[id^="plaid-link-iframe"]' ).locator( 'button' ).evaluateAll( ( nodes ) => nodes.map( ( n ) => ( n.getAttribute( 'aria-label' ) || '' ) + '|' + n.textContent.trim().slice( 0, 40 ) ) ).catch( () => [] );
-		const status = await page.locator( '[data-pbfp-status]' ).textContent().catch( () => '' );
+		const status = await page.locator( '[data-bmfp-status]' ).textContent().catch( () => '' );
 		throw new Error( 'SANDBOX STEP FAILED (' + label + ') at ' + page.url() + ' status="' + status + '" link="' + linkText.replace( /\s+/g, ' ' ).slice( 0, 400 ) + '" buttons=' + JSON.stringify( buttons ).slice( 0, 600 ) + ' :: ' + ( error && error.message ? error.message.split( '\n' )[ 0 ] : String( error ) ) );
 	};
 	for ( const [ key, productId ] of Object.entries( config.products ) ) {
@@ -67,23 +67,23 @@ async page => {
 			await Promise.all( [ page.waitForURL( /order-pay\/\d+/, { timeout: 60000 } ), page.locator( '#place_order' ).click() ] );
 		}
 		const orderId = ( page.url().match( /order-pay\/(\d+)/ ) || [] )[ 1 ];
-		const summary = await page.locator( '.pbfp-payment__summary' ).textContent();
+		const summary = await page.locator( '.bmfp-payment__summary' ).textContent();
 		assert( summary.includes( amount ), 'Payment page shows ' + amount );
 		const link = page.frameLocator( 'iframe[id^="plaid-link-iframe"]' );
 		if ( key === config.exitAmount ) {
 			// The customer closes the genuine Plaid Link window before paying, then tries again.
-			await page.locator( '[data-pbfp-pay]' ).click();
+			await page.locator( '[data-bmfp-pay]' ).click();
 			await page.locator( 'iframe[id^="plaid-link-iframe"]' ).waitFor( { state: 'visible', timeout: 60000 } );
 			const close = link.locator( 'button[aria-label*="close" i], button[aria-label*="exit" i]' ).first();
 			await close.waitFor( { state: 'visible', timeout: 60000 } );
 			await close.click();
 			// Plaid asks "Are you sure? Your progress will be lost if you exit." → "Yes, exit".
 			await link.getByRole( 'button', { name: 'Yes, exit' } ).click( { timeout: 20000 } );
-			await page.waitForFunction( () => ( document.querySelector( '[data-pbfp-status]' ) || {} ).textContent?.includes( 'closed before' ), null, { timeout: 30000 } );
-			assert( await page.locator( '[data-pbfp-pay]' ).isEnabled(), 'After exiting Plaid Link the payment can be retried.' );
+			await page.waitForFunction( () => ( document.querySelector( '[data-bmfp-status]' ) || {} ).textContent?.includes( 'closed before' ), null, { timeout: 30000 } );
+			assert( await page.locator( '[data-bmfp-pay]' ).isEnabled(), 'After exiting Plaid Link the payment can be retried.' );
 			exits.push( key );
 		}
-		await page.locator( '[data-pbfp-pay]' ).click();
+		await page.locator( '[data-bmfp-pay]' ).click();
 		await link.getByRole( 'button', { name: 'Continue without phone number' } ).click( { timeout: 60000 } );
 		await link.getByRole( 'textbox', { name: 'Search' } ).fill( 'First Platypus Bank' );
 		await link.getByText( 'First Platypus Bank', { exact: false } ).first().click();

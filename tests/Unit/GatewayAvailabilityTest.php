@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Tests\Unit;
+namespace Buckmerce\Plaid\Tests\Unit;
 
-use PayBridge\Plaid\Gateway\GatewayAvailability;
-use PayBridge\Plaid\Settings\AccountIdentity;
-use PayBridge\Plaid\Settings\Settings;
+use Buckmerce\Plaid\Gateway\GatewayAvailability;
+use Buckmerce\Plaid\Settings\AccountIdentity;
+use Buckmerce\Plaid\Settings\Settings;
 use PHPUnit\Framework\TestCase;
 
 final class GatewayAvailabilityTest extends TestCase

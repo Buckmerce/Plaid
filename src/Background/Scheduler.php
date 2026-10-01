@@ -2,32 +2,32 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Background;
+namespace Buckmerce\Plaid\Background;
 
-use PayBridge\Plaid\Container;
-use PayBridge\Plaid\Persistence\Installer;
-use PayBridge\Plaid\Persistence\PaymentLockStore;
-use PayBridge\Plaid\Persistence\RefundStore;
-use PayBridge\Plaid\Persistence\TransferEventStore;
-use PayBridge\Plaid\Settings\AccountScope;
-use PayBridge\Plaid\Settings\Settings;
+use Buckmerce\Plaid\Container;
+use Buckmerce\Plaid\Persistence\Installer;
+use Buckmerce\Plaid\Persistence\PaymentLockStore;
+use Buckmerce\Plaid\Persistence\RefundStore;
+use Buckmerce\Plaid\Persistence\TransferEventStore;
+use Buckmerce\Plaid\Settings\AccountScope;
+use Buckmerce\Plaid\Settings\Settings;
 
 /**
- * Action Scheduler integration. All actions are PayBridge-owned and grouped under
- * paybridge-for-plaid.
+ * Action Scheduler integration. All actions are Buckmerce-owned and grouped under
+ * buckmerce-for-plaid.
  *
  * Accepting new payments and maintaining existing ones are separate (ADR-0014): disabling
  * the gateway only hides Pay by Bank at checkout. The recurring reconciliation keeps running
- * while PayBridge can read Plaid and there is real work for the configured Plaid account:
+ * while Buckmerce can read Plaid and there is real work for the configured Plaid account:
  * monitored payments, open refunds, unprocessed events or a failed event sync (ADR-0021).
  * When none remains it stops; a verified webhook still triggers event sync at any time.
  */
 final class Scheduler
 {
-    public const GROUP = 'paybridge-for-plaid';
-    public const EVENT_SYNC_HOOK = 'paybridge_plaid_transfer_event_sync';
-    public const RECONCILE_HOOK = 'paybridge_plaid_reconcile';
-    public const RECONCILE_CONTINUE_HOOK = 'paybridge_plaid_reconcile_continue';
+    public const GROUP = 'buckmerce-for-plaid';
+    public const EVENT_SYNC_HOOK = 'buckmerce_plaid_transfer_event_sync';
+    public const RECONCILE_HOOK = 'buckmerce_plaid_reconcile';
+    public const RECONCILE_CONTINUE_HOOK = 'buckmerce_plaid_reconcile_continue';
     public const RECONCILE_INTERVAL = 15 * MINUTE_IN_SECONDS;
 
     /** @return list<string> */
@@ -49,7 +49,7 @@ final class Scheduler
     }
 
     /**
-     * Whether the recurring reconciliation must run: PayBridge can read Plaid, and it either
+     * Whether the recurring reconciliation must run: Buckmerce can read Plaid, and it either
      * accepts payments or has operational work for the configured account. "A payment once
      * existed" is not work: payments whose return windows closed need nothing more.
      */
@@ -148,7 +148,7 @@ final class Scheduler
         }
     }
 
-    /** Deactivation/uninstall: removes only PayBridge-owned actions. */
+    /** Deactivation/uninstall: removes only Buckmerce-owned actions. */
     public static function unschedule_all(): void
     {
         if (! function_exists('as_unschedule_all_actions')) {

@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Plaid\Exception;
+namespace Buckmerce\Plaid\Plaid\Exception;
 
-use PayBridge\Plaid\Exception\PayBridgeException;
+use Buckmerce\Plaid\Exception\BuckmerceException;
 
 /** A webhook failed cryptographic verification. It must never reach business logic. */
-final class WebhookVerificationException extends PayBridgeException
+final class WebhookVerificationException extends BuckmerceException
 {
     public function __construct(public readonly string $reason)
     {

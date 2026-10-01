@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Tests\Unit;
+namespace Buckmerce\Plaid\Tests\Unit;
 
-use PayBridge\Plaid\Payment\PaymentState;
-use PayBridge\Plaid\Payment\ReturnRetryDecision;
-use PayBridge\Plaid\Payment\ReturnRetryPolicy;
+use Buckmerce\Plaid\Payment\PaymentState;
+use Buckmerce\Plaid\Payment\ReturnRetryDecision;
+use Buckmerce\Plaid\Payment\ReturnRetryPolicy;
 use PHPUnit\Framework\TestCase;
 
 /**
  * Plaid's rules for reprocessing returned transfers (docs/api/PLAID_TRANSFER.md §2.12, ADR-0019):
  * R01/R09 only, at most two retries, within 180 days of the original transfer, marked
- * "Retry 1"/"Retry 2" on /transfer/create. Transfer UI has no such marking, so PayBridge 1.0
+ * "Retry 1"/"Retry 2" on /transfer/create. Transfer UI has no such marking, so Buckmerce 1.0
  * never re-debits a returned order.
  */
 final class ReturnRetryPolicyTest extends TestCase

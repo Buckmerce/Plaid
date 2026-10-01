@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Tests\Unit;
+namespace Buckmerce\Plaid\Tests\Unit;
 
-use PayBridge\Plaid\Exception\ConfigurationException;
-use PayBridge\Plaid\Plaid\Client\PlaidClient;
-use PayBridge\Plaid\Plaid\Exception\PlaidApiException;
-use PayBridge\Plaid\Plaid\Exception\PlaidMalformedResponseException;
-use PayBridge\Plaid\Plaid\Exception\PlaidNetworkException;
-use PayBridge\Plaid\Plaid\PlaidEnvironment;
+use Buckmerce\Plaid\Exception\ConfigurationException;
+use Buckmerce\Plaid\Plaid\Client\PlaidClient;
+use Buckmerce\Plaid\Plaid\Exception\PlaidApiException;
+use Buckmerce\Plaid\Plaid\Exception\PlaidMalformedResponseException;
+use Buckmerce\Plaid\Plaid\Exception\PlaidNetworkException;
+use Buckmerce\Plaid\Plaid\PlaidEnvironment;
 use PHPUnit\Framework\TestCase;
 
 final class PlaidClientTest extends TestCase

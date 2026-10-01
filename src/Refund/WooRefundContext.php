@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Refund;
+namespace Buckmerce\Plaid\Refund;
 
-use PayBridge\Plaid\Exception\PaymentException;
-use PayBridge\Plaid\Support\Money;
+use Buckmerce\Plaid\Exception\PaymentException;
+use Buckmerce\Plaid\Support\Money;
 
 /**
  * Identifies the WooCommerce refund object behind a process_refund() call.
@@ -54,7 +54,7 @@ final class WooRefundContext
             $created = $refund->get_date_created();
             if (
                 $refund->get_refunded_payment()
-                || '' !== (string) $refund->get_meta('_pbfp_refund_row', true)
+                || '' !== (string) $refund->get_meta('_bmfp_refund_row', true)
                 || self::amount_cents($refund) !== $cents
                 || null === $created
                 || $created->getTimestamp() < time() - self::FALLBACK_MAX_AGE_SECONDS

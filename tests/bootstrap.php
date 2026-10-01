@@ -9,6 +9,11 @@ declare(strict_types=1);
  */
 
 require_once dirname(__DIR__) . '/vendor/autoload.php';
+// The prefixed runtime libraries (Buckmerce\Plaid\Vendor\...) are loaded here, the way the plugin's
+// main file loads them. They are deliberately not an autoload-dev "files" entry of composer.json:
+// vendor/autoload.php would then require vendor-prefixed/ before Strauss has generated it, and a
+// `composer install` on a tree without vendor-prefixed/ could never regenerate it.
+require_once dirname(__DIR__) . '/vendor-prefixed/autoload.php';
 
 foreach (
     array(
@@ -16,7 +21,7 @@ foreach (
         'MINUTE_IN_SECONDS' => 60,
         'HOUR_IN_SECONDS' => 3600,
         'DAY_IN_SECONDS' => 86400,
-        'PAYBRIDGE_PLAID_VERSION' => '1.0.0',
+        'BUCKMERCE_PLAID_VERSION' => '1.0.0',
     ) as $name => $value
 ) {
     if (! defined($name)) {
@@ -25,7 +30,7 @@ foreach (
 }
 
 /** In-memory option/transient store shared by the doubles below. */
-final class PayBridgeTestStore
+final class BuckmerceTestStore
 {
     /** @var array<string, mixed> */
     public static array $options = array();
@@ -60,36 +65,36 @@ if (! function_exists('esc_html__')) {
 if (! function_exists('get_option')) {
     function get_option(string $name, $default = false)
     {
-        return PayBridgeTestStore::$options[$name] ?? $default;
+        return BuckmerceTestStore::$options[$name] ?? $default;
     }
 }
 if (! function_exists('update_option')) {
     function update_option(string $name, $value, $autoload = null): bool
     {
-        PayBridgeTestStore::$options[$name] = $value;
+        BuckmerceTestStore::$options[$name] = $value;
         return true;
     }
 }
 if (! function_exists('add_option')) {
     function add_option(string $name, $value = '', string $deprecated = '', $autoload = null): bool
     {
-        if (array_key_exists($name, PayBridgeTestStore::$options)) {
+        if (array_key_exists($name, BuckmerceTestStore::$options)) {
             return false;
         }
-        PayBridgeTestStore::$options[$name] = $value;
+        BuckmerceTestStore::$options[$name] = $value;
         return true;
     }
 }
 if (! function_exists('get_transient')) {
     function get_transient(string $key)
     {
-        return PayBridgeTestStore::$transients[$key] ?? false;
+        return BuckmerceTestStore::$transients[$key] ?? false;
     }
 }
 if (! function_exists('set_transient')) {
     function set_transient(string $key, $value, int $expiration = 0): bool
     {
-        PayBridgeTestStore::$transients[$key] = $value;
+        BuckmerceTestStore::$transients[$key] = $value;
         return true;
     }
 }
@@ -132,7 +137,7 @@ if (! function_exists('wp_salt')) {
 if (! function_exists('delete_option')) {
     function delete_option(string $name): bool
     {
-        unset(PayBridgeTestStore::$options[$name]);
+        unset(BuckmerceTestStore::$options[$name]);
         return true;
     }
 }
@@ -145,7 +150,7 @@ if (! class_exists('WC_Order')) {
     class WC_Order
     {
         /** @param array<string, mixed> $meta */
-        public function __construct(private array $meta = array(), private string $payment_method = 'paybridge_plaid', private int $id = 1001)
+        public function __construct(private array $meta = array(), private string $payment_method = 'buckmerce_plaid', private int $id = 1001)
         {
         }
 

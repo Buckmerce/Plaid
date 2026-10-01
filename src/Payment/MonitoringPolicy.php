@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Payment;
+namespace Buckmerce\Plaid\Payment;
 
 /**
  * When a payment's provider state must be re-read, and until when it is monitored at all

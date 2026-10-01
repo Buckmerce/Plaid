@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Plaid;
+namespace Buckmerce\Plaid\Plaid;
 
-use PayBridge\Plaid\Exception\ConfigurationException;
+use Buckmerce\Plaid\Exception\ConfigurationException;
 
 /**
  * The two supported Plaid environments. Hosts are fixed constants so no

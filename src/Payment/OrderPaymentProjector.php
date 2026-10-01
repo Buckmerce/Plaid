@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Payment;
+namespace Buckmerce\Plaid\Payment;
 
-use PayBridge\Plaid\Logging\Logger;
-use PayBridge\Plaid\Settings\Settings;
+use Buckmerce\Plaid\Logging\Logger;
+use Buckmerce\Plaid\Settings\Settings;
 
 /**
- * Applies a PayBridge state transition to a WooCommerce order.
+ * Applies a Buckmerce state transition to a WooCommerce order.
  *
  * The state machine decides; this class persists the new state first and then
  * projects it idempotently onto WooCommerce statuses, notes, alerts and hooks.
@@ -88,7 +88,7 @@ final class OrderPaymentProjector
             $this->project($order, $to, $context, PaymentStateMachine::APPLY === $decision);
             if (PaymentStateMachine::APPLY === $decision) {
                 $this->monitor?->refresh($order);
-                do_action('paybridge_plaid_payment_state_changed', $order, '' === $from ? 'new' : $from, $to);
+                do_action('buckmerce_plaid_payment_state_changed', $order, '' === $from ? 'new' : $from, $to);
             }
         }
         return $decision;
@@ -122,7 +122,7 @@ final class OrderPaymentProjector
             case PaymentState::PENDING:
             case PaymentState::POSTED:
                 if ($order->has_status(array('pending', 'failed'))) {
-                    $order->update_status('on-hold', __('Bank payment submitted; awaiting ACH settlement.', 'paybridge-for-plaid'));
+                    $order->update_status('on-hold', __('Bank payment submitted; awaiting ACH settlement.', 'buckmerce-for-plaid'));
                 }
                 break;
             case PaymentState::SETTLED:
@@ -140,7 +140,7 @@ final class OrderPaymentProjector
                     $order->update_status('failed');
                 }
                 if ($changed) {
-                    do_action('paybridge_plaid_payment_failed', $order, $context['failure_code'] ?? '');
+                    do_action('buckmerce_plaid_payment_failed', $order, $context['failure_code'] ?? '');
                 }
                 break;
             case PaymentState::CANCELLED:
@@ -148,7 +148,7 @@ final class OrderPaymentProjector
                     $order->update_status('cancelled');
                 }
                 if ($changed) {
-                    do_action('paybridge_plaid_payment_cancelled', $order);
+                    do_action('buckmerce_plaid_payment_cancelled', $order);
                 }
                 break;
             case PaymentState::RETURNED:
@@ -164,15 +164,15 @@ final class OrderPaymentProjector
                     $this->notifier->send(
                         $order,
                         /* translators: %s: order number */
-                        sprintf(__('Bank payment for order #%s needs review', 'paybridge-for-plaid'), $order->get_order_number()),
+                        sprintf(__('Bank payment for order #%s needs review', 'buckmerce-for-plaid'), $order->get_order_number()),
                         sprintf(
                             /* translators: 1: order number, 2: reason code */
-                            __("PayBridge stopped automatic processing of the bank payment for order #%1\$s (%2\$s). No order was fulfilled automatically. Open the order to see the Plaid identifiers and decide how to proceed.", 'paybridge-for-plaid'),
+                            __("Buckmerce stopped automatic processing of the bank payment for order #%1\$s (%2\$s). No order was fulfilled automatically. Open the order to see the Plaid identifiers and decide how to proceed.", 'buckmerce-for-plaid'),
                             $order->get_order_number(),
                             '' === $reason ? 'manual_review' : $reason
                         )
                     );
-                    do_action('paybridge_plaid_payment_manual_review', $order, $reason);
+                    do_action('buckmerce_plaid_payment_manual_review', $order, $reason);
                 }
                 break;
         }
@@ -186,7 +186,7 @@ final class OrderPaymentProjector
     private function project_return(\WC_Order $order, string $transfer_id): void
     {
         if (! $order->has_status(array('failed', 'refunded'))) {
-            $order->update_status('failed', __('ACH return received: the bank payment was reversed. The original payment details are kept on this order.', 'paybridge-for-plaid'));
+            $order->update_status('failed', __('ACH return received: the bank payment was reversed. The original payment details are kept on this order.', 'buckmerce-for-plaid'));
         }
         if ('yes' === $order->get_meta(OrderMeta::RETURN_ALERTED, true)) {
             return;
@@ -194,27 +194,27 @@ final class OrderPaymentProjector
         $code = (string) $order->get_meta(OrderMeta::RETURN_CODE, true);
         $retry = ReturnRetryPolicy::for_order($order);
         if ($retry->is_blocked()) {
-            // Plaid restricts reprocessing returned debits; PayBridge never re-debits this order (ADR-0019).
-            $order->add_order_note(__('PayBridge: this order will not be debited again by bank.', 'paybridge-for-plaid') . ' ' . ReturnRetryPolicy::merchant_explanation($retry));
+            // Plaid restricts reprocessing returned debits; Buckmerce never re-debits this order (ADR-0019).
+            $order->add_order_note(__('Buckmerce: this order will not be debited again by bank.', 'buckmerce-for-plaid') . ' ' . ReturnRetryPolicy::merchant_explanation($retry));
         }
         $exposure = null === $this->return_listener ? array('count' => 0, 'amount' => '0.00') : $this->return_listener->on_payment_returned($order, $transfer_id);
         if ($exposure['count'] > 0) {
             $this->alerts->add($order, PaymentAlerts::RETURNED_AFTER_REFUND, $code, '', $exposure['amount']);
             $order->add_order_note(sprintf(
                 /* translators: 1: refunded amount, 2: ACH return code */
-                __('PayBridge: CRITICAL — the bank payment was returned (%2$s) after refunds of $%1$s were issued. The customer may have received this money twice. Contact the customer before taking further action.', 'paybridge-for-plaid'),
+                __('Buckmerce: CRITICAL — the bank payment was returned (%2$s) after refunds of $%1$s were issued. The customer may have received this money twice. Contact the customer before taking further action.', 'buckmerce-for-plaid'),
                 $exposure['amount'],
                 '' === $code ? '—' : $code
             ));
             $this->notifier->send(
                 $order,
                 /* translators: %s: order number */
-                sprintf(__('URGENT: ACH return after refund for order #%s', 'paybridge-for-plaid'), $order->get_order_number()),
+                sprintf(__('URGENT: ACH return after refund for order #%s', 'buckmerce-for-plaid'), $order->get_order_number()),
                 sprintf(
                     /* translators: 1: order number, 2: ACH return code, 3: refunded amount */
-                    __("The bank payment for order #%1\$s was returned (%2\$s) after you refunded $%3\$s. The customer's bank reversed the payment, so the customer may have received this money twice and you may lose both the payment and the refund. Pending refunds were cancelled where Plaid still allowed it; check the order notes.", 'paybridge-for-plaid'),
+                    __("The bank payment for order #%1\$s was returned (%2\$s) after you refunded $%3\$s. The customer's bank reversed the payment, so the customer may have received this money twice and you may lose both the payment and the refund. Pending refunds were cancelled where Plaid still allowed it; check the order notes.", 'buckmerce-for-plaid'),
                     $order->get_order_number(),
-                    '' === $code ? __('no return code', 'paybridge-for-plaid') : $code,
+                    '' === $code ? __('no return code', 'buckmerce-for-plaid') : $code,
                     $exposure['amount']
                 )
             );
@@ -223,18 +223,18 @@ final class OrderPaymentProjector
             $this->notifier->send(
                 $order,
                 /* translators: %s: order number */
-                sprintf(__('ACH return received for order #%s', 'paybridge-for-plaid'), $order->get_order_number()),
+                sprintf(__('ACH return received for order #%s', 'buckmerce-for-plaid'), $order->get_order_number()),
                 sprintf(
                     /* translators: 1: order number, 2: ACH return code */
-                    __('The bank payment for order #%1$s was returned (%2$s). The funds were reversed. The order is now Failed; its original payment details are kept.', 'paybridge-for-plaid'),
+                    __('The bank payment for order #%1$s was returned (%2$s). The funds were reversed. The order is now Failed; its original payment details are kept.', 'buckmerce-for-plaid'),
                     $order->get_order_number(),
-                    '' === $code ? __('no return code', 'paybridge-for-plaid') : $code
+                    '' === $code ? __('no return code', 'buckmerce-for-plaid') : $code
                 ) . ' ' . ReturnRetryPolicy::merchant_explanation($retry)
             );
         }
         $order->update_meta_data(OrderMeta::RETURN_ALERTED, 'yes');
         $order->save();
-        do_action('paybridge_plaid_payment_returned', $order, $code);
+        do_action('buckmerce_plaid_payment_returned', $order, $code);
     }
 
     private function confirm(\WC_Order $order, string $transfer_id): void
@@ -249,45 +249,45 @@ final class OrderPaymentProjector
         }
         // WooCommerce decides processing vs completed and handles stock/emails.
         $order->payment_complete($transfer_id);
-        do_action('paybridge_plaid_payment_confirmed', $order, $transfer_id);
+        do_action('buckmerce_plaid_payment_confirmed', $order, $transfer_id);
     }
 
     /** @param array<string, string> $context */
     private function note(string $state, array $context): string
     {
-        $transfer = '' !== ($context['transfer_id'] ?? '') ? ' ' . sprintf(/* translators: %s: Plaid transfer ID */ __('Transfer ID: %s.', 'paybridge-for-plaid'), $context['transfer_id']) : '';
+        $transfer = '' !== ($context['transfer_id'] ?? '') ? ' ' . sprintf(/* translators: %s: Plaid transfer ID */ __('Transfer ID: %s.', 'buckmerce-for-plaid'), $context['transfer_id']) : '';
         $code = self::code($context['return_code'] ?? ($context['failure_code'] ?? ''));
         $reason = '' !== $code ? ' (' . $code . ')' : '';
         $description = '' !== ($context['description'] ?? '') ? ' ' . self::text($context['description']) : '';
         switch ($state) {
             case PaymentState::INTENT_CREATED:
-                return __('PayBridge: Plaid Transfer Intent created. Waiting for the customer to authorize the bank payment.', 'paybridge-for-plaid');
+                return __('Buckmerce: Plaid Transfer Intent created. Waiting for the customer to authorize the bank payment.', 'buckmerce-for-plaid');
             case PaymentState::INTENT_PENDING:
-                return __('PayBridge: bank payment authorization in progress.', 'paybridge-for-plaid');
+                return __('Buckmerce: bank payment authorization in progress.', 'buckmerce-for-plaid');
             case PaymentState::INTENT_FAILED:
-                return __('PayBridge: bank payment authorization failed or was declined', 'paybridge-for-plaid') . $reason . '. ' . __('The customer can retry.', 'paybridge-for-plaid');
+                return __('Buckmerce: bank payment authorization failed or was declined', 'buckmerce-for-plaid') . $reason . '. ' . __('The customer can retry.', 'buckmerce-for-plaid');
             case PaymentState::INTENT_UNCERTAIN:
-                return __('PayBridge: the Transfer Intent request had an unknown outcome. No Link token was issued for it, so it cannot move money; a retry creates a new intent.', 'paybridge-for-plaid');
+                return __('Buckmerce: the Transfer Intent request had an unknown outcome. No Link token was issued for it, so it cannot move money; a retry creates a new intent.', 'buckmerce-for-plaid');
             case PaymentState::TRANSFER_CREATED:
-                return __('PayBridge: Plaid transfer created.', 'paybridge-for-plaid') . $transfer;
+                return __('Buckmerce: Plaid transfer created.', 'buckmerce-for-plaid') . $transfer;
             case PaymentState::PENDING:
-                return __('PayBridge: transfer pending.', 'paybridge-for-plaid') . $transfer;
+                return __('Buckmerce: transfer pending.', 'buckmerce-for-plaid') . $transfer;
             case PaymentState::POSTED:
-                return __('PayBridge: transfer posted to the ACH network.', 'paybridge-for-plaid') . $transfer;
+                return __('Buckmerce: transfer posted to the ACH network.', 'buckmerce-for-plaid') . $transfer;
             case PaymentState::SETTLED:
-                return __('PayBridge: transfer settled.', 'paybridge-for-plaid') . $transfer;
+                return __('Buckmerce: transfer settled.', 'buckmerce-for-plaid') . $transfer;
             case PaymentState::FUNDS_AVAILABLE:
-                return __('PayBridge: funds available. The customer\'s bank can still return the payment within the ACH return windows; PayBridge keeps monitoring it.', 'paybridge-for-plaid') . $transfer;
+                return __('Buckmerce: funds available. The customer\'s bank can still return the payment within the ACH return windows; Buckmerce keeps monitoring it.', 'buckmerce-for-plaid') . $transfer;
             case PaymentState::FAILED:
-                return __('PayBridge: transfer failed; no funds were moved', 'paybridge-for-plaid') . $reason . '.' . $description . $transfer;
+                return __('Buckmerce: transfer failed; no funds were moved', 'buckmerce-for-plaid') . $reason . '.' . $description . $transfer;
             case PaymentState::CANCELLED:
-                return __('PayBridge: transfer cancelled.', 'paybridge-for-plaid') . $transfer;
+                return __('Buckmerce: transfer cancelled.', 'buckmerce-for-plaid') . $transfer;
             case PaymentState::RETURNED:
-                return __('PayBridge: ACH RETURN — the bank payment was returned and the funds reversed', 'paybridge-for-plaid') . $reason . '.' . $description . $transfer;
+                return __('Buckmerce: ACH RETURN — the bank payment was returned and the funds reversed', 'buckmerce-for-plaid') . $reason . '.' . $description . $transfer;
             case PaymentState::MANUAL_REVIEW:
-                return __('PayBridge: payment requires manual review', 'paybridge-for-plaid') . ' (' . self::code($context['reason'] ?? 'manual_review') . ').' . $transfer;
+                return __('Buckmerce: payment requires manual review', 'buckmerce-for-plaid') . ' (' . self::code($context['reason'] ?? 'manual_review') . ').' . $transfer;
         }
-        return sprintf(/* translators: %s: payment state */ __('PayBridge: payment state changed to %s.', 'paybridge-for-plaid'), $state);
+        return sprintf(/* translators: %s: payment state */ __('Buckmerce: payment state changed to %s.', 'buckmerce-for-plaid'), $state);
     }
 
     public static function code(string $code): string

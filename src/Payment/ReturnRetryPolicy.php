@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Payment;
+namespace Buckmerce\Plaid\Payment;
 
 /**
  * Whether a new bank debit may be originated for an order whose transfer was returned (ADR-0019).
@@ -12,8 +12,8 @@ namespace PayBridge\Plaid\Payment;
  * retry a transfer up to 2 times, within 180 days of creating the original transfer. Only
  * transfers that were returned with code R01 or R09 may be retried." R10 must never be
  * resubmitted. Plaid documents this only for /transfer/create; Transfer UI
- * (/transfer/intent/create), which PayBridge 1.0 uses, has no documented way to mark a debit as
- * a retry of a returned transfer. PayBridge therefore evaluates Plaid's rules completely and, for
+ * (/transfer/intent/create), which Buckmerce 1.0 uses, has no documented way to mark a debit as
+ * a retry of a returned transfer. Buckmerce therefore evaluates Plaid's rules completely and, for
  * the Transfer UI flow, never allows a same-order bank debit after a return: an eligible return
  * is BLOCK_UNSUPPORTED_FLOW, everything else is blocked by the rule it breaks.
  *
@@ -27,14 +27,14 @@ final class ReturnRetryPolicy
     public const MAX_RETRIES = 2;
     public const RETRY_WINDOW_DAYS = 180;
 
-    /** /transfer/intent/create + Transfer UI: no documented retry semantics (PayBridge 1.0). */
+    /** /transfer/intent/create + Transfer UI: no documented retry semantics (Buckmerce 1.0). */
     public const FLOW_TRANSFER_UI = 'transfer_ui';
     /** /transfer/create with description "Retry 1"/"Retry 2": the only documented retry flow. */
     public const FLOW_TRANSFER_CREATE = 'transfer_create';
 
     /**
      * Pure decision. $lineage lists the order's money-moving attempts oldest first; each entry
-     * has the transfer ID, the PayBridge payment state, the return code and the transfer's
+     * has the transfer ID, the Buckmerce payment state, the return code and the transfer's
      * creation time (ISO-8601, '' when unknown).
      *
      * @param list<array{transfer_id:string, state:string, return_code:string, created_at:string}> $lineage
@@ -82,7 +82,7 @@ final class ReturnRetryPolicy
         return new ReturnRetryDecision(0 === $retries_used ? ReturnRetryDecision::ALLOW_RETRY_1 : ReturnRetryDecision::ALLOW_RETRY_2, $latest_code, $original['transfer_id'], $retries_used, $window_ends_at);
     }
 
-    /** PayBridge 1.0 originates every debit through Transfer UI. */
+    /** Buckmerce 1.0 originates every debit through Transfer UI. */
     public static function for_order(\WC_Order $order, ?int $now = null): ReturnRetryDecision
     {
         return self::decide(self::lineage($order), self::FLOW_TRANSFER_UI, $now ?? time());
@@ -129,14 +129,14 @@ final class ReturnRetryPolicy
         return match ($decision->outcome) {
             ReturnRetryDecision::BLOCK_RETURN_CODE => sprintf(
                 /* translators: %s: ACH return code such as R10 */
-                __('Return code %s may not be debited again (Plaid allows retries only for R01 and R09; unauthorized returns such as R10 must never be resubmitted). Collect this payment another way after contacting the customer.', 'paybridge-for-plaid'),
+                __('Return code %s may not be debited again (Plaid allows retries only for R01 and R09; unauthorized returns such as R10 must never be resubmitted). Collect this payment another way after contacting the customer.', 'buckmerce-for-plaid'),
                 $decision->return_code
             ),
-            ReturnRetryDecision::BLOCK_RETRY_LIMIT => __('Plaid allows at most two retries of a returned transfer and they are used up. Collect this payment another way.', 'paybridge-for-plaid'),
-            ReturnRetryDecision::BLOCK_WINDOW_EXPIRED => __('Plaid allows retries only within 180 days of the original transfer. Collect this payment another way.', 'paybridge-for-plaid'),
+            ReturnRetryDecision::BLOCK_RETRY_LIMIT => __('Plaid allows at most two retries of a returned transfer and they are used up. Collect this payment another way.', 'buckmerce-for-plaid'),
+            ReturnRetryDecision::BLOCK_WINDOW_EXPIRED => __('Plaid allows retries only within 180 days of the original transfer. Collect this payment another way.', 'buckmerce-for-plaid'),
             ReturnRetryDecision::BLOCK_UNSUPPORTED_FLOW => sprintf(
                 /* translators: %s: ACH return code R01 or R09 */
-                __('Return code %s could be retried under Plaid\'s rules only as a marked retry ("Retry 1"/"Retry 2") of the original transfer, which Plaid Transfer UI does not support. PayBridge therefore never debits this order again automatically. Contact the customer and collect the payment another way.', 'paybridge-for-plaid'),
+                __('Return code %s could be retried under Plaid\'s rules only as a marked retry ("Retry 1"/"Retry 2") of the original transfer, which Plaid Transfer UI does not support. Buckmerce therefore never debits this order again automatically. Contact the customer and collect the payment another way.', 'buckmerce-for-plaid'),
                 $decision->return_code
             ),
             default => '',
@@ -146,6 +146,6 @@ final class ReturnRetryPolicy
     /** Customer-facing text on the order-pay page: no codes, no internals. */
     public static function customer_message(): string
     {
-        return __('Your bank returned the earlier bank payment for this order, so Pay by Bank cannot be used to pay it again. Please choose another payment method or contact the store.', 'paybridge-for-plaid');
+        return __('Your bank returned the earlier bank payment for this order, so Pay by Bank cannot be used to pay it again. Please choose another payment method or contact the store.', 'buckmerce-for-plaid');
     }
 }

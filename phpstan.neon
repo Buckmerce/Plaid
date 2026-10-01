@@ -3,7 +3,7 @@ parameters:
   treatPhpDocTypesAsCertain: false
   paths:
     - src
-    - paybridge-for-plaid.php
+    - buckmerce-for-plaid.php
     - uninstall.php
   bootstrapFiles:
     - tests/phpstan-bootstrap.php

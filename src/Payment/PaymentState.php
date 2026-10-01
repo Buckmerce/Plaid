@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Payment;
+namespace Buckmerce\Plaid\Payment;
 
 /**
- * PayBridge payment states (docs/STATE_MACHINE.md). NEW is represented by an
+ * Buckmerce payment states (docs/STATE_MACHINE.md). NEW is represented by an
  * absent order meta value.
  */
 final class PaymentState
@@ -54,7 +54,7 @@ final class PaymentState
         self::FUNDS_AVAILABLE => 5,
     );
 
-    /** Plaid transfer status / transfer event type → PayBridge state. */
+    /** Plaid transfer status / transfer event type → Buckmerce state. */
     public const FROM_PLAID_TRANSFER_STATUS = array(
         'pending' => self::PENDING,
         'posted' => self::POSTED,

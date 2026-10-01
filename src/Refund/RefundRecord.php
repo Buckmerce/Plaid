@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Refund;
+namespace Buckmerce\Plaid\Refund;
 
-use PayBridge\Plaid\Settings\AccountScope;
+use Buckmerce\Plaid\Settings\AccountScope;
 
-/** One row of {prefix}paybridge_plaid_refunds. */
+/** One row of {prefix}buckmerce_plaid_refunds. */
 final class RefundRecord
 {
     public const ORIGIN_WOOCOMMERCE = 'woocommerce';
-    /** Created outside PayBridge (e.g. in the Plaid Dashboard) and discovered from Plaid. */
+    /** Created outside Buckmerce (e.g. in the Plaid Dashboard) and discovered from Plaid. */
     public const ORIGIN_EXTERNAL = 'external';
 
     public function __construct(

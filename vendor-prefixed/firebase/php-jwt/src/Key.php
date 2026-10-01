@@ -1,6 +1,6 @@
 <?php
 
-namespace PayBridge\Plaid\Vendor\Firebase\JWT;
+namespace Buckmerce\Plaid\Vendor\Firebase\JWT;
 
 use InvalidArgumentException;
 use OpenSSLAsymmetricKey;

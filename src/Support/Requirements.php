@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Support;
+namespace Buckmerce\Plaid\Support;
 
 final class Requirements
 {
@@ -31,7 +31,7 @@ final class Requirements
                 if (! current_user_can('activate_plugins')) {
                     return;
                 }
-                echo '<div class="notice notice-error"><p>' . esc_html__('PayBridge for Plaid requires PHP 8.1+ with the OpenSSL extension, WordPress 6.6+, and WooCommerce 8.7+.', 'paybridge-for-plaid') . '</p></div>';
+                echo '<div class="notice notice-error"><p>' . esc_html__('Buckmerce for Plaid requires PHP 8.1+ with the OpenSSL extension, WordPress 6.6+, and WooCommerce 8.7+.', 'buckmerce-for-plaid') . '</p></div>';
             }
         );
     }

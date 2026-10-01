@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Payment;
+namespace Buckmerce\Plaid\Payment;
 
-use PayBridge\Plaid\Exception\PaymentException;
-use PayBridge\Plaid\Logging\Logger;
-use PayBridge\Plaid\Persistence\DatabaseMutex;
-use PayBridge\Plaid\Persistence\PaymentLockStore;
-use PayBridge\Plaid\Plaid\DTO\TransferIntent;
-use PayBridge\Plaid\Plaid\Exception\PlaidApiException;
-use PayBridge\Plaid\Plaid\Transfer\TransferService;
-use PayBridge\Plaid\Plaid\TransferIntent\TransferIntentService;
-use PayBridge\Plaid\Settings\Settings;
+use Buckmerce\Plaid\Exception\PaymentException;
+use Buckmerce\Plaid\Logging\Logger;
+use Buckmerce\Plaid\Persistence\DatabaseMutex;
+use Buckmerce\Plaid\Persistence\PaymentLockStore;
+use Buckmerce\Plaid\Plaid\DTO\TransferIntent;
+use Buckmerce\Plaid\Plaid\Exception\PlaidApiException;
+use Buckmerce\Plaid\Plaid\Transfer\TransferService;
+use Buckmerce\Plaid\Plaid\TransferIntent\TransferIntentService;
+use Buckmerce\Plaid\Settings\Settings;
 
 /**
  * Explicit merchant actions on a payment (docs/RUNBOOKS.md). Each runs under the order's
@@ -70,7 +70,7 @@ final class ManualActions
             $cancelled = 'cancelled' === $transfer->status;
             $order->add_order_note(sprintf(
                 /* translators: 1: Plaid transfer ID, 2: user ID, 3: Plaid transfer status */
-                $cancelled ? __('PayBridge: transfer %1$s cancelled at Plaid by user #%2$d before it was sent to the bank.', 'paybridge-for-plaid') : __('PayBridge: transfer %1$s could not be cancelled (user #%2$d); Plaid reports it as %3$s.', 'paybridge-for-plaid'),
+                $cancelled ? __('Buckmerce: transfer %1$s cancelled at Plaid by user #%2$d before it was sent to the bank.', 'buckmerce-for-plaid') : __('Buckmerce: transfer %1$s could not be cancelled (user #%2$d); Plaid reports it as %3$s.', 'buckmerce-for-plaid'),
                 $transfer_id,
                 $user_id,
                 $transfer->status
@@ -114,7 +114,7 @@ final class ManualActions
                 OrderPersistence::save($order, array(OrderMeta::PAYMENT_STATE => null, OrderMeta::TRANSFER_INTENT_ID => null));
                 if (! $order->is_paid() && $order->has_status('on-hold')) {
                     // The review put the unpaid order on hold; the merchant now lets the customer pay it.
-                    $order->update_status('pending', __('PayBridge: order reopened for payment after manual review.', 'paybridge-for-plaid'));
+                    $order->update_status('pending', __('Buckmerce: order reopened for payment after manual review.', 'buckmerce-for-plaid'));
                 }
                 $result = 'released';
             }
@@ -122,7 +122,7 @@ final class ManualActions
             $order->save();
             $order->add_order_note(sprintf(
                 /* translators: 1: decision code, 2: user ID */
-                'released' === $result ? __('PayBridge: manual review resolved (%1$s) by user #%2$d. The unused payment attempt was released; the customer can pay again.', 'paybridge-for-plaid') : __('PayBridge: manual review resolved (%1$s) by user #%2$d. Automatic processing of this payment stays stopped.', 'paybridge-for-plaid'),
+                'released' === $result ? __('Buckmerce: manual review resolved (%1$s) by user #%2$d. The unused payment attempt was released; the customer can pay again.', 'buckmerce-for-plaid') : __('Buckmerce: manual review resolved (%1$s) by user #%2$d. Automatic processing of this payment stays stopped.', 'buckmerce-for-plaid'),
                 $decision,
                 $user_id
             ));
@@ -161,7 +161,7 @@ final class ManualActions
     {
         $fresh = wc_get_order($order->get_id());
         if (! $fresh instanceof \WC_Order || Settings::GATEWAY_ID !== $fresh->get_payment_method()) {
-            throw new PaymentException('The order is not a PayBridge order.');
+            throw new PaymentException('The order is not a Buckmerce order.');
         }
         return $fresh;
     }

@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Checkout;
+namespace Buckmerce\Plaid\Checkout;
 
 use Automattic\WooCommerce\Blocks\Payments\Integrations\AbstractPaymentMethodType;
-use PayBridge\Plaid\Gateway\GatewayAvailability;
-use PayBridge\Plaid\Settings\Settings;
+use Buckmerce\Plaid\Gateway\GatewayAvailability;
+use Buckmerce\Plaid\Settings\Settings;
 
 /**
  * Checkout Blocks integration. Presentation only: payment initiation runs in
  * the gateway's process_payment(), shared with Classic Checkout.
  */
-final class PayBridgePaymentMethod extends AbstractPaymentMethodType
+final class BuckmercePaymentMethod extends AbstractPaymentMethodType
 {
     /** @var string */
     protected $name = Settings::GATEWAY_ID;
@@ -31,9 +31,9 @@ final class PayBridgePaymentMethod extends AbstractPaymentMethodType
     /** @return list<string> */
     public function get_payment_method_script_handles(): array
     {
-        $handle = 'paybridge-plaid-blocks';
-        wp_register_script($handle, PAYBRIDGE_PLAID_URL . 'assets/build/blocks.js', array('wc-blocks-registry', 'wc-settings', 'wp-element', 'wp-html-entities', 'wp-i18n'), PAYBRIDGE_PLAID_VERSION, true);
-        wp_set_script_translations($handle, 'paybridge-for-plaid', PAYBRIDGE_PLAID_DIR . 'languages');
+        $handle = 'buckmerce-plaid-blocks';
+        wp_register_script($handle, BUCKMERCE_PLAID_URL . 'assets/build/blocks.js', array('wc-blocks-registry', 'wc-settings', 'wp-element', 'wp-html-entities', 'wp-i18n'), BUCKMERCE_PLAID_VERSION, true);
+        wp_set_script_translations($handle, 'buckmerce-for-plaid', BUCKMERCE_PLAID_DIR . 'languages');
         return array($handle);
     }
 
@@ -45,7 +45,7 @@ final class PayBridgePaymentMethod extends AbstractPaymentMethodType
         return array(
             'title' => $settings->title(),
             'description' => $settings->description(),
-            'icon' => PAYBRIDGE_PLAID_URL . 'assets/images/paybridge-mark.svg',
+            'icon' => BUCKMERCE_PLAID_URL . 'assets/images/buckmerce-mark.svg',
             'supports' => array('products'),
             'available' => array() === GatewayAvailability::problems($settings, get_woocommerce_currency(), GatewayAvailability::site_uses_https()),
         );

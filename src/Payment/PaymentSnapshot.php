@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Payment;
+namespace Buckmerce\Plaid\Payment;
 
 use InvalidArgumentException;
-use PayBridge\Plaid\Plaid\PlaidEnvironment;
-use PayBridge\Plaid\Settings\Settings;
-use PayBridge\Plaid\Support\Decimal;
-use PayBridge\Plaid\Support\Money;
+use Buckmerce\Plaid\Plaid\PlaidEnvironment;
+use Buckmerce\Plaid\Settings\Settings;
+use Buckmerce\Plaid\Support\Decimal;
+use Buckmerce\Plaid\Support\Money;
 
 /**
  * Immutable record of what one payment attempt is expected to charge. It is

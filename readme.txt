@@ -1,4 +1,4 @@
-=== PayBridge for Plaid — WooCommerce Pay by Bank ===
+=== Buckmerce – Bank Payments via Plaid for WooCommerce ===
 Contributors: al5dy
 Tags: woocommerce, pay by bank, ach, bank transfer, plaid
 Requires at least: 6.6
@@ -12,9 +12,9 @@ Secure Pay by Bank payments and native refunds for WooCommerce using Plaid Trans
 
 == Description ==
 
-PayBridge for Plaid adds a **Pay by Bank** payment method to WooCommerce. Customers connect their bank and authorize a one-time ACH debit in Plaid's Transfer UI. PayBridge creates the payment on your server, verifies every result with Plaid, keeps the WooCommerce order in step with the ACH lifecycle until the ACH return window closes, and refunds payments back to the customer's bank.
+Buckmerce for Plaid adds a **Pay by Bank** payment method to WooCommerce. Customers connect their bank and authorize a one-time ACH debit in Plaid's Transfer UI. Buckmerce creates the payment on your server, verifies every result with Plaid, keeps the WooCommerce order in step with the ACH lifecycle until the ACH return window closes, and refunds payments back to the customer's bank.
 
-PayBridge for Plaid is an independent third-party integration. It is not developed, endorsed or supported by Plaid Inc. You need your own Plaid account with Plaid Transfer enabled.
+Buckmerce for Plaid is an independent third-party integration. It is not developed, endorsed or supported by Plaid Inc. You need your own Plaid account with Plaid Transfer enabled.
 
 = Features =
 
@@ -44,7 +44,7 @@ PayBridge for Plaid is an independent third-party integration. It is not develop
 == Installation ==
 
 1. Upload the plugin ZIP in **Plugins → Add New → Upload Plugin** and activate it. WooCommerce must be active.
-2. Go to **WooCommerce → Settings → Payments → PayBridge for Plaid**.
+2. Go to **WooCommerce → Settings → Payments → Buckmerce for Plaid**.
 3. Choose the **Environment** (start with Sandbox) and enter the **Client ID** and **Secret** from the Plaid Dashboard (Developers → Keys).
 4. Leave **Funding Account ID** empty if your Plaid Transfer account uses Plaid Ledger (the default).
 5. In the Plaid Dashboard (in the same environment), create a Link customization with Account Select set to "Enabled for one account" and enter its name. It is required in Sandbox and Production.
@@ -53,7 +53,7 @@ PayBridge for Plaid is an independent third-party integration. It is not develop
 
 = Plaid account =
 
-PayBridge uses Plaid Transfer. Plaid must enable Transfer for your team; Production access requires Plaid's approval of your Transfer application. Plaid Transfer UI requires a Link customization with Account Select set to "Enabled for one account" in each environment you use (its language must match your store language). Refunds are paid from your Plaid Ledger's available balance.
+Buckmerce uses Plaid Transfer. Plaid must enable Transfer for your team; Production access requires Plaid's approval of your Transfer application. Plaid Transfer UI requires a Link customization with Account Select set to "Enabled for one account" in each environment you use (its language must match your store language). Refunds are paid from your Plaid Ledger's available balance.
 
 = Sandbox =
 
@@ -70,7 +70,7 @@ Production moves real money. The site must use HTTPS; the gateway is hidden othe
 * **Bank statement description** — shown on the customer's bank statement after your company name (default PAYMENT, up to 10 letters/digits/spaces).
 * **Payment network** — Same Day ACH (default) or Standard ACH.
 * **Mark order paid when** — Funds are available (recommended) or the transfer is settled. Until then the order is On hold.
-* **Debug logging** — redacted logs under WooCommerce → Status → Logs (source `paybridge-for-plaid`).
+* **Debug logging** — redacted logs under WooCommerce → Status → Logs (source `buckmerce-for-plaid`).
 * **Uninstall cleanup** — when enabled, deleting the plugin removes its settings, event and refund history and database tables. Payment records on orders are always kept.
 
 The ACH class is always WEB (internet-authorized consumer debit), as required for Plaid Transfer UI. Customers must provide a billing first and last name (the bank account holder's legal name).
@@ -79,7 +79,7 @@ The ACH class is always WEB (internet-authorized consumer debit), as required fo
 
 = Is this an official Plaid plugin? =
 
-No. PayBridge for Plaid is an independent integration that uses the public Plaid API. It is not developed or endorsed by Plaid.
+No. Buckmerce for Plaid is an independent third-party integration that uses the public Plaid API. It is not developed, endorsed or supported by Plaid Inc.
 
 = When is an order marked as paid? =
 
@@ -87,11 +87,11 @@ When Plaid reports the transfer as funds available (or settled, if you choose th
 
 = What happens if a payment is returned? =
 
-The order is marked Failed with a private note that includes the return code and reason, the orders list shows "Bank payment returned", an admin notice is shown until dismissed, and the site administrator receives an email. The original paid date, transaction ID and history are preserved. PayBridge does not debit the customer's bank again for that order: Plaid allows reprocessing a returned payment only in narrow cases (R01/R09, marked retries) that Plaid Transfer UI cannot express, and never for unauthorized returns such as R10. Pay by Bank is therefore not offered for that order again; contact the customer and collect the payment another way. If you had already refunded the payment, PayBridge cancels still-pending refunds and raises a critical alert, because you may lose both the payment and the refund.
+The order is marked Failed with a private note that includes the return code and reason, the orders list shows "Bank payment returned", an admin notice is shown until dismissed, and the site administrator receives an email. The original paid date, transaction ID and history are preserved. Buckmerce does not debit the customer's bank again for that order: Plaid allows reprocessing a returned payment only in narrow cases (R01/R09, marked retries) that Plaid Transfer UI cannot express, and never for unauthorized returns such as R10. Pay by Bank is therefore not offered for that order again; contact the customer and collect the payment another way. If you had already refunded the payment, Buckmerce cancels still-pending refunds and raises a critical alert, because you may lose both the payment and the refund.
 
 = Can a customer be charged twice? =
 
-PayBridge keeps a single active Plaid Transfer Intent per order, protected by a database reservation, and Link tokens are issued only for that intent. Retries reuse it; a new one is created only after Plaid reports the previous attempt failed or it can no longer be authorized.
+Buckmerce keeps a single active Plaid Transfer Intent per order, protected by a database reservation, and Link tokens are issued only for that intent. Retries reuse it; a new one is created only after Plaid reports the previous attempt failed or it can no longer be authorized.
 
 = Which currencies are supported? =
 
@@ -99,19 +99,19 @@ USD only.
 
 = Can I refund a Pay by Bank payment? =
 
-Yes. Use WooCommerce's Refund button on the order and choose the automatic refund through PayBridge for Plaid. Full and multiple partial refunds are supported once the payment has settled (Plaid allows up to 10 refunds per payment within 180 days). PayBridge prevents duplicate refunds and tracks each refund until it settles, fails or is returned.
+Yes. Use WooCommerce's Refund button on the order and choose the automatic refund through Buckmerce for Plaid. Full and multiple partial refunds are supported once the payment has settled (Plaid allows up to 10 refunds per payment within 180 days). Buckmerce prevents duplicate refunds and tracks each refund until it settles, fails or is returned.
 
 = What happens if I disable the gateway or change Plaid keys? =
 
-Disabling only hides Pay by Bank at checkout; existing payments keep being monitored. You can rotate your Plaid secret at any time, but PayBridge refuses to switch to another Plaid Client ID or environment while Production payments are still monitored, because the old payments could no longer be checked for returns.
+Disabling only hides Pay by Bank at checkout; existing payments keep being monitored. You can rotate your Plaid secret at any time, but Buckmerce refuses to switch to another Plaid Client ID or environment while Production payments are still monitored, because the old payments could no longer be checked for returns.
 
 = What happens when I switch to another Plaid account? =
 
-Each Plaid account has its own transfer-event history. PayBridge keeps a separate event cursor and history per account and environment, so a new account's events are never mistaken for the old account's, and the old account's history stays available for auditing.
+Each Plaid account has its own transfer-event history. Buckmerce keeps a separate event cursor and history per account and environment, so a new account's events are never mistaken for the old account's, and the old account's history stays available for auditing.
 
 = Does it support subscriptions? =
 
-No. PayBridge 1.0 supports one-time payments.
+No. Buckmerce 1.0 supports one-time payments.
 
 == External services ==
 
@@ -125,7 +125,7 @@ Plaid terms: https://plaid.com/legal/ — Plaid end user privacy policy: https:/
 
 == Privacy ==
 
-PayBridge sends only the data needed to create the payment or refund (amount, statement description, billing name and email, order references) to Plaid. Bank login credentials and account numbers are handled by Plaid and are never received or stored by your store. Plaid payment identifiers and statuses are stored on the order for accounting. No telemetry is collected. Suggested privacy-policy text is added under Settings → Privacy.
+Buckmerce sends only the data needed to create the payment or refund (amount, statement description, billing name and email, order references) to Plaid. Bank login credentials and account numbers are handled by Plaid and are never received or stored by your store. Plaid payment identifiers and statuses are stored on the order for accounting. No telemetry is collected. Suggested privacy-policy text is added under Settings → Privacy.
 
 == Security ==
 
@@ -139,8 +139,8 @@ PayBridge sends only the data needed to create the payment or refund (amount, st
 
 1. Gateway settings with the status panel, webhook URL and connection test.
 2. The Pay by Bank payment page with the "Connect bank and pay" button.
-3. The PayBridge panel on the WooCommerce order screen, with refunds and payment history.
-4. The PayBridge diagnostics page.
+3. The Buckmerce panel on the WooCommerce order screen, with refunds and payment history.
+4. The Buckmerce diagnostics page.
 
 == Changelog ==
 
@@ -156,6 +156,7 @@ PayBridge sends only the data needed to create the payment or refund (amount, st
 * New: configuration status, classified connection test, richer diagnostics and order panel, manual-review decisions and "Cancel bank payment".
 * Changed: the ACH class is always WEB; the ACH class and reconciliation settings were removed.
 * Improved: accessibility of the payment page and admin status colors (WCAG 2.2 AA).
+* New: Russian (ru_RU) translation.
 
 = 0.1.0 =
 * Initial release: Pay by Bank with Plaid Transfer UI, verified webhooks, transfer event sync, reconciliation, HPOS and Checkout block support, diagnostics, Site Health checks and WP-CLI commands.

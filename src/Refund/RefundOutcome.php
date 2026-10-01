@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Refund;
+namespace Buckmerce\Plaid\Refund;
 
 /** Result of a refund request, as reported back to WooCommerce. The message is admin-facing and sanitized. */
 final class RefundOutcome

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Plaid\Client;
+namespace Buckmerce\Plaid\Plaid\Client;
 
-use PayBridge\Plaid\Plaid\Exception\PlaidMalformedResponseException;
+use Buckmerce\Plaid\Plaid\Exception\PlaidMalformedResponseException;
 
 /** Successful (HTTP 200) decoded Plaid response. */
 final class PlaidResponse

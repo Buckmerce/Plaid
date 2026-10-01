@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Plaid\DTO;
+namespace Buckmerce\Plaid\Plaid\DTO;
 
 final class TransferEventPage
 {

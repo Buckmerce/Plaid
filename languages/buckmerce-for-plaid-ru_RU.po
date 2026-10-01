@@ -1,0 +1,1799 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Buckmerce – Bank Payments via Plaid for WooCommerce 1.0.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/buckmerce-for-plaid\n"
+"Last-Translator: Buckmerce\n"
+"Language-Team: Russian\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2026-10-01T07:06:17+02:00\n"
+"PO-Revision-Date: 2026-10-01T06:24:05+00:00\n"
+"Language: ru_RU\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<12 || n%100>14) ? 1 : 2);\n"
+"X-Domain: buckmerce-for-plaid\n"
+
+#. Plugin Name of the plugin
+#: buckmerce-for-plaid.php
+msgid "Buckmerce – Bank Payments via Plaid for WooCommerce"
+msgstr "Buckmerce – Bank Payments via Plaid for WooCommerce"
+
+#. Description of the plugin
+#: buckmerce-for-plaid.php
+msgid "Secure Pay by Bank payments for WooCommerce using Plaid."
+msgstr "Безопасная оплата с банковского счёта для WooCommerce через Plaid."
+
+#. Author of the plugin
+#: buckmerce-for-plaid.php
+msgid "al5dy"
+msgstr "al5dy"
+
+#: src/Admin/AdminNotices.php:36
+msgid "Review order"
+msgstr "Проверить заказ"
+
+#: src/Admin/AdminNotices.php:38
+msgid "Dismiss"
+msgstr "Скрыть"
+
+#: src/Admin/AdminNotices.php:45
+msgid "You are not allowed to do this."
+msgstr "У вас нет прав на это действие."
+
+#: src/Admin/ConfigurationStatus.php:46
+msgid "Plaid Client ID and Secret"
+msgstr "Plaid Client ID и Secret"
+
+#: src/Admin/ConfigurationStatus.php:46
+msgid "Enter both keys of the selected environment."
+msgstr "Введите оба ключа выбранной среды."
+
+#: src/Admin/ConfigurationStatus.php:47
+msgid "Environment: Production (real money)"
+msgstr "Среда: Production (реальные деньги)"
+
+#: src/Admin/ConfigurationStatus.php:47
+msgid "Environment: Sandbox (test mode)"
+msgstr "Среда: Sandbox (тестовый режим)"
+
+#: src/Admin/ConfigurationStatus.php:49
+#: src/Admin/DiagnosticsPage.php:76
+msgid "HTTPS"
+msgstr "HTTPS"
+
+#: src/Admin/ConfigurationStatus.php:49
+msgid "Production requires HTTPS."
+msgstr "Для Production требуется HTTPS."
+
+#: src/Admin/ConfigurationStatus.php:51
+msgid "Store currency USD"
+msgstr "Валюта магазина — USD"
+
+#: src/Admin/ConfigurationStatus.php:56
+#: src/Admin/DiagnosticsPage.php:91
+msgid "Link customization configured"
+msgstr "Кастомизация Link настроена"
+
+#: src/Admin/ConfigurationStatus.php:57
+msgid "Create a Plaid Link customization with Account Select = “Enabled for one account” in the selected environment, then enter its name. Plaid Transfer UI requires it in Sandbox and Production."
+msgstr "Создайте в выбранной среде кастомизацию Plaid Link с параметром Account Select = “Enabled for one account” и введите её название. Plaid Transfer UI требует её и в Sandbox, и в Production."
+
+#. translators: %s: Plaid error code
+#: src/Admin/ConfigurationStatus.php:61
+#, php-format
+msgid "Plaid rejected the last Link session (%s)"
+msgstr "Plaid отклонил последнюю сессию Link (%s)"
+
+#. translators: %s: Plaid error code
+#: src/Admin/ConfigurationStatus.php:61
+msgid "Check the Link customization name, that it is published and that its language matches the store language."
+msgstr "Проверьте название кастомизации Link, что она опубликована и что её язык совпадает с языком магазина."
+
+#: src/Admin/ConfigurationStatus.php:64
+msgid "Database tables"
+msgstr "Таблицы базы данных"
+
+#: src/Admin/ConfigurationStatus.php:64
+msgid "Deactivate and reactivate the plugin to recreate its tables."
+msgstr "Деактивируйте и снова активируйте плагин, чтобы пересоздать его таблицы."
+
+#: src/Admin/ConfigurationStatus.php:66
+msgid "Webhook REST route"
+msgstr "REST-маршрут вебхука"
+
+#: src/Admin/ConfigurationStatus.php:71
+#: src/Admin/ConfigurationStatus.php:73
+msgid "Last Plaid connection test"
+msgstr "Последняя проверка подключения к Plaid"
+
+#: src/Admin/ConfigurationStatus.php:73
+msgid "Not run yet: use “Test connection”."
+msgstr "Ещё не выполнялась: нажмите «Проверить подключение»."
+
+#: src/Admin/ConfigurationStatus.php:79
+msgid "Pay by Bank offered at checkout"
+msgstr "Оплата через банк предлагается при оформлении заказа"
+
+#: src/Admin/ConfigurationStatus.php:79
+msgid "Disabled: customers cannot choose Pay by Bank. Existing payments are still monitored."
+msgstr "Отключено: покупатели не могут выбрать оплату через банк. Существующие платежи по-прежнему отслеживаются."
+
+#: src/Admin/ConfigurationStatus.php:104
+msgid "Action Scheduler available"
+msgstr "Action Scheduler доступен"
+
+#: src/Admin/ConfigurationStatus.php:104
+msgid "Buckmerce cannot follow payments without WooCommerce Action Scheduler."
+msgstr "Без WooCommerce Action Scheduler Buckmerce не может отслеживать платежи."
+
+#: src/Admin/ConfigurationStatus.php:108
+#: src/Admin/DiagnosticsPage.php:81
+msgid "Reconciliation scheduled"
+msgstr "Сверка запланирована"
+
+#: src/Admin/ConfigurationStatus.php:108
+msgid "It is scheduled automatically on the next admin or cron request."
+msgstr "Она будет запланирована автоматически при следующем запросе админки или cron."
+
+#: src/Admin/ConfigurationStatus.php:114
+msgid "Background jobs running on time"
+msgstr "Фоновые задачи выполняются вовремя"
+
+#: src/Admin/ConfigurationStatus.php:117
+msgid "Buckmerce jobs are overdue and WP-Cron is disabled (DISABLE_WP_CRON). Configure a server cron job that runs wp-cron.php or `wp action-scheduler run` every minute."
+msgstr "Задачи Buckmerce просрочены, а WP-Cron отключён (DISABLE_WP_CRON). Настройте серверный cron, который каждую минуту запускает wp-cron.php или `wp action-scheduler run`."
+
+#: src/Admin/ConfigurationStatus.php:118
+msgid "Buckmerce jobs are overdue. WP-Cron runs only when the site gets visits; configure a server cron job for reliable payment updates."
+msgstr "Задачи Buckmerce просрочены. WP-Cron работает только при посещениях сайта; для надёжного обновления платежей настройте серверный cron."
+
+#: src/Admin/ConfigurationStatus.php:119
+msgid "WP-Cron is disabled; a server cron job must run the scheduled actions."
+msgstr "WP-Cron отключён; запланированные действия должен запускать серверный cron."
+
+#: src/Admin/ConfigurationStatus.php:125
+msgid "Last Plaid event sync failed"
+msgstr "Последняя синхронизация событий Plaid завершилась ошибкой"
+
+#: src/Admin/ConfigurationStatus.php:125
+msgid "Plaid rejected the request: check the credentials with “Test connection”."
+msgstr "Plaid отклонил запрос: проверьте учётные данные кнопкой «Проверить подключение»."
+
+#: src/Admin/ConfigurationStatus.php:125
+msgid "Buckmerce retries automatically with backoff."
+msgstr "Buckmerce автоматически повторяет попытки с увеличивающимся интервалом."
+
+#. translators: %d: number of payments
+#: src/Admin/ConfigurationStatus.php:131
+#, php-format
+msgid "%d bank payment(s) cannot be monitored"
+msgstr "Банковских платежей, которые невозможно отслеживать: %d"
+
+#. translators: %d: number of payments
+#: src/Admin/ConfigurationStatus.php:131
+msgid "Plaid credentials are missing, so returns and refunds of existing payments are not detected."
+msgstr "Учётные данные Plaid не заданы, поэтому ACH-возвраты и возвраты средств по существующим платежам не обнаруживаются."
+
+#. translators: %d: number of payments
+#: src/Admin/ConfigurationStatus.php:138
+#, php-format
+msgid "%d payment(s) belong to another Plaid account"
+msgstr "Платежей, принадлежащих другому аккаунту Plaid: %d"
+
+#. translators: %d: number of payments
+#: src/Admin/ConfigurationStatus.php:138
+msgid "They cannot be read with the current Client ID and are not monitored."
+msgstr "Их нельзя прочитать с текущим Client ID, и они не отслеживаются."
+
+#: src/Admin/ConfigurationStatus.php:179
+msgid "Ready"
+msgstr "Готово"
+
+#: src/Admin/ConfigurationStatus.php:180
+msgid "Disabled"
+msgstr "Отключено"
+
+#: src/Admin/ConfigurationStatus.php:181
+msgid "Incomplete"
+msgstr "Настройка не завершена"
+
+#: src/Admin/ConfigurationStatus.php:182
+msgid "Attention required"
+msgstr "Требуется внимание"
+
+#: src/Admin/ConfigurationStatus.php:189
+#: src/Admin/DiagnosticsPage.php:91
+msgid "PASS"
+msgstr "ОК"
+
+#: src/Admin/ConfigurationStatus.php:190
+msgid "FAIL"
+msgstr "ОШИБКА"
+
+#: src/Admin/ConfigurationStatus.php:191
+msgid "WARN"
+msgstr "ВНИМАНИЕ"
+
+#: src/Admin/ConfigurationStatus.php:192
+msgid "INFO"
+msgstr "ИНФО"
+
+#: src/Admin/ConnectionTester.php:42
+msgid "You are not allowed to run this check."
+msgstr "У вас нет прав на запуск этой проверки."
+
+#: src/Admin/ConnectionTester.php:112
+msgid "Connected to Plaid Transfer. Plaid Ledger is enabled (leave Funding Account ID empty)."
+msgstr "Подключено к Plaid Transfer. Plaid Ledger включён (оставьте Funding Account ID пустым)."
+
+#: src/Admin/ConnectionTester.php:113
+msgid "Connected to Plaid Transfer."
+msgstr "Подключено к Plaid Transfer."
+
+#: src/Admin/ConnectionTester.php:114
+msgid "Configuration incomplete: enter the Client ID and Secret, save, then test again."
+msgstr "Настройка не завершена: введите Client ID и Secret, сохраните и повторите проверку."
+
+#. translators: %s: Plaid error code such as INVALID_API_KEYS
+#: src/Admin/ConnectionTester.php:116
+#, php-format
+msgid "Invalid Plaid credentials (%s): check the Client ID and that the Secret belongs to the selected environment."
+msgstr "Неверные учётные данные Plaid (%s): проверьте Client ID и то, что Secret относится к выбранной среде."
+
+#. translators: %s: Plaid error code
+#: src/Admin/ConnectionTester.php:118
+#, php-format
+msgid "Plaid Transfer is not enabled for this Plaid account/environment (%s). Request Transfer access in the Plaid Dashboard."
+msgstr "Plaid Transfer не включён для этого аккаунта/среды Plaid (%s). Запросите доступ к Transfer в Plaid Dashboard."
+
+#. translators: %s: Plaid error code
+#: src/Admin/ConnectionTester.php:120
+#, php-format
+msgid "Plaid denied access to Transfer (%s). Your team may not be approved for this environment yet."
+msgstr "Plaid отказал в доступе к Transfer (%s). Возможно, ваша команда ещё не одобрена для этой среды."
+
+#: src/Admin/ConnectionTester.php:121
+msgid "Plaid rate-limited the check. Wait a minute and test again."
+msgstr "Plaid ограничил частоту запросов. Подождите минуту и повторите проверку."
+
+#: src/Admin/ConnectionTester.php:122
+msgid "Plaid is temporarily unavailable or returned an unexpected response. Try again later; see status.plaid.com."
+msgstr "Plaid временно недоступен или вернул неожиданный ответ. Повторите позже; см. status.plaid.com."
+
+#: src/Admin/ConnectionTester.php:123
+msgid "Plaid could not be reached from this server (network error). Check outbound HTTPS connectivity and firewall rules."
+msgstr "С этого сервера не удалось связаться с Plaid (сетевая ошибка). Проверьте исходящие HTTPS-соединения и правила файрвола."
+
+#. translators: %s: Plaid error code
+#: src/Admin/ConnectionTester.php:125
+#, php-format
+msgid "Plaid rejected the request (%s). Check the credentials, the environment and that Transfer is enabled for your account."
+msgstr "Plaid отклонил запрос (%s). Проверьте учётные данные, среду и то, что Transfer включён для вашего аккаунта."
+
+#: src/Admin/ConnectionTester.php:126
+msgid "No connection test has been run."
+msgstr "Проверка подключения ещё не выполнялась."
+
+#: src/Admin/ConnectionTester.php:131
+msgid "Link customization missing: Plaid Transfer UI requires one with Account Select “Enabled for one account” in this environment."
+msgstr "Не задана кастомизация Link: Plaid Transfer UI требует в этой среде кастомизацию с параметром Account Select “Enabled for one account”."
+
+#: src/Admin/ConnectionTester.php:132
+msgid "Plaid Ledger is enabled, so remove the Funding Account ID (Plaid rejects it)."
+msgstr "Plaid Ledger включён, поэтому удалите Funding Account ID (Plaid его отклоняет)."
+
+#: src/Admin/ConnectionTester.php:133
+msgid "No Plaid Ledger was found: enter your Funding Account ID from the Plaid Dashboard."
+msgstr "Plaid Ledger не найден: введите Funding Account ID из Plaid Dashboard."
+
+#: src/Admin/DiagnosticsPage.php:45
+msgid "Buckmerce diagnostics"
+msgstr "Диагностика Buckmerce"
+
+#: src/Admin/DiagnosticsPage.php:52
+msgid "Yes"
+msgstr "Да"
+
+#: src/Admin/DiagnosticsPage.php:53
+msgid "No"
+msgstr "Нет"
+
+#: src/Admin/DiagnosticsPage.php:54
+msgid "Never"
+msgstr "Никогда"
+
+#: src/Admin/DiagnosticsPage.php:68
+#: src/Admin/OrderMetaBox.php:120
+#: src/Gateway/BuckmerceGateway.php:174
+msgid "Status"
+msgstr "Статус"
+
+#: src/Admin/DiagnosticsPage.php:69
+msgid "Plugin version"
+msgstr "Версия плагина"
+
+#: src/Admin/DiagnosticsPage.php:70
+msgid "PHP"
+msgstr "PHP"
+
+#: src/Admin/DiagnosticsPage.php:71
+msgid "WordPress"
+msgstr "WordPress"
+
+#: src/Admin/DiagnosticsPage.php:72
+msgid "WooCommerce"
+msgstr "WooCommerce"
+
+#: src/Admin/DiagnosticsPage.php:72
+msgid "Not active"
+msgstr "Не активен"
+
+#: src/Admin/DiagnosticsPage.php:73
+msgid "Database server"
+msgstr "Сервер базы данных"
+
+#: src/Admin/DiagnosticsPage.php:74
+msgid "HPOS (custom order tables)"
+msgstr "HPOS (отдельные таблицы заказов)"
+
+#: src/Admin/DiagnosticsPage.php:75
+msgid "Checkout Blocks available"
+msgstr "Блоки оформления заказа доступны"
+
+#: src/Admin/DiagnosticsPage.php:77
+msgid "REST API route registered"
+msgstr "Маршрут REST API зарегистрирован"
+
+#: src/Admin/DiagnosticsPage.php:78
+msgid "Action Scheduler"
+msgstr "Action Scheduler"
+
+#: src/Admin/DiagnosticsPage.php:79
+msgid "WP-Cron disabled (DISABLE_WP_CRON)"
+msgstr "WP-Cron отключён (DISABLE_WP_CRON)"
+
+#: src/Admin/DiagnosticsPage.php:80
+msgid "Background maintenance active"
+msgstr "Фоновое обслуживание активно"
+
+#: src/Admin/DiagnosticsPage.php:82
+msgid "Overdue Buckmerce jobs (>30 min)"
+msgstr "Просроченные задачи Buckmerce (>30 мин)"
+
+#: src/Admin/DiagnosticsPage.php:83
+msgid "Failed Buckmerce jobs (7 days)"
+msgstr "Неудачные задачи Buckmerce (7 дней)"
+
+#: src/Admin/DiagnosticsPage.php:84
+msgid "Database schema"
+msgstr "Схема базы данных"
+
+#. translators: %s: schema version
+#: src/Admin/DiagnosticsPage.php:84
+#, php-format
+msgid "Valid (version %s)"
+msgstr "Корректна (версия %s)"
+
+#. translators: %s: schema version
+#: src/Admin/DiagnosticsPage.php:84
+msgid "INVALID"
+msgstr "НЕКОРРЕКТНА"
+
+#. translators: %s: schema version
+#: src/Admin/DiagnosticsPage.php:85
+msgid "Gateway enabled (new payments)"
+msgstr "Шлюз включён (новые платежи)"
+
+#: src/Admin/DiagnosticsPage.php:86
+msgid "Plaid environment"
+msgstr "Среда Plaid"
+
+#: src/Admin/DiagnosticsPage.php:87
+msgid "Client ID configured"
+msgstr "Client ID задан"
+
+#: src/Admin/DiagnosticsPage.php:88
+msgid "Secret configured"
+msgstr "Secret задан"
+
+#: src/Admin/DiagnosticsPage.php:89
+msgid "Plaid account fingerprint"
+msgstr "Отпечаток аккаунта Plaid"
+
+#: src/Admin/DiagnosticsPage.php:90
+msgid "Funding Account configured"
+msgstr "Funding Account задан"
+
+#: src/Admin/DiagnosticsPage.php:90
+msgid "No (Plaid Ledger)"
+msgstr "Нет (Plaid Ledger)"
+
+#: src/Admin/DiagnosticsPage.php:91
+msgid "FAIL (required by Transfer UI in Sandbox and Production)"
+msgstr "ОШИБКА (Transfer UI требует её в Sandbox и Production)"
+
+#: src/Admin/DiagnosticsPage.php:92
+msgid "Last Link session error"
+msgstr "Последняя ошибка сессии Link"
+
+#: src/Admin/DiagnosticsPage.php:93
+#: src/Gateway/BuckmerceGateway.php:62
+msgid "Bank statement description"
+msgstr "Описание в банковской выписке"
+
+#: src/Admin/DiagnosticsPage.php:94
+msgid "ACH class"
+msgstr "Класс ACH"
+
+#: src/Admin/DiagnosticsPage.php:95
+msgid "Plaid connectivity (last test)"
+msgstr "Связь с Plaid (последняя проверка)"
+
+#: src/Admin/DiagnosticsPage.php:95
+msgid "Not tested"
+msgstr "Не проверялась"
+
+#: src/Admin/DiagnosticsPage.php:96
+#: src/Gateway/BuckmerceGateway.php:197
+msgid "Webhook URL"
+msgstr "URL вебхука"
+
+#: src/Admin/DiagnosticsPage.php:97
+msgid "Last verified webhook"
+msgstr "Последний проверенный вебхук"
+
+#: src/Admin/DiagnosticsPage.php:98
+msgid "Last rejected webhook"
+msgstr "Последний отклонённый вебхук"
+
+#: src/Admin/DiagnosticsPage.php:99
+msgid "Event stream (environment/account)"
+msgstr "Поток событий (среда/аккаунт)"
+
+#: src/Admin/DiagnosticsPage.php:100
+msgid "Event stream cursor (last stored event ID)"
+msgstr "Курсор потока событий (ID последнего сохранённого события)"
+
+#: src/Admin/DiagnosticsPage.php:101
+msgid "First payment with this account (epoch)"
+msgstr "Первый платёж с этим аккаунтом (эпоха)"
+
+#: src/Admin/DiagnosticsPage.php:102
+msgid "Last successful event sync"
+msgstr "Последняя успешная синхронизация событий"
+
+#: src/Admin/DiagnosticsPage.php:103
+msgid "Last event sync error"
+msgstr "Последняя ошибка синхронизации событий"
+
+#: src/Admin/DiagnosticsPage.php:104
+msgid "Consecutive event sync failures"
+msgstr "Ошибок синхронизации событий подряд"
+
+#: src/Admin/DiagnosticsPage.php:105
+msgid "Last reconciliation"
+msgstr "Последняя сверка"
+
+#: src/Admin/DiagnosticsPage.php:106
+msgid "Last reconciliation error"
+msgstr "Последняя ошибка сверки"
+
+#: src/Admin/DiagnosticsPage.php:119
+msgid "Monitored bank payments"
+msgstr "Отслеживаемые банковские платежи"
+
+#: src/Admin/DiagnosticsPage.php:120
+msgid "Oldest monitored payment (attempt created)"
+msgstr "Самый старый отслеживаемый платёж (создание попытки)"
+
+#: src/Admin/DiagnosticsPage.php:121
+msgid "Payments in flight (pending/posted)"
+msgstr "Платежи в обработке (pending/posted)"
+
+#: src/Admin/DiagnosticsPage.php:122
+msgid "Payments awaiting authorization"
+msgstr "Платежи, ожидающие авторизации"
+
+#: src/Admin/DiagnosticsPage.php:123
+msgid "Payments in manual review"
+msgstr "Платежи на ручной проверке"
+
+#: src/Admin/DiagnosticsPage.php:124
+msgid "Returned payments"
+msgstr "Платежи, возвращённые банком"
+
+#: src/Admin/DiagnosticsPage.php:125
+msgid "Intent creations with unknown outcome"
+msgstr "Создания Intent с неизвестным результатом"
+
+#: src/Admin/DiagnosticsPage.php:126
+msgid "Payments of another Plaid account"
+msgstr "Платежи другого аккаунта Plaid"
+
+#: src/Admin/DiagnosticsPage.php:127
+msgid "Refunds pending (in flight/unconfirmed)"
+msgstr "Возвраты средств в ожидании (в обработке/не подтверждены)"
+
+#: src/Admin/DiagnosticsPage.php:128
+msgid "Refunds settled"
+msgstr "Возвраты средств завершены"
+
+#: src/Admin/DiagnosticsPage.php:129
+msgid "Refunds failed or returned"
+msgstr "Возвраты средств: ошибка или возврат банком"
+
+#: src/Admin/DiagnosticsPage.php:130
+msgid "Event backlog (waiting to be processed)"
+msgstr "Очередь событий (ожидают обработки)"
+
+#: src/Admin/DiagnosticsPage.php:131
+msgid "Events waiting for an order match"
+msgstr "События, ожидающие сопоставления с заказом"
+
+#: src/Admin/DiagnosticsPage.php:132
+msgid "Events abandoned after retries"
+msgstr "События, отброшенные после повторных попыток"
+
+#: src/Admin/DiagnosticsPage.php:133
+msgid "Events of previous accounts or schema 2 (audit only)"
+msgstr "События прежних аккаунтов или схемы 2 (только для аудита)"
+
+#: src/Admin/DiagnosticsPage.php:154
+msgid "Buckmerce for Plaid — diagnostics"
+msgstr "Buckmerce for Plaid — диагностика"
+
+#: src/Admin/DiagnosticsPage.php:154
+#: src/Gateway/BuckmerceGateway.php:176
+msgid "Production"
+msgstr "Production"
+
+#: src/Admin/DiagnosticsPage.php:154
+#: src/Gateway/BuckmerceGateway.php:176
+msgid "Sandbox"
+msgstr "Sandbox"
+
+#. translators: %s: status label
+#: src/Admin/DiagnosticsPage.php:158
+#, php-format
+msgid "Status: %s"
+msgstr "Статус: %s"
+
+#: src/Admin/DiagnosticsPage.php:167
+msgid "Test Plaid connection"
+msgstr "Проверить подключение к Plaid"
+
+#: src/Admin/DiagnosticsPage.php:168
+#: src/Admin/DiagnosticsPage.php:173
+msgid "Support report"
+msgstr "Отчёт для поддержки"
+
+#: src/Admin/DiagnosticsPage.php:168
+msgid "Safe to share: contains no credentials or customer data."
+msgstr "Можно передавать: не содержит учётных данных и данных покупателей."
+
+#: src/Admin/OrderListColumn.php:38
+#: src/Admin/OrderListColumn.php:42
+#: src/Gateway/BuckmerceGateway.php:43
+#: src/Gateway/BuckmerceGateway.php:53
+#: src/Gateway/BuckmerceGateway.php:60
+#: src/Settings/Settings.php:58
+msgid "Pay by Bank"
+msgstr "Оплата через банк"
+
+#. translators: %s: ACH return code
+#: src/Admin/OrderListColumn.php:83
+msgid "Bank payment returned"
+msgstr "Банковский платёж возвращён"
+
+#. translators: %s: ACH return code
+#: src/Admin/OrderListColumn.php:83
+#, php-format
+msgid "Bank payment returned (%s)"
+msgstr "Банковский платёж возвращён (%s)"
+
+#: src/Admin/OrderListColumn.php:84
+msgid "Needs review"
+msgstr "Требуется проверка"
+
+#: src/Admin/OrderListColumn.php:85
+msgid "Bank payment failed"
+msgstr "Банковский платёж не прошёл"
+
+#: src/Admin/OrderListColumn.php:86
+msgid "Bank payment cancelled"
+msgstr "Банковский платёж отменён"
+
+#: src/Admin/OrderListColumn.php:87
+msgid "Awaiting ACH settlement"
+msgstr "Ожидается расчёт ACH"
+
+#: src/Admin/OrderListColumn.php:88
+#: src/Admin/OrderMetaBox.php:67
+msgid "Settled"
+msgstr "Расчёт завершён"
+
+#: src/Admin/OrderListColumn.php:89
+#: src/Admin/OrderMetaBox.php:68
+msgid "Funds available"
+msgstr "Средства доступны"
+
+#: src/Admin/OrderListColumn.php:90
+msgid "Awaiting authorization"
+msgstr "Ожидается авторизация"
+
+#: src/Admin/OrderMetaBox.php:57
+msgid "Buckmerce state"
+msgstr "Состояние Buckmerce"
+
+#: src/Admin/OrderMetaBox.php:58
+#: src/Gateway/BuckmerceGateway.php:56
+msgid "Environment"
+msgstr "Среда"
+
+#: src/Admin/OrderMetaBox.php:59
+msgid "Payment attempt"
+msgstr "Попытка оплаты"
+
+#: src/Admin/OrderMetaBox.php:60
+msgid "Attempt created"
+msgstr "Попытка создана"
+
+#: src/Admin/OrderMetaBox.php:61
+#: src/Admin/OrderMetaBox.php:120
+#: src/Admin/OrderMetaBox.php:141
+#: src/Checkout/PaymentPage.php:74
+msgid "Amount"
+msgstr "Сумма"
+
+#: src/Admin/OrderMetaBox.php:62
+msgid "Transfer Intent ID"
+msgstr "ID Transfer Intent"
+
+#: src/Admin/OrderMetaBox.php:63
+msgid "Transfer Intent status (Plaid)"
+msgstr "Статус Transfer Intent (Plaid)"
+
+#: src/Admin/OrderMetaBox.php:64
+#: src/Admin/OrderMetaBox.php:141
+msgid "Transfer ID"
+msgstr "ID перевода"
+
+#: src/Admin/OrderMetaBox.php:65
+msgid "Transfer status (Plaid)"
+msgstr "Статус перевода (Plaid)"
+
+#: src/Admin/OrderMetaBox.php:66
+msgid "Transfer created"
+msgstr "Перевод создан"
+
+#. translators: %s: date
+#: src/Admin/OrderMetaBox.php:68
+#, php-format
+msgid "expected %s"
+msgstr "ожидается %s"
+
+#. translators: %s: date
+#: src/Admin/OrderMetaBox.php:69
+msgid "Standard return window"
+msgstr "Стандартное окно возврата"
+
+#. translators: %s: date
+#: src/Admin/OrderMetaBox.php:69
+#: src/Admin/OrderMetaBox.php:70
+#, php-format
+msgid "about %s (estimated)"
+msgstr "примерно %s (оценка)"
+
+#. translators: %s: date
+#: src/Admin/OrderMetaBox.php:70
+msgid "Unauthorized return window"
+msgstr "Окно возврата неавторизованных платежей"
+
+#. translators: %s: date
+#: src/Admin/OrderMetaBox.php:71
+msgid "Returned"
+msgstr "Возвращён банком"
+
+#: src/Admin/OrderMetaBox.php:72
+msgid "Return code"
+msgstr "Код возврата"
+
+#: src/Admin/OrderMetaBox.php:73
+msgid "Failure code"
+msgstr "Код ошибки"
+
+#: src/Admin/OrderMetaBox.php:74
+msgid "Failure / return reason"
+msgstr "Причина ошибки / возврата"
+
+#: src/Admin/OrderMetaBox.php:75
+msgid "Manual review reason"
+msgstr "Причина ручной проверки"
+
+#: src/Admin/OrderMetaBox.php:76
+msgid "Last synchronized"
+msgstr "Последняя синхронизация"
+
+#: src/Admin/OrderMetaBox.php:77
+msgid "Last event ID"
+msgstr "ID последнего события"
+
+#: src/Admin/OrderMetaBox.php:78
+msgid "Plaid request ID"
+msgstr "ID запроса Plaid"
+
+#: src/Admin/OrderMetaBox.php:79
+msgid "Refunded through Plaid"
+msgstr "Возвращено через Plaid"
+
+#. translators: %s: amount
+#: src/Admin/OrderMetaBox.php:79
+#, php-format
+msgid "$%s refundable"
+msgstr "можно вернуть $%s"
+
+#: src/Admin/OrderMetaBox.php:81
+#: src/Gateway/BuckmerceGateway.php:36
+#: src/Plugin.php:104
+msgid "Buckmerce for Plaid"
+msgstr "Buckmerce for Plaid"
+
+#: src/Admin/OrderMetaBox.php:94
+msgid "Bank payment returned: the customer's bank reversed this payment. The original payment details are kept below."
+msgstr "Банковский платёж возвращён: банк покупателя отменил этот платёж. Данные исходного платежа сохранены ниже."
+
+#: src/Admin/OrderMetaBox.php:119
+msgid "Refunds"
+msgstr "Возвраты средств"
+
+#: src/Admin/OrderMetaBox.php:120
+msgid "Plaid refund ID"
+msgstr "ID возврата средств в Plaid"
+
+#: src/Admin/OrderMetaBox.php:120
+msgid "WooCommerce refund"
+msgstr "Возврат WooCommerce"
+
+#: src/Admin/OrderMetaBox.php:120
+msgid "Code"
+msgstr "Код"
+
+#: src/Admin/OrderMetaBox.php:120
+msgid "Updated"
+msgstr "Обновлено"
+
+#: src/Admin/OrderMetaBox.php:125
+msgid "created outside WooCommerce"
+msgstr "создан вне WooCommerce"
+
+#: src/Admin/OrderMetaBox.php:140
+msgid "Earlier payment attempts"
+msgstr "Предыдущие попытки оплаты"
+
+#: src/Admin/OrderMetaBox.php:141
+msgid "Created"
+msgstr "Создана"
+
+#: src/Admin/OrderMetaBox.php:141
+msgid "Final state"
+msgstr "Итоговое состояние"
+
+#: src/Admin/OrderMetaBox.php:141
+msgid "Return / failure"
+msgstr "Возврат / ошибка"
+
+#: src/Admin/OrderMetaBox.php:141
+msgid "Retired"
+msgstr "Архивирована"
+
+#: src/Admin/OrderMetaBox.php:159
+msgid "Sync with Plaid"
+msgstr "Синхронизировать с Plaid"
+
+#: src/Admin/OrderMetaBox.php:162
+msgid "Cancel this bank payment at Plaid? The customer will not be charged and the order will be cancelled."
+msgstr "Отменить этот банковский платёж в Plaid? Средства с покупателя не будут списаны, а заказ будет отменён."
+
+#: src/Admin/OrderMetaBox.php:163
+msgid "Cancel bank payment"
+msgstr "Отменить банковский платёж"
+
+#: src/Admin/OrderMetaBox.php:166
+msgid "Reviewed: fulfil manually"
+msgstr "Проверено: выполнить заказ вручную"
+
+#: src/Admin/OrderMetaBox.php:166
+msgid "Reviewed: refunded"
+msgstr "Проверено: средства возвращены"
+
+#: src/Admin/OrderMetaBox.php:166
+msgid "Reviewed: customer contacted"
+msgstr "Проверено: с покупателем связались"
+
+#: src/Admin/OrderMetaBox.php:170
+msgid "Let the customer pay again"
+msgstr "Разрешить покупателю оплатить снова"
+
+#: src/Admin/OrderMetaBox.php:195
+msgid "Synchronized with Plaid."
+msgstr "Синхронизировано с Plaid."
+
+#: src/Admin/OrderMetaBox.php:197
+#: src/Admin/OrderMetaBox.php:214
+msgid "The payment is being processed right now. Try again in a moment."
+msgstr "Платёж обрабатывается прямо сейчас. Повторите попытку чуть позже."
+
+#: src/Admin/OrderMetaBox.php:200
+msgid "Plaid could not be reached or returned an error. See the Buckmerce logs."
+msgstr "Не удалось связаться с Plaid, или он вернул ошибку. См. журналы Buckmerce."
+
+#: src/Admin/OrderMetaBox.php:211
+msgid "The bank payment was cancelled at Plaid."
+msgstr "Банковский платёж отменён в Plaid."
+
+#: src/Admin/OrderMetaBox.php:212
+msgid "Plaid no longer allows cancelling this bank payment (it was already sent to the bank). Refund it after it settles instead."
+msgstr "Plaid больше не позволяет отменить этот банковский платёж (он уже отправлен в банк). Вместо этого верните средства после завершения расчёта."
+
+#: src/Admin/OrderMetaBox.php:217
+msgid "The cancellation could not be confirmed with Plaid. Nothing was changed; use Sync with Plaid to check the payment."
+msgstr "Не удалось подтвердить отмену в Plaid. Ничего не изменено; проверьте платёж кнопкой «Синхронизировать с Plaid»."
+
+#: src/Admin/OrderMetaBox.php:228
+msgid "Unknown decision."
+msgstr "Неизвестное решение."
+
+#: src/Admin/OrderMetaBox.php:233
+msgid "Review recorded. The customer can pay for this order again."
+msgstr "Результат проверки записан. Покупатель может оплатить этот заказ снова."
+
+#: src/Admin/OrderMetaBox.php:234
+msgid "Review decision recorded."
+msgstr "Решение по проверке записано."
+
+#: src/Admin/OrderMetaBox.php:235
+msgid "This payment cannot be released: Plaid shows it may still be authorized or it already created a transfer."
+msgstr "Этот платёж нельзя освободить: по данным Plaid он ещё может быть авторизован или уже создал перевод."
+
+#: src/Admin/OrderMetaBox.php:239
+msgid "The review could not be recorded. See the Buckmerce logs."
+msgstr "Не удалось записать результат проверки. См. журналы Buckmerce."
+
+#: src/Admin/OrderMetaBox.php:247
+msgid "You are not allowed to manage payments."
+msgstr "У вас нет прав на управление платежами."
+
+#: src/Admin/OrderMetaBox.php:253
+msgid "The order is not a Buckmerce order."
+msgstr "Этот заказ не является заказом Buckmerce."
+
+#: src/Admin/SiteHealth.php:27
+msgid "Buckmerce for Plaid configuration"
+msgstr "Настройка Buckmerce for Plaid"
+
+#: src/Admin/SiteHealth.php:28
+msgid "Buckmerce for Plaid background processing"
+msgstr "Фоновая обработка Buckmerce for Plaid"
+
+#: src/Admin/SiteHealth.php:40
+msgid "Buckmerce for Plaid is not in use"
+msgstr "Buckmerce for Plaid не используется"
+
+#: src/Admin/SiteHealth.php:40
+msgid "The gateway is disabled and no bank payment or refund of the configured Plaid account needs monitoring."
+msgstr "Шлюз отключён, и ни один банковский платёж или возврат средств настроенного аккаунта Plaid не требует отслеживания."
+
+#: src/Admin/SiteHealth.php:43
+msgid "Buckmerce for Plaid configuration is incomplete"
+msgstr "Настройка Buckmerce for Plaid не завершена"
+
+#: src/Admin/SiteHealth.php:44
+msgid "Buckmerce for Plaid needs attention"
+msgstr "Buckmerce for Plaid требует внимания"
+
+#: src/Admin/SiteHealth.php:45
+msgid "Buckmerce for Plaid is disabled for new payments"
+msgstr "Buckmerce for Plaid отключён для новых платежей"
+
+#: src/Admin/SiteHealth.php:45
+msgid "Existing bank payments are still monitored."
+msgstr "Существующие банковские платежи по-прежнему отслеживаются."
+
+#: src/Admin/SiteHealth.php:46
+msgid "Buckmerce for Plaid is configured"
+msgstr "Buckmerce for Plaid настроен"
+
+#: src/Admin/SiteHealth.php:46
+msgid "Production is ready to accept bank payments."
+msgstr "Production готов принимать банковские платежи."
+
+#: src/Admin/SiteHealth.php:46
+msgid "Sandbox is ready for test payments."
+msgstr "Sandbox готов к тестовым платежам."
+
+#: src/Admin/SiteHealth.php:59
+msgid "Buckmerce cannot follow bank payments in the background"
+msgstr "Buckmerce не может отслеживать банковские платежи в фоне"
+
+#: src/Admin/SiteHealth.php:62
+msgid "Buckmerce background processing needs attention"
+msgstr "Фоновая обработка Buckmerce требует внимания"
+
+#: src/Admin/SiteHealth.php:65
+msgid "Buckmerce background processing is idle"
+msgstr "Фоновая обработка Buckmerce простаивает"
+
+#: src/Admin/SiteHealth.php:65
+msgid "No bank payments need monitoring."
+msgstr "Нет банковских платежей, требующих отслеживания."
+
+#: src/Admin/SiteHealth.php:67
+msgid "Buckmerce background processing is healthy"
+msgstr "Фоновая обработка Buckmerce работает исправно"
+
+#: src/Admin/SiteHealth.php:67
+msgid "Transfer event sync and reconciliation are running."
+msgstr "Синхронизация событий переводов и сверка выполняются."
+
+#: src/Admin/SiteHealth.php:86
+msgid "Payments"
+msgstr "Платежи"
+
+#: src/Admin/SiteHealth.php:88
+msgid "Open Buckmerce diagnostics"
+msgstr "Открыть диагностику Buckmerce"
+
+#: src/Checkout/PaymentPage.php:54
+msgid "This payment session has expired. Please open the payment link from your order confirmation email or log in to your account to pay for this order."
+msgstr "Сессия оплаты истекла. Откройте ссылку на оплату из письма с подтверждением заказа или войдите в свой аккаунт, чтобы оплатить этот заказ."
+
+#: src/Checkout/PaymentPage.php:69
+msgid "Sandbox — test mode, no real money"
+msgstr "Sandbox — тестовый режим, без реальных денег"
+
+#: src/Checkout/PaymentPage.php:73
+msgid "Order"
+msgstr "Заказ"
+
+#: src/Checkout/PaymentPage.php:77
+msgid "What happens next"
+msgstr "Что будет дальше"
+
+#: src/Checkout/PaymentPage.php:79
+msgid "A secure window from Plaid opens. Choose your bank and sign in there."
+msgstr "Откроется защищённое окно Plaid. Выберите свой банк и войдите в него там."
+
+#: src/Checkout/PaymentPage.php:80
+msgid "Select the account to pay from and confirm the amount."
+msgstr "Выберите счёт для оплаты и подтвердите сумму."
+
+#: src/Checkout/PaymentPage.php:81
+msgid "We confirm the payment and show your order. Bank payments usually take 1–3 business days to complete; we update your order when they do."
+msgstr "Мы подтвердим платёж и покажем ваш заказ. Банковские платежи обычно проходят за 1–3 рабочих дня; когда платёж завершится, мы обновим ваш заказ."
+
+#: src/Checkout/PaymentPage.php:86
+msgid "This order has no account holder name, which is required to pay by bank. Please contact the store or place a new order with your legal first and last name."
+msgstr "В этом заказе не указано имя владельца счёта, которое необходимо для оплаты через банк. Свяжитесь с магазином или оформите новый заказ, указав настоящие имя и фамилию."
+
+#: src/Checkout/PaymentPage.php:88
+msgid "Connect bank and pay"
+msgstr "Подключить банк и оплатить"
+
+#: src/Checkout/PaymentPage.php:91
+msgid "Your bank connection and payment authorization are handled securely by Plaid. This store never sees your bank login credentials."
+msgstr "Подключение к банку и авторизацию платежа безопасно выполняет Plaid. Магазин никогда не видит ваши логин и пароль от банка."
+
+#: src/Checkout/PaymentPage.php:92
+msgid "JavaScript is required to connect your bank."
+msgstr "Для подключения банка требуется JavaScript."
+
+#: src/Checkout/PaymentPage.php:113
+msgid "Preparing a secure bank connection…"
+msgstr "Подготавливаем защищённое подключение к банку…"
+
+#: src/Checkout/PaymentPage.php:114
+msgid "Opening the secure bank connection…"
+msgstr "Открываем защищённое подключение к банку…"
+
+#: src/Checkout/PaymentPage.php:115
+msgid "Confirming your payment…"
+msgstr "Подтверждаем ваш платёж…"
+
+#: src/Checkout/PaymentPage.php:116
+msgid "Payment submitted. Taking you to your order…"
+msgstr "Платёж отправлен. Переходим к вашему заказу…"
+
+#: src/Checkout/PaymentPage.php:117
+msgid "The bank connection was closed before the payment was completed. No payment was made. You can try again."
+msgstr "Подключение к банку было закрыто до завершения платежа. Платёж не выполнен. Вы можете попробовать снова."
+
+#: src/Checkout/PaymentPage.php:118
+msgid "Your bank payment was not completed. You can try again."
+msgstr "Банковский платёж не был завершён. Вы можете попробовать снова."
+
+#: src/Checkout/PaymentPage.php:119
+msgid "Your bank reported insufficient funds. You can try again or use another account."
+msgstr "Ваш банк сообщил о недостатке средств. Попробуйте снова или выберите другой счёт."
+
+#: src/Checkout/PaymentPage.php:120
+msgid "Your bank payment could not be authorized. You can try again."
+msgstr "Не удалось авторизовать банковский платёж. Вы можете попробовать снова."
+
+#: src/Checkout/PaymentPage.php:121
+msgid "We could not confirm your payment yet. Please wait a moment…"
+msgstr "Пока не удалось подтвердить ваш платёж. Пожалуйста, подождите…"
+
+#: src/Checkout/PaymentPage.php:122
+msgid "Your payment needs review by the store. Please contact the store."
+msgstr "Ваш платёж должен проверить магазин. Пожалуйста, свяжитесь с магазином."
+
+#: src/Checkout/PaymentPage.php:123
+#: src/REST/RestRoutes.php:108
+msgid "The bank payment could not be started. Please try again."
+msgstr "Не удалось начать банковский платёж. Пожалуйста, попробуйте снова."
+
+#: src/Checkout/PaymentPage.php:124
+msgid "The secure bank connection could not be loaded. Check your connection and try again."
+msgstr "Не удалось загрузить защищённое подключение к банку. Проверьте соединение и попробуйте снова."
+
+#: src/Checkout/PaymentPage.php:125
+#: src/REST/RestRoutes.php:105
+msgid "Pay by Bank is not available for this order right now. Please contact the store or choose another payment method."
+msgstr "Оплата через банк сейчас недоступна для этого заказа. Свяжитесь с магазином или выберите другой способ оплаты."
+
+#: src/Checkout/PaymentPage.php:126
+msgid "This order has no account holder name. Please contact the store."
+msgstr "В этом заказе не указано имя владельца счёта. Пожалуйста, свяжитесь с магазином."
+
+#: src/Checkout/PaymentPage.php:128
+#: src/REST/RestRoutes.php:93
+#: src/REST/RestRoutes.php:125
+msgid "Too many attempts. Please wait a few minutes and try again."
+msgstr "Слишком много попыток. Подождите несколько минут и попробуйте снова."
+
+#: src/Checkout/PaymentPage.php:129
+msgid "Try again"
+msgstr "Попробовать снова"
+
+#: src/Gateway/GatewayAvailability.php:84
+msgid "The gateway is disabled, so Pay by Bank is not offered to customers. Existing bank payments are still monitored."
+msgstr "Шлюз отключён, поэтому оплата через банк не предлагается покупателям. Существующие банковские платежи по-прежнему отслеживаются."
+
+#: src/Gateway/GatewayAvailability.php:85
+msgid "The Plaid environment setting is invalid."
+msgstr "Настройка среды Plaid некорректна."
+
+#: src/Gateway/GatewayAvailability.php:86
+msgid "Plaid Client ID and Secret are required."
+msgstr "Требуются Plaid Client ID и Secret."
+
+#: src/Gateway/GatewayAvailability.php:87
+msgid "Plaid Transfer UI requires a Link customization: create one in the Plaid Dashboard (in the selected environment) with Account Select set to “Enabled for one account” and enter its name."
+msgstr "Plaid Transfer UI требует кастомизацию Link: создайте её в Plaid Dashboard (в выбранной среде) с параметром Account Select “Enabled for one account” и введите её название."
+
+#: src/Gateway/GatewayAvailability.php:88
+msgid "The store or order currency is not USD."
+msgstr "Валюта магазина или заказа — не USD."
+
+#: src/Gateway/GatewayAvailability.php:89
+msgid "Production requires the site to use HTTPS."
+msgstr "Для Production сайт должен работать по HTTPS."
+
+#: src/Gateway/BuckmerceGateway.php:37
+msgid "Pay by Bank through Plaid Transfer. Customers authorize a one-time ACH debit in Plaid Transfer UI; orders are updated from verified Plaid transfer events, and refunds are sent back to the customer's bank through Plaid."
+msgstr "Оплата через банк с помощью Plaid Transfer. Покупатели авторизуют разовое списание ACH в Plaid Transfer UI; заказы обновляются по проверенным событиям переводов Plaid, а возвраты средств отправляются в банк покупателя через Plaid."
+
+#: src/Gateway/BuckmerceGateway.php:44
+#: src/Gateway/BuckmerceGateway.php:54
+#: src/Settings/Settings.php:64
+msgid "Securely pay directly from your bank account."
+msgstr "Безопасная оплата напрямую с вашего банковского счёта."
+
+#: src/Gateway/BuckmerceGateway.php:51
+msgid "General"
+msgstr "Основные"
+
+#: src/Gateway/BuckmerceGateway.php:51
+msgid "Disabling Pay by Bank only hides it at checkout. Existing bank payments, returns and refunds keep being monitored."
+msgstr "Отключение оплаты через банк только скрывает её при оформлении заказа. Существующие банковские платежи, ACH-возвраты и возвраты средств продолжают отслеживаться."
+
+#: src/Gateway/BuckmerceGateway.php:52
+msgid "Enable/Disable"
+msgstr "Включить/Выключить"
+
+#: src/Gateway/BuckmerceGateway.php:52
+msgid "Offer Pay by Bank at checkout"
+msgstr "Предлагать оплату через банк при оформлении заказа"
+
+#: src/Gateway/BuckmerceGateway.php:53
+msgid "Title"
+msgstr "Заголовок"
+
+#: src/Gateway/BuckmerceGateway.php:53
+msgid "Payment method name shown at checkout."
+msgstr "Название способа оплаты, которое видит покупатель при оформлении заказа."
+
+#: src/Gateway/BuckmerceGateway.php:54
+msgid "Description"
+msgstr "Описание"
+
+#: src/Gateway/BuckmerceGateway.php:54
+msgid "Shown below the payment method at checkout."
+msgstr "Показывается под способом оплаты при оформлении заказа."
+
+#: src/Gateway/BuckmerceGateway.php:55
+msgid "Plaid connection"
+msgstr "Подключение к Plaid"
+
+#: src/Gateway/BuckmerceGateway.php:55
+msgid "API keys are in the Plaid Dashboard under Developers → Keys. Plaid Transfer must be enabled for your team. Changing the Client ID or environment is refused while Production payments are still monitored."
+msgstr "API-ключи находятся в Plaid Dashboard в разделе Developers → Keys. Для вашей команды должен быть включён Plaid Transfer. Смена Client ID или среды отклоняется, пока отслеживаются платежи Production."
+
+#: src/Gateway/BuckmerceGateway.php:56
+msgid "Sandbox (test, no real money)"
+msgstr "Sandbox (тест, без реальных денег)"
+
+#: src/Gateway/BuckmerceGateway.php:56
+msgid "Production (real money)"
+msgstr "Production (реальные деньги)"
+
+#: src/Gateway/BuckmerceGateway.php:56
+msgid "Production moves real money and requires HTTPS."
+msgstr "Production перемещает реальные деньги и требует HTTPS."
+
+#: src/Gateway/BuckmerceGateway.php:57
+msgid "Client ID"
+msgstr "Client ID"
+
+#: src/Gateway/BuckmerceGateway.php:58
+msgid "Secret"
+msgstr "Secret"
+
+#: src/Gateway/BuckmerceGateway.php:58
+msgid "Use the secret of the selected environment. Leave blank when saving to keep the stored secret."
+msgstr "Используйте Secret выбранной среды. Оставьте поле пустым при сохранении, чтобы сохранить текущий Secret."
+
+#: src/Gateway/BuckmerceGateway.php:59
+msgid "Funding Account ID (optional)"
+msgstr "Funding Account ID (необязательно)"
+
+#: src/Gateway/BuckmerceGateway.php:59
+msgid "Leave empty when your Plaid Transfer account uses Plaid Ledger (the default). Only accounts without a Ledger configure a funding account ID here."
+msgstr "Оставьте пустым, если ваш аккаунт Plaid Transfer использует Plaid Ledger (по умолчанию). Funding Account ID указывают только аккаунты без Ledger."
+
+#: src/Gateway/BuckmerceGateway.php:61
+msgid "Link customization name"
+msgstr "Название кастомизации Link"
+
+#: src/Gateway/BuckmerceGateway.php:61
+msgid "Required in Sandbox and Production. In the Plaid Dashboard of the selected environment open Link → Link Customization, create a customization with Account Select set to “Enabled for one account” (its language must match your store language), publish it and enter its name here."
+msgstr "Обязательно в Sandbox и Production. В Plaid Dashboard выбранной среды откройте Link → Link Customization, создайте кастомизацию с параметром Account Select “Enabled for one account” (её язык должен совпадать с языком магазина), опубликуйте её и введите её название здесь."
+
+#: src/Gateway/BuckmerceGateway.php:62
+msgid "Shown on the customer's bank statement after the company name Plaid has on file. Use a stable word that describes the purpose, such as PAYMENT or ORDER: recognizable descriptions reduce \"unrecognized payment\" disputes and returns. Letters, digits and spaces only, at most 10 characters; never put order numbers or personal data here."
+msgstr "Показывается в банковской выписке покупателя после названия компании, зарегистрированного в Plaid. Используйте постоянное слово, описывающее назначение, например PAYMENT или ORDER: узнаваемые описания уменьшают число споров и возвратов из-за «неопознанного платежа». Только латинские буквы, цифры и пробелы, не более 10 символов; никогда не указывайте здесь номера заказов или персональные данные."
+
+#: src/Gateway/BuckmerceGateway.php:63
+msgid "Payment network"
+msgstr "Платёжная сеть"
+
+#: src/Gateway/BuckmerceGateway.php:63
+msgid "Same Day ACH"
+msgstr "Same Day ACH (в тот же день)"
+
+#: src/Gateway/BuckmerceGateway.php:63
+msgid "Standard ACH"
+msgstr "Standard ACH (стандартный)"
+
+#: src/Gateway/BuckmerceGateway.php:63
+msgid "Same Day ACH payments made after Plaid's cutoff are sent as Standard ACH automatically."
+msgstr "Платежи Same Day ACH, отправленные после времени отсечки Plaid, автоматически уходят как Standard ACH."
+
+#: src/Gateway/BuckmerceGateway.php:64
+msgid "Mark order paid when"
+msgstr "Считать заказ оплаченным, когда"
+
+#: src/Gateway/BuckmerceGateway.php:64
+msgid "Funds are available (recommended)"
+msgstr "Средства доступны (рекомендуется)"
+
+#: src/Gateway/BuckmerceGateway.php:64
+msgid "Transfer is settled"
+msgstr "Расчёт по переводу завершён"
+
+#: src/Gateway/BuckmerceGateway.php:64
+msgid "Until then orders stay On hold. ACH debits can still be returned later; returns are always recorded and flagged."
+msgstr "До этого момента заказы остаются в статусе «На удержании». Списания ACH могут быть возвращены банком и позже; такие возвраты всегда фиксируются и отмечаются."
+
+#: src/Gateway/BuckmerceGateway.php:65
+msgid "Background processing"
+msgstr "Фоновая обработка"
+
+#: src/Gateway/BuckmerceGateway.php:65
+msgid "Buckmerce follows every bank payment until its ACH return window closes, using verified Plaid webhooks, Plaid transfer events and a reconciliation job every 15 minutes (WooCommerce Action Scheduler). This cannot be turned off while payments exist."
+msgstr "Buckmerce отслеживает каждый банковский платёж до закрытия его окна ACH-возврата: по проверенным вебхукам Plaid, событиям переводов Plaid и задаче сверки каждые 15 минут (WooCommerce Action Scheduler). Пока существуют платежи, отключить это нельзя."
+
+#: src/Gateway/BuckmerceGateway.php:66
+msgid "Advanced and logging"
+msgstr "Дополнительно и журналирование"
+
+#: src/Gateway/BuckmerceGateway.php:67
+msgid "Debug logging"
+msgstr "Отладочный журнал"
+
+#: src/Gateway/BuckmerceGateway.php:67
+msgid "Write redacted debug logs (WooCommerce → Status → Logs)"
+msgstr "Вести отладочные журналы без конфиденциальных данных (WooCommerce → Статус → Журналы)"
+
+#: src/Gateway/BuckmerceGateway.php:68
+msgid "Uninstall cleanup"
+msgstr "Очистка при удалении"
+
+#: src/Gateway/BuckmerceGateway.php:68
+msgid "Delete Buckmerce settings, event and refund history and tables when the plugin is deleted"
+msgstr "Удалять настройки Buckmerce, историю событий и возвратов средств и таблицы при удалении плагина"
+
+#: src/Gateway/BuckmerceGateway.php:68
+msgid "Order payment records stay on the orders for auditing. Leave this off while payments may still be returned."
+msgstr "Записи об оплате остаются в заказах для аудита. Не включайте, пока платежи ещё могут быть возвращены банком."
+
+#: src/Gateway/BuckmerceGateway.php:88
+msgid "Webhook URL copied."
+msgstr "URL вебхука скопирован."
+
+#: src/Gateway/BuckmerceGateway.php:88
+msgid "Select the URL and copy it manually."
+msgstr "Выделите URL и скопируйте его вручную."
+
+#: src/Gateway/BuckmerceGateway.php:142
+msgid "A secret is stored."
+msgstr "Secret сохранён."
+
+#: src/Gateway/BuckmerceGateway.php:143
+msgid "Remove stored secret"
+msgstr "Удалить сохранённый Secret"
+
+#: src/Gateway/BuckmerceGateway.php:190
+msgid "Test connection"
+msgstr "Проверить подключение"
+
+#: src/Gateway/BuckmerceGateway.php:191
+msgid "Open diagnostics"
+msgstr "Открыть диагностику"
+
+#: src/Gateway/BuckmerceGateway.php:199
+msgid "Copy"
+msgstr "Копировать"
+
+#: src/Gateway/BuckmerceGateway.php:201
+msgid "In the Plaid Dashboard open Team Settings → Webhooks, add a webhook for “Transfer event” in the selected environment and paste this URL. Webhooks are cryptographically verified."
+msgstr "В Plaid Dashboard откройте Team Settings → Webhooks, добавьте вебхук для “Transfer event” в выбранной среде и вставьте этот URL. Вебхуки проверяются криптографически."
+
+#: src/Gateway/BuckmerceGateway.php:251
+msgid "Please enter the account holder's legal first and last name in the billing details before paying by bank."
+msgstr "Перед оплатой через банк укажите в платёжных данных настоящие имя и фамилию владельца счёта."
+
+#: src/Gateway/BuckmerceGateway.php:259
+msgid "We could not find this order."
+msgstr "Не удалось найти этот заказ."
+
+#: src/Gateway/BuckmerceGateway.php:272
+msgid "Your bank payment is already being prepared. Please wait a few seconds and try again."
+msgstr "Ваш банковский платёж уже подготавливается. Подождите несколько секунд и попробуйте снова."
+
+#: src/Gateway/BuckmerceGateway.php:275
+msgid "Pay by Bank is temporarily unavailable. Please choose another payment method."
+msgstr "Оплата через банк временно недоступна. Пожалуйста, выберите другой способ оплаты."
+
+#: src/Gateway/BuckmerceGateway.php:278
+msgid "We could not start the bank payment. Please try again or choose another payment method."
+msgstr "Не удалось начать банковский платёж. Попробуйте снова или выберите другой способ оплаты."
+
+#: src/Gateway/BuckmerceGateway.php:310
+#: src/Refund/RefundPolicy.php:36
+msgid "This order was not paid with Pay by Bank."
+msgstr "Этот заказ не был оплачен через банк."
+
+#: src/Gateway/BuckmerceGateway.php:313
+msgid "Enter the amount to refund."
+msgstr "Введите сумму возврата."
+
+#: src/Gateway/BuckmerceGateway.php:319
+msgid "Pay by Bank refunds are unavailable because the Plaid connection is not configured."
+msgstr "Возвраты средств через банк недоступны, так как подключение к Plaid не настроено."
+
+#: src/Gateway/BuckmerceGateway.php:322
+msgid "The refund could not be processed. No refund was sent to Plaid; see the Buckmerce logs."
+msgstr "Не удалось выполнить возврат средств. Возврат не был отправлен в Plaid; см. журналы Buckmerce."
+
+#. translators: 1: Plaid transfer ID, 2: user ID, 3: Plaid transfer status
+#: src/Payment/ManualActions.php:73
+#, php-format
+msgid "Buckmerce: transfer %1$s cancelled at Plaid by user #%2$d before it was sent to the bank."
+msgstr "Buckmerce: перевод %1$s отменён в Plaid пользователем #%2$d до отправки в банк."
+
+#. translators: 1: Plaid transfer ID, 2: user ID, 3: Plaid transfer status
+#: src/Payment/ManualActions.php:73
+#, php-format
+msgid "Buckmerce: transfer %1$s could not be cancelled (user #%2$d); Plaid reports it as %3$s."
+msgstr "Buckmerce: перевод %1$s не удалось отменить (пользователь #%2$d); по данным Plaid его статус — %3$s."
+
+#: src/Payment/ManualActions.php:117
+msgid "Buckmerce: order reopened for payment after manual review."
+msgstr "Buckmerce: заказ снова открыт для оплаты после ручной проверки."
+
+#. translators: 1: decision code, 2: user ID
+#: src/Payment/ManualActions.php:125
+#, php-format
+msgid "Buckmerce: manual review resolved (%1$s) by user #%2$d. The unused payment attempt was released; the customer can pay again."
+msgstr "Buckmerce: ручная проверка завершена (%1$s) пользователем #%2$d. Неиспользованная попытка оплаты освобождена; покупатель может оплатить снова."
+
+#. translators: 1: decision code, 2: user ID
+#: src/Payment/ManualActions.php:125
+#, php-format
+msgid "Buckmerce: manual review resolved (%1$s) by user #%2$d. Automatic processing of this payment stays stopped."
+msgstr "Buckmerce: ручная проверка завершена (%1$s) пользователем #%2$d. Автоматическая обработка этого платежа остаётся остановленной."
+
+#. translators: 1: site name, 2: alert subject
+#: src/Payment/MerchantNotifier.php:30
+#, php-format
+msgid "[%1$s] %2$s"
+msgstr "[%1$s] %2$s"
+
+#. translators: %s: order admin URL
+#: src/Payment/MerchantNotifier.php:36
+#, php-format
+msgid "Review the order: %s"
+msgstr "Проверьте заказ: %s"
+
+#: src/Payment/OrderPaymentProjector.php:125
+msgid "Bank payment submitted; awaiting ACH settlement."
+msgstr "Банковский платёж отправлен; ожидается расчёт ACH."
+
+#. translators: %s: order number
+#: src/Payment/OrderPaymentProjector.php:167
+#, php-format
+msgid "Bank payment for order #%s needs review"
+msgstr "Банковский платёж по заказу #%s требует проверки"
+
+#. translators: 1: order number, 2: reason code
+#: src/Payment/OrderPaymentProjector.php:170
+#, php-format
+msgid "Buckmerce stopped automatic processing of the bank payment for order #%1$s (%2$s). No order was fulfilled automatically. Open the order to see the Plaid identifiers and decide how to proceed."
+msgstr "Buckmerce остановил автоматическую обработку банковского платежа по заказу #%1$s (%2$s). Ни один заказ не был выполнен автоматически. Откройте заказ, чтобы увидеть идентификаторы Plaid и решить, как действовать дальше."
+
+#: src/Payment/OrderPaymentProjector.php:189
+msgid "ACH return received: the bank payment was reversed. The original payment details are kept on this order."
+msgstr "Получен ACH-возврат: банковский платёж был отменён банком. Данные исходного платежа сохранены в этом заказе."
+
+#: src/Payment/OrderPaymentProjector.php:198
+msgid "Buckmerce: this order will not be debited again by bank."
+msgstr "Buckmerce: по этому заказу повторное списание через банк выполняться не будет."
+
+#. translators: 1: refunded amount, 2: ACH return code
+#: src/Payment/OrderPaymentProjector.php:205
+#, php-format
+msgid "Buckmerce: CRITICAL — the bank payment was returned (%2$s) after refunds of $%1$s were issued. The customer may have received this money twice. Contact the customer before taking further action."
+msgstr "Buckmerce: КРИТИЧНО — банковский платёж был возвращён банком (%2$s) после того, как были выполнены возвраты средств на $%1$s. Покупатель мог получить эти деньги дважды. Свяжитесь с покупателем, прежде чем предпринимать дальнейшие действия."
+
+#. translators: %s: order number
+#: src/Payment/OrderPaymentProjector.php:212
+#, php-format
+msgid "URGENT: ACH return after refund for order #%s"
+msgstr "СРОЧНО: ACH-возврат после возврата средств по заказу #%s"
+
+#. translators: 1: order number, 2: ACH return code, 3: refunded amount
+#: src/Payment/OrderPaymentProjector.php:215
+#, php-format
+msgid "The bank payment for order #%1$s was returned (%2$s) after you refunded $%3$s. The customer's bank reversed the payment, so the customer may have received this money twice and you may lose both the payment and the refund. Pending refunds were cancelled where Plaid still allowed it; check the order notes."
+msgstr "Банковский платёж по заказу #%1$s был возвращён банком (%2$s) после того, как вы вернули покупателю $%3$s. Банк покупателя отменил платёж, поэтому покупатель мог получить эти деньги дважды, а вы можете потерять и платёж, и возврат. Ожидавшие возвраты средств отменены там, где Plaid ещё это позволял; проверьте примечания к заказу."
+
+#: src/Payment/OrderPaymentProjector.php:217
+#: src/Payment/OrderPaymentProjector.php:231
+msgid "no return code"
+msgstr "без кода возврата"
+
+#. translators: %s: order number
+#: src/Payment/OrderPaymentProjector.php:226
+#, php-format
+msgid "ACH return received for order #%s"
+msgstr "Получен ACH-возврат по заказу #%s"
+
+#. translators: 1: order number, 2: ACH return code
+#: src/Payment/OrderPaymentProjector.php:229
+#, php-format
+msgid "The bank payment for order #%1$s was returned (%2$s). The funds were reversed. The order is now Failed; its original payment details are kept."
+msgstr "Банковский платёж по заказу #%1$s был возвращён банком (%2$s). Средства списаны обратно. Заказ переведён в статус «Не удался»; данные исходного платежа сохранены."
+
+#. translators: %s: Plaid transfer ID
+#: src/Payment/OrderPaymentProjector.php:258
+#, php-format
+msgid "Transfer ID: %s."
+msgstr "ID перевода: %s."
+
+#: src/Payment/OrderPaymentProjector.php:264
+msgid "Buckmerce: Plaid Transfer Intent created. Waiting for the customer to authorize the bank payment."
+msgstr "Buckmerce: Plaid Transfer Intent создан. Ожидается авторизация банковского платежа покупателем."
+
+#: src/Payment/OrderPaymentProjector.php:266
+msgid "Buckmerce: bank payment authorization in progress."
+msgstr "Buckmerce: выполняется авторизация банковского платежа."
+
+#: src/Payment/OrderPaymentProjector.php:268
+msgid "Buckmerce: bank payment authorization failed or was declined"
+msgstr "Buckmerce: авторизация банковского платежа не удалась или была отклонена"
+
+#: src/Payment/OrderPaymentProjector.php:268
+msgid "The customer can retry."
+msgstr "Покупатель может повторить попытку."
+
+#: src/Payment/OrderPaymentProjector.php:270
+msgid "Buckmerce: the Transfer Intent request had an unknown outcome. No Link token was issued for it, so it cannot move money; a retry creates a new intent."
+msgstr "Buckmerce: результат запроса Transfer Intent неизвестен. Для него не был выдан токен Link, поэтому он не может переместить деньги; повторная попытка создаст новый Intent."
+
+#: src/Payment/OrderPaymentProjector.php:272
+msgid "Buckmerce: Plaid transfer created."
+msgstr "Buckmerce: перевод Plaid создан."
+
+#: src/Payment/OrderPaymentProjector.php:274
+msgid "Buckmerce: transfer pending."
+msgstr "Buckmerce: перевод ожидает обработки."
+
+#: src/Payment/OrderPaymentProjector.php:276
+msgid "Buckmerce: transfer posted to the ACH network."
+msgstr "Buckmerce: перевод отправлен в сеть ACH."
+
+#: src/Payment/OrderPaymentProjector.php:278
+msgid "Buckmerce: transfer settled."
+msgstr "Buckmerce: расчёт по переводу завершён."
+
+#: src/Payment/OrderPaymentProjector.php:280
+msgid "Buckmerce: funds available. The customer's bank can still return the payment within the ACH return windows; Buckmerce keeps monitoring it."
+msgstr "Buckmerce: средства доступны. Банк покупателя всё ещё может вернуть платёж в пределах окон ACH-возврата; Buckmerce продолжает его отслеживать."
+
+#: src/Payment/OrderPaymentProjector.php:282
+msgid "Buckmerce: transfer failed; no funds were moved"
+msgstr "Buckmerce: перевод не прошёл; средства не были перемещены"
+
+#: src/Payment/OrderPaymentProjector.php:284
+msgid "Buckmerce: transfer cancelled."
+msgstr "Buckmerce: перевод отменён."
+
+#: src/Payment/OrderPaymentProjector.php:286
+msgid "Buckmerce: ACH RETURN — the bank payment was returned and the funds reversed"
+msgstr "Buckmerce: ACH-ВОЗВРАТ — банковский платёж возвращён банком, средства списаны обратно"
+
+#: src/Payment/OrderPaymentProjector.php:288
+msgid "Buckmerce: payment requires manual review"
+msgstr "Buckmerce: платёж требует ручной проверки"
+
+#. translators: %s: payment state
+#: src/Payment/OrderPaymentProjector.php:290
+#, php-format
+msgid "Buckmerce: payment state changed to %s."
+msgstr "Buckmerce: состояние платежа изменено на %s."
+
+#. translators: 1: order number, 2: ACH return code
+#: src/Payment/PaymentAlerts.php:92
+#, php-format
+msgid "Buckmerce: the bank payment for order #%1$s was RETURNED (%2$s). The funds were reversed."
+msgstr "Buckmerce: банковский платёж по заказу #%1$s ВОЗВРАЩЁН БАНКОМ (%2$s). Средства списаны обратно."
+
+#. translators: 1: order number, 2: ACH return code
+#: src/Payment/PaymentAlerts.php:94
+#, php-format
+msgid "Buckmerce: the bank payment for order #%1$s was RETURNED (%2$s) AFTER a refund was issued. The customer may have received the money twice; you may lose both the payment and the refund. Review the order now."
+msgstr "Buckmerce: банковский платёж по заказу #%1$s ВОЗВРАЩЁН БАНКОМ (%2$s) ПОСЛЕ возврата средств. Покупатель мог получить деньги дважды; вы можете потерять и платёж, и возврат. Проверьте заказ сейчас."
+
+#. translators: 1: refund amount, 2: order number, 3: failure code
+#: src/Payment/PaymentAlerts.php:96
+#, php-format
+msgid "Buckmerce: the refund of %1$s for order #%2$s FAILED at Plaid (%3$s). The customer did not receive it. Delete the WooCommerce refund record and refund again if needed."
+msgstr "Buckmerce: возврат средств на %1$s по заказу #%2$s НЕ ПРОШЁЛ в Plaid (%3$s). Покупатель его не получил. Удалите запись о возврате в WooCommerce и при необходимости выполните возврат снова."
+
+#. translators: 1: refund amount, 2: order number, 3: ACH return code
+#: src/Payment/PaymentAlerts.php:98
+#, php-format
+msgid "Buckmerce: the refund of %1$s for order #%2$s was RETURNED by the customer's bank (%3$s). The customer did not receive it; contact the customer."
+msgstr "Buckmerce: возврат средств на %1$s по заказу #%2$s ВОЗВРАЩЁН банком покупателя (%3$s). Покупатель его не получил; свяжитесь с покупателем."
+
+#. translators: 1: refund amount, 2: order number
+#: src/Payment/PaymentAlerts.php:100
+#, php-format
+msgid "Buckmerce: Plaid did not confirm the refund of %1$s for order #%2$s. Do not refund this order again: Buckmerce is verifying the refund with Plaid."
+msgstr "Buckmerce: Plaid не подтвердил возврат средств на %1$s по заказу #%2$s. Не выполняйте возврат по этому заказу повторно: Buckmerce проверяет его в Plaid."
+
+#. translators: 1: refund amount, 2: order number
+#: src/Payment/PaymentAlerts.php:102
+#, php-format
+msgid "Buckmerce: the refund of %1$s for order #%2$s was cancelled because the original bank payment was returned."
+msgstr "Buckmerce: возврат средств на %1$s по заказу #%2$s отменён, так как исходный банковский платёж был возвращён банком."
+
+#. translators: 1: refund amount, 2: order number
+#: src/Payment/PaymentAlerts.php:104
+#, php-format
+msgid "Buckmerce: a refund of %1$s for order #%2$s was created outside WooCommerce (for example in the Plaid Dashboard). Record it in WooCommerce as a manual refund."
+msgstr "Buckmerce: возврат средств на %1$s по заказу #%2$s создан вне WooCommerce (например, в Plaid Dashboard). Зафиксируйте его в WooCommerce как ручной возврат."
+
+#. translators: 1: order number, 2: reason code
+#: src/Payment/PaymentAlerts.php:106
+#, php-format
+msgid "Buckmerce: order #%1$s requires manual payment review (%2$s)."
+msgstr "Buckmerce: заказ #%1$s требует ручной проверки платежа (%2$s)."
+
+#. translators: 1: Plaid Transfer Intent ID, 2: reason code
+#: src/Payment/PaymentAttemptService.php:433
+#, php-format
+msgid "Buckmerce: previous bank payment attempt retired (intent %1$s, %2$s). Its details are kept in the payment history; a new attempt may start."
+msgstr "Buckmerce: предыдущая попытка банковского платежа отправлена в архив (Intent %1$s, %2$s). Её данные сохранены в истории платежей; можно начать новую попытку."
+
+#. translators: %s: ACH return code such as R10
+#: src/Payment/ReturnRetryPolicy.php:132
+#, php-format
+msgid "Return code %s may not be debited again (Plaid allows retries only for R01 and R09; unauthorized returns such as R10 must never be resubmitted). Collect this payment another way after contacting the customer."
+msgstr "Платёж с кодом возврата %s нельзя списывать повторно (Plaid разрешает повторы только для R01 и R09; неавторизованные возвраты, такие как R10, запрещено отправлять повторно). Получите этот платёж другим способом, связавшись с покупателем."
+
+#: src/Payment/ReturnRetryPolicy.php:135
+msgid "Plaid allows at most two retries of a returned transfer and they are used up. Collect this payment another way."
+msgstr "Plaid разрешает не более двух повторов возвращённого перевода, и они использованы. Получите этот платёж другим способом."
+
+#: src/Payment/ReturnRetryPolicy.php:136
+msgid "Plaid allows retries only within 180 days of the original transfer. Collect this payment another way."
+msgstr "Plaid разрешает повторы только в течение 180 дней с момента исходного перевода. Получите этот платёж другим способом."
+
+#. translators: %s: ACH return code R01 or R09
+#: src/Payment/ReturnRetryPolicy.php:139
+#, php-format
+msgid "Return code %s could be retried under Plaid's rules only as a marked retry (\"Retry 1\"/\"Retry 2\") of the original transfer, which Plaid Transfer UI does not support. Buckmerce therefore never debits this order again automatically. Contact the customer and collect the payment another way."
+msgstr "Платёж с кодом возврата %s по правилам Plaid можно повторить только как помеченный повтор (\"Retry 1\"/\"Retry 2\") исходного перевода, а Plaid Transfer UI этого не поддерживает. Поэтому Buckmerce никогда не списывает средства по этому заказу повторно автоматически. Свяжитесь с покупателем и получите платёж другим способом."
+
+#: src/Payment/ReturnRetryPolicy.php:149
+msgid "Your bank returned the earlier bank payment for this order, so Pay by Bank cannot be used to pay it again. Please choose another payment method or contact the store."
+msgstr "Ваш банк вернул предыдущий банковский платёж по этому заказу, поэтому оплатить его через банк повторно нельзя. Выберите другой способ оплаты или свяжитесь с магазином."
+
+#: src/Plugin.php:33
+msgid "Buckmerce for Plaid could not create or verify its database tables. Pay by Bank stays disabled until this is fixed; try deactivating and reactivating the plugin."
+msgstr "Buckmerce for Plaid не смог создать или проверить свои таблицы базы данных. Оплата через банк остаётся отключённой, пока это не будет исправлено; попробуйте деактивировать и снова активировать плагин."
+
+#: src/Plugin.php:92
+msgid "Settings"
+msgstr "Настройки"
+
+#: src/Plugin.php:93
+msgid "Diagnostics"
+msgstr "Диагностика"
+
+#: src/Plugin.php:105
+msgid "When a customer chooses Pay by Bank, this store sends the order amount, a short order description, the customer’s billing name and email address, and internal order references to Plaid Inc. to create the payment. The customer connects their bank and authorizes the payment inside Plaid’s interface; bank login credentials are never shared with this store. Plaid processes this data under its own terms and privacy policy (https://plaid.com/legal/). The store keeps Plaid payment identifiers and statuses on the order for accounting and dispute handling."
+msgstr "Когда покупатель выбирает оплату через банк, магазин передаёт компании Plaid Inc. сумму заказа, краткое описание заказа, имя и адрес электронной почты из платёжных данных покупателя и внутренние идентификаторы заказа, чтобы создать платёж. Покупатель подключает свой банк и авторизует платёж в интерфейсе Plaid; логин и пароль от банка никогда не передаются магазину. Plaid обрабатывает эти данные в соответствии со своими условиями и политикой конфиденциальности (https://plaid.com/legal/). Магазин хранит в заказе идентификаторы и статусы платежа Plaid для бухгалтерского учёта и разрешения споров."
+
+#: src/Refund/RefundPolicy.php:41
+msgid "There is no Plaid bank payment to refund for this order."
+msgstr "По этому заказу нет банковского платежа Plaid, по которому можно вернуть средства."
+
+#: src/Refund/RefundPolicy.php:46
+msgid "The bank payment failed, was cancelled or was returned, so there is nothing to refund."
+msgstr "Банковский платёж не прошёл, был отменён или возвращён банком, поэтому возвращать нечего."
+
+#: src/Refund/RefundPolicy.php:50
+msgid "The bank payment has not settled yet. Refund it after it settles; until then it may still fail or be returned."
+msgstr "Расчёт по банковскому платежу ещё не завершён. Верните средства после завершения расчёта; до этого платёж ещё может не пройти или быть возвращён банком."
+
+#: src/Refund/RefundPolicy.php:53
+msgid "This payment was made in another Plaid environment than the one configured now."
+msgstr "Этот платёж был выполнен в другой среде Plaid, а не в той, что настроена сейчас."
+
+#: src/Refund/RefundPolicy.php:57
+msgid "This payment belongs to a different Plaid account than the one configured now."
+msgstr "Этот платёж принадлежит другому аккаунту Plaid, а не тому, что настроен сейчас."
+
+#: src/Refund/RefundPolicy.php:62
+msgid "Plaid refunds are possible only within 180 days of the payment."
+msgstr "Возвраты средств через Plaid возможны только в течение 180 дней с момента платежа."
+
+#: src/Refund/RefundPolicy.php:66
+msgid "A previous refund for this order is still being confirmed with Plaid. Wait until it is confirmed before refunding again."
+msgstr "Предыдущий возврат средств по этому заказу ещё подтверждается в Plaid. Дождитесь подтверждения, прежде чем выполнять новый возврат."
+
+#: src/Refund/RefundPolicy.php:71
+msgid "Plaid allows at most 10 refunds per payment."
+msgstr "Plaid допускает не более 10 возвратов средств по одному платежу."
+
+#: src/Refund/RefundPolicy.php:80
+msgid "The recorded refund amounts are invalid; review the order."
+msgstr "Записанные суммы возвратов средств некорректны; проверьте заказ."
+
+#: src/Refund/RefundPolicy.php:83
+msgid "The bank payment has already been refunded in full."
+msgstr "Средства по банковскому платежу уже возвращены полностью."
+
+#: src/Refund/RefundService.php:83
+msgid "Enter a refund amount greater than zero with at most two decimal places."
+msgstr "Введите сумму возврата больше нуля, не более чем с двумя знаками после запятой."
+
+#: src/Refund/RefundService.php:86
+msgid "Pay by Bank refunds must be created from the WooCommerce order screen."
+msgstr "Возвраты средств через банк нужно создавать на странице заказа WooCommerce."
+
+#: src/Refund/RefundService.php:89
+msgid "The refund amount does not match the WooCommerce refund."
+msgstr "Сумма возврата не совпадает с возвратом WooCommerce."
+
+#: src/Refund/RefundService.php:99
+msgid "The order could not be loaded."
+msgstr "Не удалось загрузить заказ."
+
+#. translators: %s: remaining refundable amount
+#: src/Refund/RefundService.php:112
+#, php-format
+msgid "The refund exceeds the amount that can still be refunded through Plaid ($%s)."
+msgstr "Возврат превышает сумму, которую ещё можно вернуть через Plaid ($%s)."
+
+#: src/Refund/RefundService.php:118
+msgid "An identical refund was issued for this order less than a minute ago. If you really want a second refund of the same amount, wait a minute and try again."
+msgstr "Такой же возврат средств по этому заказу был выполнен менее минуты назад. Если вам действительно нужен второй возврат на ту же сумму, подождите минуту и попробуйте снова."
+
+#: src/Refund/RefundService.php:136
+#: src/Refund/RefundService.php:145
+msgid "The refund could not be recorded safely, so it was not sent to Plaid. No money was moved."
+msgstr "Возврат средств не удалось безопасно записать, поэтому он не был отправлен в Plaid. Деньги не перемещались."
+
+#: src/Refund/RefundService.php:142
+msgid "Another refund for this order is being processed. Wait a moment, reload the order and check its refunds before trying again."
+msgstr "По этому заказу уже обрабатывается другой возврат средств. Подождите немного, обновите страницу заказа и проверьте его возвраты, прежде чем пробовать снова."
+
+#: src/Refund/RefundService.php:196
+msgid "Plaid created the refund, but it could not be recorded. Do not refund again; see the Buckmerce alert on this order."
+msgstr "Plaid создал возврат средств, но его не удалось записать. Не выполняйте возврат повторно; см. уведомление Buckmerce в этом заказе."
+
+#. translators: 1: refund amount, 2: Plaid error code
+#: src/Refund/RefundService.php:222
+#, php-format
+msgid "Buckmerce: Plaid rejected a refund of $%1$s (%2$s). No money was moved."
+msgstr "Buckmerce: Plaid отклонил возврат средств на $%1$s (%2$s). Деньги не перемещались."
+
+#. translators: 1: Plaid error code, 2: Plaid error explanation
+#: src/Refund/RefundService.php:228
+#, php-format
+msgid "Plaid rejected the refund (%1$s). %2$s No money was moved."
+msgstr "Plaid отклонил возврат средств (%1$s). %2$s Деньги не перемещались."
+
+#. translators: %s: refund amount
+#: src/Refund/RefundService.php:245
+#, php-format
+msgid "Buckmerce: Plaid did not confirm a refund of $%s (the request timed out or Plaid was unavailable). Buckmerce will check Plaid and record the refund automatically if it was created. Do not refund this order again until then."
+msgstr "Buckmerce: Plaid не подтвердил возврат средств на $%s (истекло время ожидания запроса, или Plaid был недоступен). Buckmerce проверит Plaid и автоматически запишет возврат, если он был создан. До этого не выполняйте возврат по этому заказу повторно."
+
+#: src/Refund/RefundService.php:248
+msgid "Plaid did not confirm the refund. Do not refund this order again: Buckmerce is checking with Plaid and will record the refund automatically if Plaid created it."
+msgstr "Plaid не подтвердил возврат средств. Не выполняйте возврат по этому заказу повторно: Buckmerce проверяет данные в Plaid и автоматически запишет возврат, если Plaid его создал."
+
+#. translators: %s: refund amount and Plaid refund ID
+#: src/Refund/RefundService.php:326
+#, php-format
+msgid "Buckmerce: refund %s was sent to the customer's bank."
+msgstr "Buckmerce: возврат средств %s отправлен в банк покупателя."
+
+#. translators: %s: refund amount and Plaid refund ID
+#: src/Refund/RefundService.php:330
+#, php-format
+msgid "Buckmerce: refund %s settled at the customer's bank."
+msgstr "Buckmerce: расчёт по возврату средств %s в банке покупателя завершён."
+
+#. translators: 1: refund amount and Plaid refund ID, 2: failure code
+#: src/Refund/RefundService.php:337
+#, php-format
+msgid "Buckmerce: REFUND RETURNED — refund %1$s was returned by the customer's bank (%2$s). The customer did not receive it; the money is back in your Plaid balance."
+msgstr "Buckmerce: ВОЗВРАТ СРЕДСТВ ВОЗВРАЩЁН — возврат %1$s возвращён банком покупателя (%2$s). Покупатель его не получил; деньги снова на вашем балансе Plaid."
+
+#. translators: 1: refund amount and Plaid refund ID, 2: failure code
+#: src/Refund/RefundService.php:337
+#, php-format
+msgid "Buckmerce: REFUND FAILED — refund %1$s failed at Plaid (%2$s). No money reached the customer. The WooCommerce refund record does not reflect a completed refund."
+msgstr "Buckmerce: ВОЗВРАТ СРЕДСТВ НЕ ПРОШЁЛ — возврат %1$s не прошёл в Plaid (%2$s). Деньги до покупателя не дошли. Запись о возврате в WooCommerce не отражает завершённый возврат."
+
+#. translators: 1: order number
+#: src/Refund/RefundService.php:346
+#, php-format
+msgid "Refund returned for order #%1$s"
+msgstr "Возврат средств по заказу #%1$s возвращён банком"
+
+#. translators: 1: order number
+#: src/Refund/RefundService.php:346
+#, php-format
+msgid "Refund failed for order #%1$s"
+msgstr "Возврат средств по заказу #%1$s не прошёл"
+
+#. translators: %s: refund amount and Plaid refund ID
+#: src/Refund/RefundService.php:359
+#, php-format
+msgid "Buckmerce: refund %s was cancelled before it was sent. The customer will not receive it."
+msgstr "Buckmerce: возврат средств %s отменён до отправки. Покупатель его не получит."
+
+#. translators: %s: refund amount
+#: src/Refund/RefundService.php:366
+#, php-format
+msgid "Buckmerce: the unconfirmed refund of $%s was not created at Plaid. No money was moved; you can refund again."
+msgstr "Buckmerce: неподтверждённый возврат средств на $%s не был создан в Plaid. Деньги не перемещались; возврат можно выполнить снова."
+
+#: src/Refund/RefundService.php:478
+msgid "Pay by Bank refund confirmed by Plaid after a timeout."
+msgstr "Возврат средств через банк подтверждён Plaid после истечения времени ожидания."
+
+#. translators: 1: refund amount, 2: Plaid refund ID
+#: src/Refund/RefundService.php:495
+#, php-format
+msgid "Buckmerce: Plaid confirmed the refund of $%1$s (refund ID %2$s) that had timed out. It is now recorded."
+msgstr "Buckmerce: Plaid подтвердил возврат средств на $%1$s (ID возврата %2$s), запрос на который завершился по тайм-ауту. Теперь он записан."
+
+#. translators: 1: refund amount, 2: Plaid refund ID
+#: src/Refund/RefundService.php:527
+#, php-format
+msgid "Buckmerce: a refund of $%1$s (refund ID %2$s) was created outside WooCommerce, for example in the Plaid Dashboard. It counts toward the refundable amount. Record it in WooCommerce as a manual refund if it is not recorded yet."
+msgstr "Buckmerce: возврат средств на $%1$s (ID возврата %2$s) создан вне WooCommerce, например в Plaid Dashboard. Он учитывается в сумме, доступной для возврата. Зафиксируйте его в WooCommerce как ручной возврат, если он ещё не записан."
+
+#. translators: 1: Plaid refund ID, 2: Plaid error code
+#: src/Refund/RefundService.php:559
+#, php-format
+msgid "Buckmerce: the pending refund %1$s could not be cancelled after the payment was returned (%2$s)."
+msgstr "Buckmerce: ожидавший возврат средств %1$s не удалось отменить после того, как платёж был возвращён банком (%2$s)."
+
+#: src/Refund/RefundService.php:615
+msgid "This refund is still being confirmed with Plaid. Do not refund again."
+msgstr "Этот возврат средств ещё подтверждается в Plaid. Не выполняйте возврат повторно."
+
+#: src/Refund/RefundService.php:616
+msgid "This refund was not completed by Plaid. No money was moved for it."
+msgstr "Plaid не завершил этот возврат средств. Деньги по нему не перемещались."
+
+#. translators: 1: refund amount, 2: Plaid refund ID
+#: src/Refund/RefundService.php:634
+#, php-format
+msgid "Buckmerce: refund of $%1$s submitted to Plaid (refund ID %2$s). The customer usually receives it within a few business days."
+msgstr "Buckmerce: возврат средств на $%1$s отправлен в Plaid (ID возврата %2$s). Обычно покупатель получает его в течение нескольких рабочих дней."
+
+#. translators: %s: refund reason
+#: src/Refund/RefundService.php:639
+#, php-format
+msgid "Reason: %s"
+msgstr "Причина: %s"
+
+#. translators: %s: date
+#: src/Refund/RefundService.php:647
+#, php-format
+msgid "Warning: the original bank payment can still be returned by the customer's bank until about %s. If it is returned, you may lose both the payment and this refund; Buckmerce will alert you."
+msgstr "Внимание: банк покупателя ещё может вернуть исходный банковский платёж примерно до %s. Если платёж будет возвращён, вы можете потерять и платёж, и этот возврат средств; Buckmerce уведомит вас."
+
+#: src/REST/RestRoutes.php:81
+#: src/REST/RestRoutes.php:90
+#: src/REST/RestRoutes.php:122
+msgid "This payment session is not valid."
+msgstr "Эта сессия оплаты недействительна."
+
+#: src/REST/RestRoutes.php:98
+msgid "Your bank payment is being prepared. Please try again in a few seconds."
+msgstr "Ваш банковский платёж подготавливается. Повторите попытку через несколько секунд."
+
+#: src/REST/RestRoutes.php:100
+msgid "If you cannot change it, please contact the store."
+msgstr "Если вы не можете это изменить, свяжитесь с магазином."
+
+#: src/REST/RestRoutes.php:133
+msgid "The payment could not be confirmed. Please try again."
+msgstr "Не удалось подтвердить платёж. Пожалуйста, попробуйте снова."
+
+#. translators: 1: number of open payments, 2: number of open refunds
+#: src/Settings/AccountChangeGuard.php:104
+#, php-format
+msgid "Buckmerce kept the previous Plaid environment, Client ID and Secret: %1$d Production payment(s) and %2$d refund(s) are still monitored for ACH returns or refund outcomes, and only the Plaid account that created them can read them. Other settings were saved. You can rotate the secret of the same Client ID at any time; switch accounts after Buckmerce diagnostics show no monitored payments."
+msgstr "Buckmerce сохранил прежние среду Plaid, Client ID и Secret: платежей Production — %1$d, возвратов средств — %2$d; они всё ещё отслеживаются на случай ACH-возвратов и для получения результатов возвратов средств, а прочитать их может только создавший их аккаунт Plaid. Остальные настройки сохранены. Secret того же Client ID можно менять в любое время; переключайте аккаунт после того, как диагностика Buckmerce покажет отсутствие отслеживаемых платежей."
+
+#. translators: 1: number of open payments, 2: number of open refunds
+#: src/Settings/AccountChangeGuard.php:110
+#, php-format
+msgid "Buckmerce: %1$d open Sandbox payment(s) and %2$d refund(s) of the previous Plaid account/environment are no longer monitored. Sandbox moves no real money."
+msgstr "Buckmerce: открытые платежи Sandbox (%1$d) и возвраты средств (%2$d) прежнего аккаунта/среды Plaid больше не отслеживаются. Sandbox не перемещает реальные деньги."
+
+#: src/Support/Requirements.php:34
+msgid "Buckmerce for Plaid requires PHP 8.1+ with the OpenSSL extension, WordPress 6.6+, and WooCommerce 8.7+."
+msgstr "Для Buckmerce for Plaid требуются PHP 8.1+ с расширением OpenSSL, WordPress 6.6+ и WooCommerce 8.7+."

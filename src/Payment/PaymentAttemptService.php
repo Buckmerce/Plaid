@@ -2,31 +2,31 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Payment;
+namespace Buckmerce\Plaid\Payment;
 
-use PayBridge\Plaid\Exception\ConfigurationException;
-use PayBridge\Plaid\Exception\PaymentAttemptBusyException;
-use PayBridge\Plaid\Gateway\GatewayAvailability;
-use PayBridge\Plaid\Exception\PaymentException;
-use PayBridge\Plaid\Exception\PersistenceException;
-use PayBridge\Plaid\Exception\ReturnedPaymentRetryException;
-use PayBridge\Plaid\Logging\Logger;
-use PayBridge\Plaid\Persistence\DatabaseMutex;
-use PayBridge\Plaid\Persistence\PaymentEpoch;
-use PayBridge\Plaid\Persistence\PaymentLockStatus;
-use PayBridge\Plaid\Persistence\PaymentLockStore;
-use PayBridge\Plaid\Persistence\PaymentReservation;
-use PayBridge\Plaid\Plaid\DTO\LinkToken;
-use PayBridge\Plaid\Plaid\DTO\TransferIntent;
-use PayBridge\Plaid\Plaid\Exception\PlaidApiException;
-use PayBridge\Plaid\Plaid\Exception\PlaidException;
-use PayBridge\Plaid\Plaid\Link\LinkTokenService;
-use PayBridge\Plaid\Plaid\TransferIntent\TransferIntentRequest;
-use PayBridge\Plaid\Plaid\TransferIntent\TransferIntentService;
-use PayBridge\Plaid\Settings\AccountScope;
-use PayBridge\Plaid\Settings\Settings;
-use PayBridge\Plaid\Support\Money;
-use PayBridge\Plaid\Support\SiteMarker;
+use Buckmerce\Plaid\Exception\ConfigurationException;
+use Buckmerce\Plaid\Exception\PaymentAttemptBusyException;
+use Buckmerce\Plaid\Gateway\GatewayAvailability;
+use Buckmerce\Plaid\Exception\PaymentException;
+use Buckmerce\Plaid\Exception\PersistenceException;
+use Buckmerce\Plaid\Exception\ReturnedPaymentRetryException;
+use Buckmerce\Plaid\Logging\Logger;
+use Buckmerce\Plaid\Persistence\DatabaseMutex;
+use Buckmerce\Plaid\Persistence\PaymentEpoch;
+use Buckmerce\Plaid\Persistence\PaymentLockStatus;
+use Buckmerce\Plaid\Persistence\PaymentLockStore;
+use Buckmerce\Plaid\Persistence\PaymentReservation;
+use Buckmerce\Plaid\Plaid\DTO\LinkToken;
+use Buckmerce\Plaid\Plaid\DTO\TransferIntent;
+use Buckmerce\Plaid\Plaid\Exception\PlaidApiException;
+use Buckmerce\Plaid\Plaid\Exception\PlaidException;
+use Buckmerce\Plaid\Plaid\Link\LinkTokenService;
+use Buckmerce\Plaid\Plaid\TransferIntent\TransferIntentRequest;
+use Buckmerce\Plaid\Plaid\TransferIntent\TransferIntentService;
+use Buckmerce\Plaid\Settings\AccountScope;
+use Buckmerce\Plaid\Settings\Settings;
+use Buckmerce\Plaid\Support\Money;
+use Buckmerce\Plaid\Support\SiteMarker;
 
 /**
  * Creates, reuses or safely replaces the single active Plaid Transfer Intent
@@ -51,7 +51,7 @@ final class PaymentAttemptService
     public const OUTCOME_TRANSFER = 'transfer';
 
     /** Last Link token creation error (time, Plaid error code) for merchant diagnostics. */
-    public const LAST_LINK_ERROR_OPTION = 'paybridge_plaid_last_link_token_error';
+    public const LAST_LINK_ERROR_OPTION = 'buckmerce_plaid_last_link_token_error';
 
     private const REUSE = 'reuse';
     private const REPLACE = 'replace';
@@ -155,7 +155,7 @@ final class PaymentAttemptService
     private function ensure_active_intent(\WC_Order $order, DatabaseMutex $mutex): string
     {
         if (Settings::GATEWAY_ID !== $order->get_payment_method()) {
-            throw new PaymentException('The order does not use PayBridge.');
+            throw new PaymentException('The order does not use Buckmerce.');
         }
         $state = (string) $order->get_meta(OrderMeta::PAYMENT_STATE, true);
         if (PaymentState::MANUAL_REVIEW === $state) {
@@ -417,7 +417,7 @@ final class PaymentAttemptService
             throw new PaymentException('The bank payment was prepared but could not be saved. Please retry.', 0, $exception);
         }
         $this->logger->log('info', 'transfer_intent_created', array('order_id' => $order->get_id(), 'transfer_intent_id' => $intent->id, 'request_id' => $intent->request_id, 'environment' => $environment));
-        do_action('paybridge_plaid_transfer_intent_created', $order, $intent->id);
+        do_action('buckmerce_plaid_transfer_intent_created', $order, $intent->id);
     }
 
     /** Archives the active attempt and releases the reservation for exactly one new attempt. */
@@ -430,7 +430,7 @@ final class PaymentAttemptService
         OrderPersistence::save($order, array(OrderMeta::PAYMENT_STATE => null, OrderMeta::TRANSFER_INTENT_ID => null, OrderMeta::TRANSFER_ID => null));
         $order->add_order_note(sprintf(
             /* translators: 1: Plaid Transfer Intent ID, 2: reason code */
-            __('PayBridge: previous bank payment attempt retired (intent %1$s, %2$s). Its details are kept in the payment history; a new attempt may start.', 'paybridge-for-plaid'),
+            __('Buckmerce: previous bank payment attempt retired (intent %1$s, %2$s). Its details are kept in the payment history; a new attempt may start.', 'buckmerce-for-plaid'),
             $intent_id,
             $reason
         ));
@@ -450,7 +450,7 @@ final class PaymentAttemptService
     /** Stable, non-PII Link user identifier. */
     private function client_user_id(\WC_Order $order): string
     {
-        return 'pbfp-' . substr(hash_hmac('sha256', 'order:' . $order->get_id() . ':' . $order->get_customer_id(), wp_salt('auth')), 0, 40);
+        return 'bmfp-' . substr(hash_hmac('sha256', 'order:' . $order->get_id() . ':' . $order->get_customer_id(), wp_salt('auth')), 0, 40);
     }
 
     private function reload(int $order_id): \WC_Order

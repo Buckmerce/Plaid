@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Tests\Unit;
+namespace Buckmerce\Plaid\Tests\Unit;
 
-use PayBridge\Plaid\Payment\OrderMeta;
-use PayBridge\Plaid\Payment\PaymentSnapshot;
-use PayBridge\Plaid\Payment\PaymentState;
-use PayBridge\Plaid\Refund\RefundPolicy;
-use PayBridge\Plaid\Refund\RefundRecord;
-use PayBridge\Plaid\Refund\RefundService;
-use PayBridge\Plaid\Refund\RefundState;
-use PayBridge\Plaid\Settings\Settings;
+use Buckmerce\Plaid\Payment\OrderMeta;
+use Buckmerce\Plaid\Payment\PaymentSnapshot;
+use Buckmerce\Plaid\Payment\PaymentState;
+use Buckmerce\Plaid\Refund\RefundPolicy;
+use Buckmerce\Plaid\Refund\RefundRecord;
+use Buckmerce\Plaid\Refund\RefundService;
+use Buckmerce\Plaid\Refund\RefundState;
+use Buckmerce\Plaid\Settings\Settings;
 use PHPUnit\Framework\TestCase;
 
 /** Refund amount integrity and eligibility (ADR-0016), from local data only. */
@@ -125,7 +125,7 @@ final class RefundPolicyTest extends TestCase
         self::assertSame('environment_mismatch', RefundPolicy::evaluate($this->order(), Settings::from_array(array('environment' => 'production', 'client_id' => 'client-a', 'secret' => 's')), array())->code);
         self::assertSame('account_mismatch', RefundPolicy::evaluate($this->order(), $this->settings('client-b'), array())->code);
         self::assertSame('refund_window_expired', RefundPolicy::evaluate($this->order(array(OrderMeta::TRANSFER_CREATED_AT => gmdate('c', time() - 181 * DAY_IN_SECONDS))), $this->settings(), array())->code);
-        self::assertSame('not_paybridge', RefundPolicy::evaluate(new \WC_Order(array(), 'bacs'), $this->settings(), array())->code);
+        self::assertSame('not_buckmerce', RefundPolicy::evaluate(new \WC_Order(array(), 'bacs'), $this->settings(), array())->code);
     }
 
     public function test_idempotency_key_is_deterministic_bound_and_within_plaid_limit(): void
@@ -133,7 +133,7 @@ final class RefundPolicyTest extends TestCase
         $key = RefundService::idempotency_key($this->snapshot, 55, '10.00');
         self::assertSame($key, RefundService::idempotency_key($this->snapshot, 55, '10.00'), 'Retrying the same WooCommerce refund reuses the key.');
         self::assertLessThanOrEqual(50, strlen($key));
-        self::assertMatchesRegularExpression('/^pbfp-[a-f0-9]{44}$/', $key);
+        self::assertMatchesRegularExpression('/^bmfp-[a-f0-9]{44}$/', $key);
         self::assertNotSame($key, RefundService::idempotency_key($this->snapshot, 56, '10.00'), 'Another WooCommerce refund is another refund.');
         self::assertNotSame($key, RefundService::idempotency_key($this->snapshot, 55, '10.01'));
         self::assertNotSame($key, RefundService::idempotency_key(PaymentSnapshot::create(1001, '100.00', 'USD', 'sandbox'), 55, '10.00'), 'Bound to the payment attempt.');

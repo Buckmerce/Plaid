@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Persistence;
+namespace Buckmerce\Plaid\Persistence;
 
-use PayBridge\Plaid\Settings\AccountScope;
+use Buckmerce\Plaid\Settings\AccountScope;
 
 // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; compare-and-set locking must bypass object caches.
 

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Support;
+namespace Buckmerce\Plaid\Support;
 
-use PayBridge\Plaid\Exception\PaymentException;
+use Buckmerce\Plaid\Exception\PaymentException;
 
 /**
  * Converts WooCommerce order totals into the exact decimal-string format Plaid

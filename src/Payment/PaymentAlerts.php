@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Payment;
+namespace Buckmerce\Plaid\Payment;
 
 /**
  * Persistent merchant alerts for payment problems that must not be overlooked
@@ -12,7 +12,7 @@ namespace PayBridge\Plaid\Payment;
  */
 final class PaymentAlerts
 {
-    public const OPTION = 'paybridge_plaid_payment_alerts';
+    public const OPTION = 'buckmerce_plaid_payment_alerts';
     private const MAX_ALERTS = 200;
 
     public const RETURNED = 'returned';
@@ -89,21 +89,21 @@ final class PaymentAlerts
         $amount = '' === (string) ($alert['amount'] ?? '') ? '' : '$' . (string) $alert['amount'];
         return match ((string) ($alert['type'] ?? '')) {
             /* translators: 1: order number, 2: ACH return code */
-            self::RETURNED => sprintf(__('PayBridge: the bank payment for order #%1$s was RETURNED (%2$s). The funds were reversed.', 'paybridge-for-plaid'), $number, $code),
+            self::RETURNED => sprintf(__('Buckmerce: the bank payment for order #%1$s was RETURNED (%2$s). The funds were reversed.', 'buckmerce-for-plaid'), $number, $code),
             /* translators: 1: order number, 2: ACH return code */
-            self::RETURNED_AFTER_REFUND => sprintf(__('PayBridge: the bank payment for order #%1$s was RETURNED (%2$s) AFTER a refund was issued. The customer may have received the money twice; you may lose both the payment and the refund. Review the order now.', 'paybridge-for-plaid'), $number, $code),
+            self::RETURNED_AFTER_REFUND => sprintf(__('Buckmerce: the bank payment for order #%1$s was RETURNED (%2$s) AFTER a refund was issued. The customer may have received the money twice; you may lose both the payment and the refund. Review the order now.', 'buckmerce-for-plaid'), $number, $code),
             /* translators: 1: refund amount, 2: order number, 3: failure code */
-            self::REFUND_FAILED => sprintf(__('PayBridge: the refund of %1$s for order #%2$s FAILED at Plaid (%3$s). The customer did not receive it. Delete the WooCommerce refund record and refund again if needed.', 'paybridge-for-plaid'), $amount, $number, $code),
+            self::REFUND_FAILED => sprintf(__('Buckmerce: the refund of %1$s for order #%2$s FAILED at Plaid (%3$s). The customer did not receive it. Delete the WooCommerce refund record and refund again if needed.', 'buckmerce-for-plaid'), $amount, $number, $code),
             /* translators: 1: refund amount, 2: order number, 3: ACH return code */
-            self::REFUND_RETURNED => sprintf(__('PayBridge: the refund of %1$s for order #%2$s was RETURNED by the customer\'s bank (%3$s). The customer did not receive it; contact the customer.', 'paybridge-for-plaid'), $amount, $number, $code),
+            self::REFUND_RETURNED => sprintf(__('Buckmerce: the refund of %1$s for order #%2$s was RETURNED by the customer\'s bank (%3$s). The customer did not receive it; contact the customer.', 'buckmerce-for-plaid'), $amount, $number, $code),
             /* translators: 1: refund amount, 2: order number */
-            self::REFUND_UNCERTAIN => sprintf(__('PayBridge: Plaid did not confirm the refund of %1$s for order #%2$s. Do not refund this order again: PayBridge is verifying the refund with Plaid.', 'paybridge-for-plaid'), $amount, $number),
+            self::REFUND_UNCERTAIN => sprintf(__('Buckmerce: Plaid did not confirm the refund of %1$s for order #%2$s. Do not refund this order again: Buckmerce is verifying the refund with Plaid.', 'buckmerce-for-plaid'), $amount, $number),
             /* translators: 1: refund amount, 2: order number */
-            self::REFUND_CANCELLED => sprintf(__('PayBridge: the refund of %1$s for order #%2$s was cancelled because the original bank payment was returned.', 'paybridge-for-plaid'), $amount, $number),
+            self::REFUND_CANCELLED => sprintf(__('Buckmerce: the refund of %1$s for order #%2$s was cancelled because the original bank payment was returned.', 'buckmerce-for-plaid'), $amount, $number),
             /* translators: 1: refund amount, 2: order number */
-            self::EXTERNAL_REFUND => sprintf(__('PayBridge: a refund of %1$s for order #%2$s was created outside WooCommerce (for example in the Plaid Dashboard). Record it in WooCommerce as a manual refund.', 'paybridge-for-plaid'), $amount, $number),
+            self::EXTERNAL_REFUND => sprintf(__('Buckmerce: a refund of %1$s for order #%2$s was created outside WooCommerce (for example in the Plaid Dashboard). Record it in WooCommerce as a manual refund.', 'buckmerce-for-plaid'), $amount, $number),
             /* translators: 1: order number, 2: reason code */
-            default => sprintf(__('PayBridge: order #%1$s requires manual payment review (%2$s).', 'paybridge-for-plaid'), $number, $code),
+            default => sprintf(__('Buckmerce: order #%1$s requires manual payment review (%2$s).', 'buckmerce-for-plaid'), $number, $code),
         };
     }
 }

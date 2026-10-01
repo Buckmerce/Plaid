@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Payment;
+namespace Buckmerce\Plaid\Payment;
 
-use PayBridge\Plaid\Exception\PaymentException;
-use PayBridge\Plaid\Persistence\DatabaseMutex;
-use PayBridge\Plaid\Plaid\DTO\TransferIntent;
-use PayBridge\Plaid\Plaid\Transfer\TransferService;
-use PayBridge\Plaid\Plaid\TransferIntent\TransferIntentService;
-use PayBridge\Plaid\Settings\Settings;
+use Buckmerce\Plaid\Exception\PaymentException;
+use Buckmerce\Plaid\Persistence\DatabaseMutex;
+use Buckmerce\Plaid\Plaid\DTO\TransferIntent;
+use Buckmerce\Plaid\Plaid\Transfer\TransferService;
+use Buckmerce\Plaid\Plaid\TransferIntent\TransferIntentService;
+use Buckmerce\Plaid\Settings\Settings;
 
 /**
  * Re-reads authoritative Plaid state for one order (manual "Sync with Plaid"
@@ -31,14 +31,14 @@ final class OrderSynchronizer
 
     /**
      * @throws PaymentException
-     * @throws \PayBridge\Plaid\Plaid\Exception\PlaidException
+     * @throws \Buckmerce\Plaid\Plaid\Exception\PlaidException
      */
     public function sync(\WC_Order $order): string
     {
         return DatabaseMutex::with(DatabaseMutex::payment_resource($order->get_id()), function () use ($order): string {
             $order = wc_get_order($order->get_id());
             if (! $order instanceof \WC_Order || Settings::GATEWAY_ID !== $order->get_payment_method()) {
-                throw new PaymentException('The order is not a PayBridge order.');
+                throw new PaymentException('The order is not a Buckmerce order.');
             }
             $snapshot = PaymentSnapshot::from_json((string) $order->get_meta(OrderMeta::PAYMENT_SNAPSHOT, true));
             $intent_id = (string) $order->get_meta(OrderMeta::TRANSFER_INTENT_ID, true);

@@ -3,7 +3,7 @@
  * Real Plaid Sandbox webhook gate, driven by scripts/test-sandbox-e2e.sh in public-URL (ngrok) mode.
  * Runs inside the disposable Sandbox site: wp eval-file tests/E2E/sandbox-webhooks.php --use-include
  *
- * PBFP_STEP selects the step:
+ * BMFP_STEP selects the step:
  *   catch-up      pull the Plaid account's historical events so the cursor is at the head
  *   pre-webhook   the new orders' events have NOT been synced; clear queued syncs
  *   rearm         prepare for another genuine notification
@@ -16,19 +16,19 @@
 
 declare(strict_types=1);
 
-use PayBridge\Plaid\Background\EventSyncService;
-use PayBridge\Plaid\Background\Scheduler;
-use PayBridge\Plaid\Container;
-use PayBridge\Plaid\Persistence\Installer;
-use PayBridge\Plaid\REST\WebhookController;
+use Buckmerce\Plaid\Background\EventSyncService;
+use Buckmerce\Plaid\Background\Scheduler;
+use Buckmerce\Plaid\Container;
+use Buckmerce\Plaid\Persistence\Installer;
+use Buckmerce\Plaid\REST\WebhookController;
 
 global $wpdb;
 
-$step = (string) getenv('PBFP_STEP');
-$orders = json_decode((string) getenv('PBFP_ORDERS'), true);
+$step = (string) getenv('BMFP_STEP');
+$orders = json_decode((string) getenv('BMFP_ORDERS'), true);
 $orders = is_array($orders) ? $orders : array();
-$public_url = rtrim((string) getenv('PBFP_PUBLIC_URL'), '/');
-$webhook_url = $public_url . '/wp-json/paybridge-for-plaid/v1/webhook';
+$public_url = rtrim((string) getenv('BMFP_PUBLIC_URL'), '/');
+$webhook_url = $public_url . '/wp-json/buckmerce-for-plaid/v1/webhook';
 $events_table = Installer::events_table();
 
 $check = static function (bool $condition, string $message): void {
@@ -43,11 +43,11 @@ $fresh = static function (string $name) use ($wpdb) {
     return null === $value ? false : maybe_unserialize($value);
 };
 $state = static function (?array $update = null) use ($fresh): array {
-    $current = $fresh('pbfp_test_gate_state');
+    $current = $fresh('bmfp_test_gate_state');
     $current = is_array($current) ? $current : array();
     if (null !== $update) {
         $current = array_merge($current, $update);
-        update_option('pbfp_test_gate_state', $current, false);
+        update_option('bmfp_test_gate_state', $current, false);
     }
     return $current;
 };
@@ -59,7 +59,7 @@ $transfer_ids = static function () use ($orders): array {
     $ids = array();
     foreach ($orders as $amount => $order_id) {
         $order = wc_get_order((int) $order_id);
-        $ids[$amount] = $order instanceof WC_Order ? (string) $order->get_meta('_pbfp_transfer_id', true) : '';
+        $ids[$amount] = $order instanceof WC_Order ? (string) $order->get_meta('_bmfp_transfer_id', true) : '';
     }
     return $ids;
 };
@@ -74,11 +74,11 @@ $fingerprint = static function () use ($order_ids, $wpdb, $events_table): array 
         $print[$order_id] = array(
             $order->get_status(),
             $order->is_paid(),
-            (string) $order->get_meta('_pbfp_payment_state', true),
-            (string) $order->get_meta('_pbfp_transfer_status', true),
-            (string) $order->get_meta('_pbfp_last_event_id', true),
-            (string) $order->get_meta('_pbfp_return_code', true),
-            (string) $order->get_meta('_pbfp_return_alerted', true),
+            (string) $order->get_meta('_bmfp_payment_state', true),
+            (string) $order->get_meta('_bmfp_transfer_status', true),
+            (string) $order->get_meta('_bmfp_last_event_id', true),
+            (string) $order->get_meta('_bmfp_return_code', true),
+            (string) $order->get_meta('_bmfp_return_alerted', true),
             count(wc_get_order_notes(array('order_id' => $order_id))),
         );
     }
@@ -119,13 +119,13 @@ switch ($step) {
         $check(0 === $synced, 'None of the new transfers\' events has been synced yet (the webhook must drive it)');
         as_unschedule_all_actions(Scheduler::EVENT_SYNC_HOOK, array(), Scheduler::GROUP);
         $check(0 === $pending_syncs(), 'No event sync is queued before the webhook');
-        $captures = $fresh('pbfp_test_webhook_captures');
-        $state(array('captures_before' => is_array($captures) ? count($captures) : 0, 'fired_at' => time(), 'cursor_before' => (string) $fresh(\PayBridge\Plaid\Persistence\EventCursor::option_name(\PayBridge\Plaid\Settings\Settings::load()->account_scope()))));
+        $captures = $fresh('bmfp_test_webhook_captures');
+        $state(array('captures_before' => is_array($captures) ? count($captures) : 0, 'fired_at' => time(), 'cursor_before' => (string) $fresh(\Buckmerce\Plaid\Persistence\EventCursor::option_name(\Buckmerce\Plaid\Settings\Settings::load()->account_scope()))));
         break;
 
     case 'rearm':
         as_unschedule_all_actions(Scheduler::EVENT_SYNC_HOOK, array(), Scheduler::GROUP);
-        $captures = $fresh('pbfp_test_webhook_captures');
+        $captures = $fresh('bmfp_test_webhook_captures');
         $state(array('captures_before' => is_array($captures) ? count($captures) : 0, 'fired_at' => time()));
         $check(0 === $pending_syncs(), 'Ready for another genuine notification');
         break;
@@ -135,7 +135,7 @@ switch ($step) {
         $genuine = null;
         $deadline = time() + 150;
         while (null === $genuine && time() < $deadline) {
-            $captures = $fresh('pbfp_test_webhook_captures');
+            $captures = $fresh('bmfp_test_webhook_captures');
             foreach (array_slice(is_array($captures) ? $captures : array(), $before) as $capture) {
                 if (200 === $capture['status'] && '' !== $capture['jwt'] && ! str_starts_with($capture['user_agent'], 'WordPress/')) {
                     $genuine = $capture;
@@ -170,19 +170,19 @@ switch ($step) {
             $order = wc_get_order((int) $orders[$amount]);
             $rows = $wpdb->get_results($wpdb->prepare('SELECT event_type, status, order_id FROM %i WHERE transfer_id = %s ORDER BY event_id', $events_table, $ids[$amount]), ARRAY_A);
             $types = array_column($rows, 'event_type');
-            $state_now = (string) $order->get_meta('_pbfp_payment_state', true);
+            $state_now = (string) $order->get_meta('_bmfp_payment_state', true);
             WP_CLI::log(sprintf('  $%s order #%d state=%s wc=%s paid=%s events=%s', $amount, $order->get_id(), $state_now, $order->get_status(), $order->is_paid() ? 'yes' : 'no', implode('>', $types)));
             $check(in_array($want['event'], $types, true), '$' . $amount . ': the webhook-driven sync stored the "' . $want['event'] . '" event');
             $check(array() === array_filter($rows, static fn (array $row): bool => 'processed' !== $row['status'] || (int) $row['order_id'] !== $order->get_id()), '$' . $amount . ': every event of the transfer was processed for order #' . $order->get_id());
             $check($want['state'] === $state_now && $want['paid'] === $order->is_paid(), '$' . $amount . ': order is ' . $want['state'] . ($want['paid'] ? ' and paid' : ' and not paid'));
             if (isset($want['return'])) {
-                $check($want['return'] === $order->get_meta('_pbfp_return_code', true) && 'yes' === $order->get_meta('_pbfp_return_alerted', true), '$' . $amount . ': ACH return ' . $want['return'] . ' recorded and alerted');
+                $check($want['return'] === $order->get_meta('_bmfp_return_code', true) && 'yes' === $order->get_meta('_bmfp_return_alerted', true), '$' . $amount . ': ACH return ' . $want['return'] . ' recorded and alerted');
             }
         }
-        $scope = \PayBridge\Plaid\Settings\Settings::load()->account_scope();
+        $scope = \Buckmerce\Plaid\Settings\Settings::load()->account_scope();
         wp_cache_delete(EventSyncService::HEALTH_OPTION_PREFIX . $scope->key(), 'options');
         $check(strtotime(EventSyncService::health($scope)['last_sync']) >= (int) ($state()['fired_at'] ?? PHP_INT_MAX), 'Event sync ran after the webhook');
-        $check((string) $fresh(\PayBridge\Plaid\Persistence\EventCursor::option_name($scope)) !== (string) ($state()['cursor_before'] ?? ''), 'The account event cursor advanced');
+        $check((string) $fresh(\Buckmerce\Plaid\Persistence\EventCursor::option_name($scope)) !== (string) ($state()['cursor_before'] ?? ''), 'The account event cursor advanced');
         break;
 
     case 'attacks':
@@ -202,7 +202,7 @@ switch ($step) {
         $attacker = openssl_pkey_new(array('curve_name' => 'prime256v1', 'private_key_type' => OPENSSL_KEYTYPE_EC));
         openssl_pkey_export($attacker, $attacker_pem);
         $forge = static function (string $forged_body, string $forged_kid) use ($attacker_pem): string {
-            return \PayBridge\Plaid\Vendor\Firebase\JWT\JWT::encode(array('iat' => time(), 'request_body_sha256' => hash('sha256', $forged_body)), $attacker_pem, 'ES256', $forged_kid);
+            return \Buckmerce\Plaid\Vendor\Firebase\JWT\JWT::encode(array('iat' => time(), 'request_body_sha256' => hash('sha256', $forged_body)), $attacker_pem, 'ES256', $forged_kid);
         };
         $production_body = (string) wp_json_encode(array_merge((array) json_decode($body, true), array('environment' => 'production')));
         $flipped = $signature;
@@ -261,6 +261,6 @@ switch ($step) {
         break;
 
     default:
-        throw new RuntimeException('Unknown PBFP_STEP: ' . $step);
+        throw new RuntimeException('Unknown BMFP_STEP: ' . $step);
 }
 WP_CLI::success('Sandbox webhook step "' . $step . '" passed.');

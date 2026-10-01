@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Tests\Unit;
+namespace Buckmerce\Plaid\Tests\Unit;
 
-use PayBridge\Plaid\Logging\Redactor;
+use Buckmerce\Plaid\Logging\Redactor;
 use PHPUnit\Framework\TestCase;
 
 final class RedactorTest extends TestCase

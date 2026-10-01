@@ -36,8 +36,8 @@ jobs:
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta|rc)\.[0-9]+)?$ ]] || { echo "::error::Invalid release tag $GITHUB_REF_NAME"; exit 1; }
-          header=$(grep -m1 '^ \* Version:' paybridge-for-plaid.php | sed -E 's/^ \* Version:[[:space:]]*//')
-          constant=$(grep -m1 "define( 'PAYBRIDGE_PLAID_VERSION'" paybridge-for-plaid.php | sed -E "s/.*'PAYBRIDGE_PLAID_VERSION',[[:space:]]*'([^']+)'.*/\1/")
+          header=$(grep -m1 '^ \* Version:' buckmerce-for-plaid.php | sed -E 's/^ \* Version:[[:space:]]*//')
+          constant=$(grep -m1 "define( 'BUCKMERCE_PLAID_VERSION'" buckmerce-for-plaid.php | sed -E "s/.*'BUCKMERCE_PLAID_VERSION',[[:space:]]*'([^']+)'.*/\1/")
           stable=$(grep -m1 '^Stable tag:' readme.txt | sed -E 's/^Stable tag:[[:space:]]*//')
           package=$(node -p "require('./package.json').version")
           for pair in "header:$header" "constant:$constant" "readme:$stable" "package.json:$package"; do
@@ -68,7 +68,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
-          name: paybridge-for-plaid-zip
+          name: buckmerce-for-plaid-zip
           path: dist
       - name: The artifact is the tested one
         shell: bash
@@ -77,7 +77,7 @@ jobs:
           EXPECTED_SHA: ${{ needs.quality.outputs.zip_sha256 }}
           VERSION: ${{ needs.verify-tag.outputs.version }}
         run: |
-          [[ "$EXPECTED_NAME" == "paybridge-for-plaid-$VERSION.zip" ]] || { echo "::error::Tested ZIP $EXPECTED_NAME does not match version $VERSION"; exit 1; }
+          [[ "$EXPECTED_NAME" == "buckmerce-for-plaid-$VERSION.zip" ]] || { echo "::error::Tested ZIP $EXPECTED_NAME does not match version $VERSION"; exit 1; }
           actual=$(sha256sum "dist/$EXPECTED_NAME" | cut -d' ' -f1)
           [[ "$actual" == "$EXPECTED_SHA" ]] || { echo "::error::SHA-256 mismatch: tested $EXPECTED_SHA, about to publish $actual"; exit 1; }
           (cd dist && sha256sum -c "$EXPECTED_NAME.sha256")
@@ -92,8 +92,8 @@ jobs:
           flags=()
           [[ "$PRERELEASE" == true ]] && flags+=(--prerelease)
           gh release create "$GITHUB_REF_NAME" \
-            "dist/paybridge-for-plaid-$VERSION.zip" \
-            "dist/paybridge-for-plaid-$VERSION.zip.sha256" \
-            --title "PayBridge for Plaid $VERSION" \
+            "dist/buckmerce-for-plaid-$VERSION.zip" \
+            "dist/buckmerce-for-plaid-$VERSION.zip.sha256" \
+            --title "Buckmerce for Plaid $VERSION" \
             --notes "Release ZIP SHA-256: \`$SHA\` (built and tested once by the quality gate of this workflow run). See the changelog in readme.txt." \
             --verify-tag "${flags[@]}"

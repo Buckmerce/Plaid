@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Settings;
+namespace Buckmerce\Plaid\Settings;
 
-use PayBridge\Plaid\Plaid\PlaidEnvironment;
+use Buckmerce\Plaid\Plaid\PlaidEnvironment;
 
 /**
  * Identity of one Plaid event stream: environment + non-secret account fingerprint (ADR-0018).

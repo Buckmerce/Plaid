@@ -1,6 +1,6 @@
 {
-  "name": "al5dy/paybridge-for-plaid",
-  "description": "PayBridge for Plaid — WooCommerce Pay by Bank using Plaid Transfer.",
+  "name": "al5dy/buckmerce-for-plaid",
+  "description": "Buckmerce – Bank Payments via Plaid for WooCommerce (Pay by Bank through Plaid Transfer).",
   "type": "wordpress-plugin",
   "license": "GPL-2.0-or-later",
   "require": {
@@ -17,23 +17,20 @@
   },
   "autoload": {
     "psr-4": {
-      "PayBridge\\Plaid\\": "src/"
+      "Buckmerce\\Plaid\\": "src/"
     }
   },
   "autoload-dev": {
     "psr-4": {
-      "PayBridge\\Plaid\\Tests\\": "tests/"
-    },
-    "files": [
-      "vendor-prefixed/autoload.php"
-    ]
+      "Buckmerce\\Plaid\\Tests\\": "tests/"
+    }
   },
   "extra": {
     "strauss": {
       "target_directory": "vendor-prefixed",
-      "namespace_prefix": "PayBridge\\Plaid\\Vendor\\",
-      "classmap_prefix": "PayBridge_Plaid_Vendor_",
-      "constant_prefix": "PAYBRIDGE_PLAID_VENDOR_",
+      "namespace_prefix": "Buckmerce\\Plaid\\Vendor\\",
+      "classmap_prefix": "Buckmerce_Plaid_Vendor_",
+      "constant_prefix": "BUCKMERCE_PLAID_VENDOR_",
       "packages": [
         "firebase/php-jwt"
       ],
@@ -54,7 +51,7 @@
     "test:integration": "bash scripts/test-integration.sh",
     "lint": "phpcs --standard=phpcs.xml.dist",
     "stan": "phpstan analyse --memory-limit=1G",
-    "syntax": "find src tests paybridge-for-plaid.php uninstall.php -name '*.php' -not -path 'tests/phpstan-wp-root/*' -print0 | xargs -0 -n1 php -l"
+    "syntax": "find src tests buckmerce-for-plaid.php uninstall.php -name '*.php' -not -path 'tests/phpstan-wp-root/*' -print0 | xargs -0 -n1 php -l"
   },
   "config": {
     "sort-packages": true,

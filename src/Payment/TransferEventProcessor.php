@@ -2,22 +2,22 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Payment;
+namespace Buckmerce\Plaid\Payment;
 
-use PayBridge\Plaid\Logging\Logger;
-use PayBridge\Plaid\Persistence\DatabaseMutex;
-use PayBridge\Plaid\Persistence\PaymentEpoch;
-use PayBridge\Plaid\Persistence\TransferEventStore;
-use PayBridge\Plaid\Plaid\DTO\TransferEvent;
-use PayBridge\Plaid\Plaid\DTO\TransferIntent;
-use PayBridge\Plaid\Plaid\Exception\PlaidApiException;
-use PayBridge\Plaid\Plaid\Exception\PlaidException;
-use PayBridge\Plaid\Plaid\Transfer\TransferService;
-use PayBridge\Plaid\Plaid\TransferIntent\TransferIntentService;
-use PayBridge\Plaid\Refund\RefundEventHandler;
-use PayBridge\Plaid\Settings\AccountScope;
-use PayBridge\Plaid\Support\Money;
-use PayBridge\Plaid\Support\SiteMarker;
+use Buckmerce\Plaid\Logging\Logger;
+use Buckmerce\Plaid\Persistence\DatabaseMutex;
+use Buckmerce\Plaid\Persistence\PaymentEpoch;
+use Buckmerce\Plaid\Persistence\TransferEventStore;
+use Buckmerce\Plaid\Plaid\DTO\TransferEvent;
+use Buckmerce\Plaid\Plaid\DTO\TransferIntent;
+use Buckmerce\Plaid\Plaid\Exception\PlaidApiException;
+use Buckmerce\Plaid\Plaid\Exception\PlaidException;
+use Buckmerce\Plaid\Plaid\Transfer\TransferService;
+use Buckmerce\Plaid\Plaid\TransferIntent\TransferIntentService;
+use Buckmerce\Plaid\Refund\RefundEventHandler;
+use Buckmerce\Plaid\Settings\AccountScope;
+use Buckmerce\Plaid\Support\Money;
+use Buckmerce\Plaid\Support\SiteMarker;
 
 /**
  * Applies one durable Plaid transfer event (fetched via /transfer/event/sync)
@@ -96,7 +96,7 @@ final class TransferEventProcessor
                 $order = wc_get_order($order->get_id());
                 if ($order instanceof \WC_Order) {
                     $last = (string) $order->get_meta(OrderMeta::LAST_EVENT_ID, true);
-                    if ('' === $last || \PayBridge\Plaid\Support\Decimal::compare($event->event_id, $last) > 0) {
+                    if ('' === $last || \Buckmerce\Plaid\Support\Decimal::compare($event->event_id, $last) > 0) {
                         $order->update_meta_data(OrderMeta::LAST_EVENT_ID, $event->event_id);
                     }
                     if ('apply' === $decision) {
@@ -107,7 +107,7 @@ final class TransferEventProcessor
                 }
                 return array('status' => TransferEventStore::PROCESSED, 'order_id' => $order instanceof \WC_Order ? $order->get_id() : 0, 'error_code' => 'conflict' === $decision ? 'state_conflict' : '');
             });
-        } catch (\PayBridge\Plaid\Exception\PaymentAttemptBusyException $exception) {
+        } catch (\Buckmerce\Plaid\Exception\PaymentAttemptBusyException $exception) {
             return array('status' => TransferEventStore::RETRY, 'order_id' => $order->get_id(), 'error_code' => 'order_busy');
         }
     }
@@ -116,7 +116,7 @@ final class TransferEventProcessor
      * The transfer is not yet bound (the customer closed the page before the
      * completion check), or it does not belong to this store at all.
      *
-     * Correlation only uses data PayBridge itself wrote at intent creation
+     * Correlation only uses data Buckmerce itself wrote at intent creation
      * (intent metadata copied to the transfer) and is confirmed with the
      * authoritative intent before binding. Transfers of other stores or
      * integrations sharing the Plaid account are ignored explicitly instead of
@@ -148,18 +148,18 @@ final class TransferEventProcessor
                     return $ignore('transfer_unreadable');
                 }
                 $metadata = $transfer->metadata;
-                $order_id = (int) ($metadata['pbfp_order_id'] ?? 0);
-                $attempt_id = (string) ($metadata['pbfp_attempt_id'] ?? '');
+                $order_id = (int) ($metadata['bmfp_order_id'] ?? 0);
+                $attempt_id = (string) ($metadata['bmfp_attempt_id'] ?? '');
                 if ($order_id < 1 || '' === $attempt_id) {
                     return $ignore('foreign_transfer');
                 }
-                if (isset($metadata['pbfp_site']) && ! hash_equals(SiteMarker::current(), (string) $metadata['pbfp_site'])) {
+                if (isset($metadata['bmfp_site']) && ! hash_equals(SiteMarker::current(), (string) $metadata['bmfp_site'])) {
                     return $ignore('foreign_site');
                 }
-                if (isset($metadata['pbfp_environment']) && $scope->environment !== $metadata['pbfp_environment']) {
+                if (isset($metadata['bmfp_environment']) && $scope->environment !== $metadata['bmfp_environment']) {
                     return $ignore('environment_mismatch');
                 }
-                $candidate = $this->locator->paybridge_order($order_id);
+                $candidate = $this->locator->buckmerce_order($order_id);
                 if (null === $candidate) {
                     $this->logger->log('warning', 'transfer_event_order_missing', array('order_id' => $order_id, 'transfer_id' => $event->transfer_id, 'event_id' => $event->event_id));
                     return $ignore('order_missing');
@@ -198,7 +198,7 @@ final class TransferEventProcessor
                 $bound = wc_get_order($order->get_id());
                 return $bound instanceof \WC_Order && $event->transfer_id === (string) $bound->get_meta(OrderMeta::TRANSFER_ID, true) ? $bound : null;
             });
-        } catch (PlaidException | \PayBridge\Plaid\Exception\PaymentAttemptBusyException $exception) {
+        } catch (PlaidException | \Buckmerce\Plaid\Exception\PaymentAttemptBusyException $exception) {
             return null;
         }
     }

@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Background;
+namespace Buckmerce\Plaid\Background;
 
-use PayBridge\Plaid\Logging\Logger;
-use PayBridge\Plaid\Payment\TransferEventProcessor;
-use PayBridge\Plaid\Persistence\DatabaseMutex;
-use PayBridge\Plaid\Persistence\EventCursor;
-use PayBridge\Plaid\Persistence\TransferEventStore;
-use PayBridge\Plaid\Plaid\Transfer\TransferEventService;
-use PayBridge\Plaid\Settings\AccountScope;
-use PayBridge\Plaid\Support\Decimal;
+use Buckmerce\Plaid\Logging\Logger;
+use Buckmerce\Plaid\Payment\TransferEventProcessor;
+use Buckmerce\Plaid\Persistence\DatabaseMutex;
+use Buckmerce\Plaid\Persistence\EventCursor;
+use Buckmerce\Plaid\Persistence\TransferEventStore;
+use Buckmerce\Plaid\Plaid\Transfer\TransferEventService;
+use Buckmerce\Plaid\Settings\AccountScope;
+use Buckmerce\Plaid\Support\Decimal;
 
 /**
  * /transfer/event/sync ingestion for ONE Plaid event stream (environment + account, ADR-0018)
@@ -27,9 +27,9 @@ use PayBridge\Plaid\Support\Decimal;
 final class EventSyncService
 {
     /** Per-scope health record: last successful sync, last error, consecutive failures. */
-    public const HEALTH_OPTION_PREFIX = 'paybridge_plaid_event_sync_';
+    public const HEALTH_OPTION_PREFIX = 'buckmerce_plaid_event_sync_';
     /** Schema-2 per-site options, superseded by the per-scope health record (kept only for uninstall). */
-    public const LEGACY_OPTIONS = array('paybridge_plaid_last_event_sync', 'paybridge_plaid_last_event_sync_error', 'paybridge_plaid_event_sync_failures');
+    public const LEGACY_OPTIONS = array('buckmerce_plaid_last_event_sync', 'buckmerce_plaid_last_event_sync_error', 'buckmerce_plaid_event_sync_failures');
     public const MAX_RETRY_DELAY_SECONDS = 900;
 
     private const MAX_PAGES = 10;
@@ -96,7 +96,7 @@ final class EventSyncService
             }
         } catch (\Throwable $exception) {
             $category = ReconciliationService::category($exception);
-            $code = $exception instanceof \PayBridge\Plaid\Plaid\Exception\PlaidException ? $exception->safe_code() : Logger::fingerprint($exception->getMessage());
+            $code = $exception instanceof \Buckmerce\Plaid\Plaid\Exception\PlaidException ? $exception->safe_code() : Logger::fingerprint($exception->getMessage());
             self::record_health($this->scope, array('last_error' => array('at' => gmdate('c'), 'code' => $code, 'category' => $category), 'failures' => self::failures($this->scope) + 1));
             $this->logger->log('error', 'event_sync_failed', array('environment' => $this->scope->environment, 'account_fp' => $this->scope->account_fp, 'error_code' => $code, 'category' => $category));
             return array('status' => 'failed', 'fetched' => $fetched, 'processed' => $processed, 'more' => true);
@@ -144,7 +144,7 @@ final class EventSyncService
         update_option(self::HEALTH_OPTION_PREFIX . $scope->key(), $changes + self::health($scope), false);
     }
 
-    /** @param array{id:int, owner_token:string, event:\PayBridge\Plaid\Plaid\DTO\TransferEvent, attempts:int} $claim */
+    /** @param array{id:int, owner_token:string, event:\Buckmerce\Plaid\Plaid\DTO\TransferEvent, attempts:int} $claim */
     private function process_claim(array $claim): int
     {
         try {

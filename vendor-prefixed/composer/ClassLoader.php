@@ -10,12 +10,12 @@
  * file that was distributed with this source code.
  */
 
-namespace PayBridge\Plaid\Vendor\Composer\Autoload;
+namespace Buckmerce\Plaid\Vendor\Composer\Autoload;
 
 /**
  * ClassLoader implements a PSR-0, PSR-4 and classmap class loader.
  *
- *     $loader = new \PayBridge\Plaid\Vendor\Composer\Autoload\ClassLoader();
+ *     $loader = new \Buckmerce\Plaid\Vendor\Composer\Autoload\ClassLoader();
  *
  *     // register classes with namespaces
  *     $loader->add('Symfony\Component', __DIR__.'/component');

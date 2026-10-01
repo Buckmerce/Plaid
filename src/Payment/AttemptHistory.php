@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Payment;
+namespace Buckmerce\Plaid\Payment;
 
-use PayBridge\Plaid\Settings\AccountScope;
+use Buckmerce\Plaid\Settings\AccountScope;
 
 /**
  * Durable history of an order's payment attempts (ADR-0017).
  *
- * The current attempt lives in the order's _pbfp_* meta and the payment index. When a new
+ * The current attempt lives in the order's _bmfp_* meta and the payment index. When a new
  * attempt replaces it (after a failure, a return or an unusable intent), the complete
  * attempt is archived here first: identifiers, amounts, provider timestamps and outcome.
  * Attempts that moved money (have a transfer) are never dropped; attempts without a

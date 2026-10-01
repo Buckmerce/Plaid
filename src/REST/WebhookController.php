@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\REST;
+namespace Buckmerce\Plaid\REST;
 
-use PayBridge\Plaid\Background\Scheduler;
-use PayBridge\Plaid\Container;
-use PayBridge\Plaid\Exception\ConfigurationException;
-use PayBridge\Plaid\Logging\Logger;
-use PayBridge\Plaid\Plaid\Exception\WebhookVerificationException;
-use PayBridge\Plaid\Plaid\Webhook\WebhookVerificationService;
-use PayBridge\Plaid\Settings\Settings;
+use Buckmerce\Plaid\Background\Scheduler;
+use Buckmerce\Plaid\Container;
+use Buckmerce\Plaid\Exception\ConfigurationException;
+use Buckmerce\Plaid\Logging\Logger;
+use Buckmerce\Plaid\Plaid\Exception\WebhookVerificationException;
+use Buckmerce\Plaid\Plaid\Webhook\WebhookVerificationService;
+use Buckmerce\Plaid\Settings\Settings;
 
 /**
- * POST /wp-json/paybridge-for-plaid/v1/webhook
+ * POST /wp-json/buckmerce-for-plaid/v1/webhook
  *
  * Nothing about the request is trusted until WebhookVerificationService has
  * verified the ES256 JWT and the raw-body hash. A verified
@@ -23,9 +23,9 @@ use PayBridge\Plaid\Settings\Settings;
 final class WebhookController
 {
     /** Last verified webhook (time, type, code, environment, outcome) for diagnostics. */
-    public const LAST_WEBHOOK_OPTION = 'paybridge_plaid_last_webhook';
+    public const LAST_WEBHOOK_OPTION = 'buckmerce_plaid_last_webhook';
     /** Last rejected webhook (time, reason, HTTP status); written at most once a minute. */
-    public const LAST_REJECTION_OPTION = 'paybridge_plaid_last_webhook_rejection';
+    public const LAST_REJECTION_OPTION = 'buckmerce_plaid_last_webhook_rejection';
     private const REJECTION_RECORD_INTERVAL_SECONDS = 60;
 
     public function handle(\WP_REST_Request $request): \WP_REST_Response
@@ -70,7 +70,7 @@ final class WebhookController
             }
             $logger->log('info', 'webhook_transfer_events_update', array('environment' => $environment));
             self::record_verified($type, $code, $environment, 'event_sync_queued');
-            do_action('paybridge_plaid_webhook_processed', $type, $code, $environment);
+            do_action('buckmerce_plaid_webhook_processed', $type, $code, $environment);
             return new \WP_REST_Response(array('received' => true), 200);
         }
         $logger->log('debug', 'webhook_ignored', array('webhook_type' => substr($type, 0, 40), 'webhook_code' => substr($code, 0, 60)));

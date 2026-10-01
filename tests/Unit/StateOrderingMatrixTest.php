@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Tests\Unit;
+namespace Buckmerce\Plaid\Tests\Unit;
 
-use PayBridge\Plaid\Payment\PaymentState;
-use PayBridge\Plaid\Payment\PaymentStateMachine;
-use PayBridge\Plaid\Refund\RefundState;
-use PayBridge\Plaid\Refund\RefundStateMachine;
+use Buckmerce\Plaid\Payment\PaymentState;
+use Buckmerce\Plaid\Payment\PaymentStateMachine;
+use Buckmerce\Plaid\Refund\RefundState;
+use Buckmerce\Plaid\Refund\RefundStateMachine;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

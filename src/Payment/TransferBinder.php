@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Payment;
+namespace Buckmerce\Plaid\Payment;
 
-use PayBridge\Plaid\Exception\PersistenceException;
-use PayBridge\Plaid\Persistence\PaymentLockStore;
-use PayBridge\Plaid\Plaid\DTO\Transfer;
-use PayBridge\Plaid\Plaid\DTO\TransferIntent;
-use PayBridge\Plaid\Plaid\Transfer\TransferService;
-use PayBridge\Plaid\Support\Money;
+use Buckmerce\Plaid\Exception\PersistenceException;
+use Buckmerce\Plaid\Persistence\PaymentLockStore;
+use Buckmerce\Plaid\Plaid\DTO\Transfer;
+use Buckmerce\Plaid\Plaid\DTO\TransferIntent;
+use Buckmerce\Plaid\Plaid\Transfer\TransferService;
+use Buckmerce\Plaid\Support\Money;
 
 /**
  * Binds the transfer created from a SUCCEEDED Transfer Intent to its order,
@@ -117,7 +117,7 @@ final class TransferBinder
 
     public static function intent_matches_snapshot(TransferIntent $intent, PaymentSnapshot $snapshot): bool
     {
-        $attempt = $intent->metadata['pbfp_attempt_id'] ?? '';
+        $attempt = $intent->metadata['bmfp_attempt_id'] ?? '';
         return Money::same_amount($intent->amount, $snapshot->amount)
             && ('' === $intent->iso_currency_code || $snapshot->currency === $intent->iso_currency_code)
             && 'PAYMENT' === $intent->mode

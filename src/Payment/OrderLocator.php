@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Payment;
+namespace Buckmerce\Plaid\Payment;
 
-use PayBridge\Plaid\Persistence\PaymentLockStatus;
-use PayBridge\Plaid\Persistence\PaymentLockStore;
-use PayBridge\Plaid\Settings\AccountScope;
-use PayBridge\Plaid\Settings\Settings;
+use Buckmerce\Plaid\Persistence\PaymentLockStatus;
+use Buckmerce\Plaid\Persistence\PaymentLockStore;
+use Buckmerce\Plaid\Settings\AccountScope;
+use Buckmerce\Plaid\Settings\Settings;
 
 /**
- * Finds the order of a Plaid identifier through PayBridge's own payment index
+ * Finds the order of a Plaid identifier through Buckmerce's own payment index
  * (the reservation table). This works identically with HPOS and legacy order
  * storage and never relies on WooCommerce order meta queries. Lookups are limited to
  * the Plaid account whose event stream is being processed (ADR-0018).
@@ -50,7 +50,7 @@ final class OrderLocator
         return '' === $account || hash_equals($scope->account_fp, $account);
     }
 
-    public function paybridge_order(int $order_id): ?\WC_Order
+    public function buckmerce_order(int $order_id): ?\WC_Order
     {
         $order = wc_get_order($order_id);
         return $order instanceof \WC_Order && Settings::GATEWAY_ID === $order->get_payment_method() ? $order : null;
@@ -65,7 +65,7 @@ final class OrderLocator
         if (null === $row) {
             return null;
         }
-        $order = $this->paybridge_order($row['order_id']);
+        $order = $this->buckmerce_order($row['order_id']);
         if (null === $order) {
             return null;
         }

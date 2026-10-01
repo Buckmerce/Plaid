@@ -1,13 +1,13 @@
 /**
- * Checkout Blocks registration for PayBridge for Plaid.
+ * Checkout Blocks registration for Buckmerce for Plaid.
  *
  * Presentation only: the order is created by WooCommerce and payment
  * initiation happens server-side in the gateway's process_payment(), exactly
- * as in Classic Checkout. The bank connection itself runs on the PayBridge
+ * as in Classic Checkout. The bank connection itself runs on the Buckmerce
  * payment page after the redirect.
  */
 
-interface PayBridgeBlockData {
+interface BuckmerceBlockData {
 	title?: string;
 	description?: string;
 	icon?: string;
@@ -47,22 +47,22 @@ declare global {
 		return;
 	}
 	const decode = ( value: string ): string => ( entities ? entities.decodeEntities( value ) : value );
-	const translate = ( text: string ): string => ( i18n ? i18n.__( text, 'paybridge-for-plaid' ) : text );
-	const data = settings.getSetting< PayBridgeBlockData >( 'paybridge_plaid_data', {} );
+	const translate = ( text: string ): string => ( i18n ? i18n.__( text, 'buckmerce-for-plaid' ) : text );
+	const data = settings.getSetting< BuckmerceBlockData >( 'buckmerce_plaid_data', {} );
 	const title = decode( data.title || translate( 'Pay by Bank' ) );
 	const description = decode( data.description || translate( 'Securely pay directly from your bank account.' ) );
 
 	const label = element.createElement(
 		'span',
-		{ className: 'pbfp-block-label' },
-		data.icon ? element.createElement( 'img', { src: data.icon, alt: '', width: 24, height: 24, className: 'pbfp-block-label__icon' } ) : null,
-		element.createElement( 'span', { className: 'pbfp-block-label__text' }, title )
+		{ className: 'bmfp-block-label' },
+		data.icon ? element.createElement( 'img', { src: data.icon, alt: '', width: 24, height: 24, className: 'bmfp-block-label__icon' } ) : null,
+		element.createElement( 'span', { className: 'bmfp-block-label__text' }, title )
 	);
-	const content = element.createElement( 'p', { className: 'pbfp-block-description' }, description );
+	const content = element.createElement( 'p', { className: 'bmfp-block-description' }, description );
 
 	registry.registerPaymentMethod( {
-		name: 'paybridge_plaid',
-		paymentMethodId: 'paybridge_plaid',
+		name: 'buckmerce_plaid',
+		paymentMethodId: 'buckmerce_plaid',
 		ariaLabel: title,
 		label,
 		content,

@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Admin;
+namespace Buckmerce\Plaid\Admin;
 
-use PayBridge\Plaid\Payment\PaymentAlerts;
+use Buckmerce\Plaid\Payment\PaymentAlerts;
 
 /** Persistent admin notices for ACH returns, refund problems and payments needing review. */
 final class AdminNotices
 {
-    public const DISMISS_ACTION = 'pbfp_dismiss_alert';
+    public const DISMISS_ACTION = 'bmfp_dismiss_alert';
 
     public function __construct(private readonly PaymentAlerts $alerts = new PaymentAlerts())
     {
@@ -31,18 +31,18 @@ final class AdminNotices
             $link = $order instanceof \WC_Order ? $order->get_edit_order_url() : '';
             $dismiss = wp_nonce_url(add_query_arg(array('action' => self::DISMISS_ACTION, 'alert' => rawurlencode($key)), admin_url('admin-post.php')), self::DISMISS_ACTION);
             $critical = in_array($alert['type'], PaymentAlerts::CRITICAL, true);
-            echo '<div class="notice ' . esc_attr($critical ? 'notice-error' : 'notice-warning') . ' pbfp-alert"><p><strong>' . esc_html(PaymentAlerts::message($alert)) . '</strong> ';
+            echo '<div class="notice ' . esc_attr($critical ? 'notice-error' : 'notice-warning') . ' bmfp-alert"><p><strong>' . esc_html(PaymentAlerts::message($alert)) . '</strong> ';
             if ('' !== $link) {
-                echo '<a href="' . esc_url($link) . '">' . esc_html__('Review order', 'paybridge-for-plaid') . '</a> · ';
+                echo '<a href="' . esc_url($link) . '">' . esc_html__('Review order', 'buckmerce-for-plaid') . '</a> · ';
             }
-            echo '<a href="' . esc_url($dismiss) . '">' . esc_html__('Dismiss', 'paybridge-for-plaid') . '</a></p></div>';
+            echo '<a href="' . esc_url($dismiss) . '">' . esc_html__('Dismiss', 'buckmerce-for-plaid') . '</a></p></div>';
         }
     }
 
     public function dismiss(): void
     {
         if (! current_user_can('manage_woocommerce')) {
-            wp_die(esc_html__('You are not allowed to do this.', 'paybridge-for-plaid'), '', array('response' => 403));
+            wp_die(esc_html__('You are not allowed to do this.', 'buckmerce-for-plaid'), '', array('response' => 403));
         }
         check_admin_referer(self::DISMISS_ACTION);
         $key = isset($_GET['alert']) ? sanitize_text_field(wp_unslash($_GET['alert'])) : '';

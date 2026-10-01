@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Checkout;
+namespace Buckmerce\Plaid\Checkout;
 
-use PayBridge\Plaid\Settings\Settings;
+use Buckmerce\Plaid\Settings\Settings;
 
 /**
  * Authorizes customer access to one order's payment page and endpoints.
@@ -15,7 +15,7 @@ use PayBridge\Plaid\Settings\Settings;
  */
 final class PaymentAccess
 {
-    private const SESSION_KEY = 'pbfp_payment_grants';
+    private const SESSION_KEY = 'bmfp_payment_grants';
     private const MAX_GRANTS = 20;
 
     public function grant(\WC_Order $order): void
@@ -63,7 +63,7 @@ final class PaymentAccess
 
     public static function nonce_action(int $order_id): string
     {
-        return 'pbfp_payment_' . $order_id;
+        return 'bmfp_payment_' . $order_id;
     }
 
     private function fingerprint(\WC_Order $order): string

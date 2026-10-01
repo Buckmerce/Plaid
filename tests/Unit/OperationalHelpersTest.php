@@ -2,29 +2,29 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Tests\Unit;
+namespace Buckmerce\Plaid\Tests\Unit;
 
-use PayBridge\Plaid\Admin\ConnectionTester;
-use PayBridge\Plaid\Admin\OrderListColumn;
-use PayBridge\Plaid\Background\EventSyncService;
-use PayBridge\Plaid\Background\ReconciliationService;
-use PayBridge\Plaid\Exception\ConfigurationException;
-use PayBridge\Plaid\Exception\PaymentException;
-use PayBridge\Plaid\Payment\AttemptHistory;
-use PayBridge\Plaid\Payment\PaymentAlerts;
-use PayBridge\Plaid\Payment\PaymentState;
-use PayBridge\Plaid\Plaid\Exception\PlaidApiException;
-use PayBridge\Plaid\Plaid\Exception\PlaidNetworkException;
-use PayBridge\Plaid\Support\Money;
-use PayBridge\Plaid\Settings\AccountIdentity;
-use PayBridge\Plaid\Settings\AccountScope;
+use Buckmerce\Plaid\Admin\ConnectionTester;
+use Buckmerce\Plaid\Admin\OrderListColumn;
+use Buckmerce\Plaid\Background\EventSyncService;
+use Buckmerce\Plaid\Background\ReconciliationService;
+use Buckmerce\Plaid\Exception\ConfigurationException;
+use Buckmerce\Plaid\Exception\PaymentException;
+use Buckmerce\Plaid\Payment\AttemptHistory;
+use Buckmerce\Plaid\Payment\PaymentAlerts;
+use Buckmerce\Plaid\Payment\PaymentState;
+use Buckmerce\Plaid\Plaid\Exception\PlaidApiException;
+use Buckmerce\Plaid\Plaid\Exception\PlaidNetworkException;
+use Buckmerce\Plaid\Support\Money;
+use Buckmerce\Plaid\Settings\AccountIdentity;
+use Buckmerce\Plaid\Settings\AccountScope;
 use PHPUnit\Framework\TestCase;
 
 final class OperationalHelpersTest extends TestCase
 {
     protected function setUp(): void
     {
-        \PayBridgeTestStore::reset();
+        \BuckmerceTestStore::reset();
     }
 
     public function test_money_cents_arithmetic_is_exact(): void
@@ -102,8 +102,8 @@ final class OperationalHelpersTest extends TestCase
         self::assertSame(array('t0', 't10', 't20'), $transfers, 'Attempts with a transfer are kept forever.');
         self::assertCount(AttemptHistory::MAX_WITHOUT_TRANSFER + 3, $kept);
         self::assertSame('a29', $kept[count($kept) - 1]['attempt_id'], 'The newest attempts are kept.');
-        self::assertContains(\PayBridge\Plaid\Payment\OrderMeta::RETURN_CODE, AttemptHistory::ATTEMPT_KEYS, 'Per-attempt meta never leaks into the next attempt.');
-        self::assertNotContains(\PayBridge\Plaid\Payment\OrderMeta::RETIRED_ATTEMPTS, AttemptHistory::ATTEMPT_KEYS);
+        self::assertContains(\Buckmerce\Plaid\Payment\OrderMeta::RETURN_CODE, AttemptHistory::ATTEMPT_KEYS, 'Per-attempt meta never leaks into the next attempt.');
+        self::assertNotContains(\Buckmerce\Plaid\Payment\OrderMeta::RETIRED_ATTEMPTS, AttemptHistory::ATTEMPT_KEYS);
     }
 
     public function test_order_list_badges_make_returns_explicit(): void

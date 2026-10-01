@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Persistence;
+namespace Buckmerce\Plaid\Persistence;
 
-use PayBridge\Plaid\Exception\PersistenceException;
-use PayBridge\Plaid\Settings\AccountScope;
-use PayBridge\Plaid\Support\Decimal;
+use Buckmerce\Plaid\Exception\PersistenceException;
+use Buckmerce\Plaid\Settings\AccountScope;
+use Buckmerce\Plaid\Support\Decimal;
 
 /**
  * /transfer/event/sync position of one Plaid event stream (environment + account, ADR-0018).
@@ -17,7 +17,7 @@ use PayBridge\Plaid\Support\Decimal;
 final class EventCursor
 {
     /** Schema-2 per-environment options (kept for auditing) use this prefix + environment. */
-    public const OPTION_PREFIX = 'paybridge_plaid_event_cursor_';
+    public const OPTION_PREFIX = 'buckmerce_plaid_event_cursor_';
 
     public static function option_name(AccountScope $scope): string
     {

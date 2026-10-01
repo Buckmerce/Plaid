@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Settings;
+namespace Buckmerce\Plaid\Settings;
 
-use PayBridge\Plaid\Logging\Logger;
-use PayBridge\Plaid\Persistence\PaymentLockStore;
-use PayBridge\Plaid\Persistence\RefundStore;
-use PayBridge\Plaid\Plaid\PlaidEnvironment;
+use Buckmerce\Plaid\Logging\Logger;
+use Buckmerce\Plaid\Persistence\PaymentLockStore;
+use Buckmerce\Plaid\Persistence\RefundStore;
+use Buckmerce\Plaid\Plaid\PlaidEnvironment;
 
 /**
  * Protects existing payments from Plaid account and environment changes (ADR-0015).
@@ -25,7 +25,7 @@ use PayBridge\Plaid\Plaid\PlaidEnvironment;
  */
 final class AccountChangeGuard
 {
-    public const NOTICE_TRANSIENT = 'pbfp_account_guard_notice_';
+    public const NOTICE_TRANSIENT = 'bmfp_account_guard_notice_';
 
     public function __construct(
         private readonly PaymentLockStore $locks = new PaymentLockStore(),
@@ -101,13 +101,13 @@ final class AccountChangeGuard
         $message = 'blocked' === $decision['result']
             ? sprintf(
                 /* translators: 1: number of open payments, 2: number of open refunds */
-                __('PayBridge kept the previous Plaid environment, Client ID and Secret: %1$d Production payment(s) and %2$d refund(s) are still monitored for ACH returns or refund outcomes, and only the Plaid account that created them can read them. Other settings were saved. You can rotate the secret of the same Client ID at any time; switch accounts after PayBridge diagnostics show no monitored payments.', 'paybridge-for-plaid'),
+                __('Buckmerce kept the previous Plaid environment, Client ID and Secret: %1$d Production payment(s) and %2$d refund(s) are still monitored for ACH returns or refund outcomes, and only the Plaid account that created them can read them. Other settings were saved. You can rotate the secret of the same Client ID at any time; switch accounts after Buckmerce diagnostics show no monitored payments.', 'buckmerce-for-plaid'),
                 $decision['payments'],
                 $decision['refunds']
             )
             : sprintf(
                 /* translators: 1: number of open payments, 2: number of open refunds */
-                __('PayBridge: %1$d open Sandbox payment(s) and %2$d refund(s) of the previous Plaid account/environment are no longer monitored. Sandbox moves no real money.', 'paybridge-for-plaid'),
+                __('Buckmerce: %1$d open Sandbox payment(s) and %2$d refund(s) of the previous Plaid account/environment are no longer monitored. Sandbox moves no real money.', 'buckmerce-for-plaid'),
                 $decision['payments'],
                 $decision['refunds']
             );

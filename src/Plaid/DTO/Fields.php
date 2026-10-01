@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Plaid\DTO;
+namespace Buckmerce\Plaid\Plaid\DTO;
 
-use PayBridge\Plaid\Plaid\Exception\PlaidMalformedResponseException;
+use Buckmerce\Plaid\Plaid\Exception\PlaidMalformedResponseException;
 
 /** Strict field readers used to validate Plaid response objects before use. */
 final class Fields

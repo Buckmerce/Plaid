@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Plaid\Link;
+namespace Buckmerce\Plaid\Plaid\Link;
 
-use PayBridge\Plaid\Plaid\Client\PlaidClientInterface;
-use PayBridge\Plaid\Plaid\DTO\LinkToken;
-use PayBridge\Plaid\Plaid\DTO\Fields;
+use Buckmerce\Plaid\Plaid\Client\PlaidClientInterface;
+use Buckmerce\Plaid\Plaid\DTO\LinkToken;
+use Buckmerce\Plaid\Plaid\DTO\Fields;
 
 /**
  * Creates a Link token bound to one stored Transfer Intent (Transfer UI).

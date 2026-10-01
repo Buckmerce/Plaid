@@ -4,7 +4,7 @@
  * calls through the real WooCommerce refund flow (wc_create_refund → process_refund).
  * Runs inside the disposable Sandbox site: wp eval-file tests/E2E/sandbox-refunds.php --use-include
  *
- * PBFP_STEP:
+ * BMFP_STEP:
  *   create    partial refunds on the first $11.11 order: $1.11 (Plaid Sandbox: → returned),
  *             $2.22 (→ failed), $5.00 with the first Plaid response discarded (retried with the
  *             same idempotency key); an over-refund; a full refund of the second $11.11 order
@@ -15,13 +15,13 @@
 
 declare(strict_types=1);
 
-use PayBridge\Plaid\Container;
-use PayBridge\Plaid\Persistence\Installer;
+use Buckmerce\Plaid\Container;
+use Buckmerce\Plaid\Persistence\Installer;
 
 global $wpdb;
 
-$step = (string) getenv('PBFP_STEP');
-$orders = json_decode((string) getenv('PBFP_ORDERS'), true);
+$step = (string) getenv('BMFP_STEP');
+$orders = json_decode((string) getenv('BMFP_ORDERS'), true);
 $orders = is_array($orders) ? $orders : array();
 $partial = wc_get_order((int) ($orders['11.11'] ?? 0));
 $full = wc_get_order((int) ($orders['11.11-full'] ?? 0));
@@ -45,7 +45,7 @@ $by_amount = static function (WC_Order $order, string $amount) use ($rows): arra
 };
 $refund = static fn (WC_Order $order, string $amount) => wc_create_refund(array('order_id' => $order->get_id(), 'amount' => $amount, 'reason' => 'Sandbox refund gate', 'refund_payment' => true));
 $plaid_refunds = static function (WC_Order $order): array {
-    return ( new Container() )->transfers()->get((string) $order->get_meta('_pbfp_transfer_id', true))->refunds;
+    return ( new Container() )->transfers()->get((string) $order->get_meta('_bmfp_transfer_id', true))->refunds;
 };
 $age = static function (WC_Order $order) use ($wpdb): void {
     // The duplicate-submit guard refuses identical amounts within a minute; these refunds differ, but keep them apart.
@@ -54,14 +54,14 @@ $age = static function (WC_Order $order) use ($wpdb): void {
 
 switch ($step) {
     case 'create':
-        $check('funds_available' === $partial->get_meta('_pbfp_payment_state', true) && 'funds_available' === $full->get_meta('_pbfp_payment_state', true), 'Both payments reached funds_available in Sandbox.');
+        $check('funds_available' === $partial->get_meta('_bmfp_payment_state', true) && 'funds_available' === $full->get_meta('_bmfp_payment_state', true), 'Both payments reached funds_available in Sandbox.');
         foreach (array('1.11', '2.22') as $amount) {
             $result = $refund($partial, $amount);
             $check($result instanceof WC_Order_Refund, 'Plaid accepted the partial refund of $' . $amount . ($result instanceof WP_Error ? ': ' . $result->get_error_message() : ''));
             $age($partial);
         }
         // The first genuine Plaid response to the next create is discarded, as if the connection dropped
-        // after Plaid created the refund. PayBridge must retry with the same idempotency key.
+        // after Plaid created the refund. Buckmerce must retry with the same idempotency key.
         $dropped = 0;
         $drop = static function ($response, array $args, string $url) use (&$dropped) {
             if (0 === $dropped && str_ends_with($url, '/transfer/refund/create')) {
@@ -82,8 +82,8 @@ switch ($step) {
         $calls = count($plaid_refunds($partial));
         $local_rows = count($rows($partial));
         $eligibility = ( new Container() )->refunds()->eligibility(wc_get_order($partial->get_id()));
-        $check($eligibility->allowed && '2.78' === $eligibility->remaining, 'PayBridge computes exactly $2.78 refundable while the three refunds are in flight.');
-        // WooCommerce's own limit refuses first here; PayBridge's stricter limit (refunds WooCommerce does
+        $check($eligibility->allowed && '2.78' === $eligibility->remaining, 'Buckmerce computes exactly $2.78 refundable while the three refunds are in flight.');
+        // WooCommerce's own limit refuses first here; Buckmerce's stricter limit (refunds WooCommerce does
         // not know about) is exercised in tests/Integration/wp-cli-refunds.php.
         $over = $refund(wc_get_order($partial->get_id()), '3.00');
         $check($over instanceof WP_Error, 'Over-refund of $3.00 refused' . ($over instanceof WP_Error ? ' (' . $over->get_error_message() . ')' : ''));
@@ -115,12 +115,12 @@ switch ($step) {
             $check($status === $by_amount($partial, $amount)['status'], 'Refund $' . $amount . ' is ' . $status . ' (genuine Plaid refund events).');
         }
         $check('settled' === $by_amount($full, '11.11')['status'], 'Full refund settled.');
-        $alerts = (array) get_option('paybridge_plaid_payment_alerts', array());
+        $alerts = (array) get_option('buckmerce_plaid_payment_alerts', array());
         $types = array_map(static fn ($alert): string => (string) ($alert['type'] ?? ''), array_filter($alerts, static fn ($alert): bool => (int) ($alert['order_id'] ?? 0) === $partial->get_id()));
         $check(in_array('refund_returned', $types, true) && in_array('refund_failed', $types, true), 'Failed and returned refunds raised merchant alerts.');
         $eligibility = ( new Container() )->refunds()->eligibility($partial);
         $check($eligibility->allowed && '6.11' === $eligibility->remaining, 'Remaining refundable amount is exact ($6.11: failed/returned refunds do not count).');
-        $check('funds_available' === $partial->get_meta('_pbfp_payment_state', true), 'Refund events never changed the payment state.');
+        $check('funds_available' === $partial->get_meta('_bmfp_payment_state', true), 'Refund events never changed the payment state.');
         // Reconciliation (/transfer/refund/get) agrees with the event-driven state.
         $wpdb->query($wpdb->prepare('UPDATE %i SET reconcile_after = %s WHERE order_id IN (%d, %d)', Installer::refunds_table(), gmdate('Y-m-d H:i:s', time() - 1), $partial->get_id(), $full->get_id()));
         $checked = ( new Container() )->refunds()->reconcile_due(20);
@@ -139,5 +139,5 @@ switch ($step) {
         break;
 
     default:
-        throw new RuntimeException('Unknown PBFP_STEP ' . $step);
+        throw new RuntimeException('Unknown BMFP_STEP ' . $step);
 }

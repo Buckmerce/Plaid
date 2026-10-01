@@ -6,13 +6,13 @@ $vendorDir = dirname(__DIR__);
 $baseDir = dirname($vendorDir);
 
 return array(
-    'PayBridge\\Plaid\\Vendor\\Composer\\InstalledVersions' => $vendorDir . '/composer/InstalledVersions.php',
-    'PayBridge\\Plaid\\Vendor\\Firebase\\JWT\\BeforeValidException' => $vendorDir . '/firebase/php-jwt/src/BeforeValidException.php',
-    'PayBridge\\Plaid\\Vendor\\Firebase\\JWT\\CachedKeySet' => $vendorDir . '/firebase/php-jwt/src/CachedKeySet.php',
-    'PayBridge\\Plaid\\Vendor\\Firebase\\JWT\\ExpiredException' => $vendorDir . '/firebase/php-jwt/src/ExpiredException.php',
-    'PayBridge\\Plaid\\Vendor\\Firebase\\JWT\\JWK' => $vendorDir . '/firebase/php-jwt/src/JWK.php',
-    'PayBridge\\Plaid\\Vendor\\Firebase\\JWT\\JWT' => $vendorDir . '/firebase/php-jwt/src/JWT.php',
-    'PayBridge\\Plaid\\Vendor\\Firebase\\JWT\\JWTExceptionWithPayloadInterface' => $vendorDir . '/firebase/php-jwt/src/JWTExceptionWithPayloadInterface.php',
-    'PayBridge\\Plaid\\Vendor\\Firebase\\JWT\\Key' => $vendorDir . '/firebase/php-jwt/src/Key.php',
-    'PayBridge\\Plaid\\Vendor\\Firebase\\JWT\\SignatureInvalidException' => $vendorDir . '/firebase/php-jwt/src/SignatureInvalidException.php',
+    'Buckmerce\\Plaid\\Vendor\\Firebase\\JWT\\BeforeValidException' => $vendorDir . '/firebase/php-jwt/src/BeforeValidException.php',
+    'Buckmerce\\Plaid\\Vendor\\Firebase\\JWT\\CachedKeySet' => $vendorDir . '/firebase/php-jwt/src/CachedKeySet.php',
+    'Buckmerce\\Plaid\\Vendor\\Firebase\\JWT\\ExpiredException' => $vendorDir . '/firebase/php-jwt/src/ExpiredException.php',
+    'Buckmerce\\Plaid\\Vendor\\Firebase\\JWT\\JWK' => $vendorDir . '/firebase/php-jwt/src/JWK.php',
+    'Buckmerce\\Plaid\\Vendor\\Firebase\\JWT\\JWT' => $vendorDir . '/firebase/php-jwt/src/JWT.php',
+    'Buckmerce\\Plaid\\Vendor\\Firebase\\JWT\\JWTExceptionWithPayloadInterface' => $vendorDir . '/firebase/php-jwt/src/JWTExceptionWithPayloadInterface.php',
+    'Buckmerce\\Plaid\\Vendor\\Firebase\\JWT\\Key' => $vendorDir . '/firebase/php-jwt/src/Key.php',
+    'Buckmerce\\Plaid\\Vendor\\Firebase\\JWT\\SignatureInvalidException' => $vendorDir . '/firebase/php-jwt/src/SignatureInvalidException.php',
+    'Buckmerce\\Plaid\\Vendor\\Composer\\InstalledVersions' => $vendorDir . '/composer/InstalledVersions.php',
 );

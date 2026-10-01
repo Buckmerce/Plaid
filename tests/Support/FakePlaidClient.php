@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Tests\Support;
+namespace Buckmerce\Plaid\Tests\Support;
 
-use PayBridge\Plaid\Plaid\Client\PlaidClientInterface;
-use PayBridge\Plaid\Plaid\Client\PlaidResponse;
-use PayBridge\Plaid\Plaid\PlaidEnvironment;
+use Buckmerce\Plaid\Plaid\Client\PlaidClientInterface;
+use Buckmerce\Plaid\Plaid\Client\PlaidResponse;
+use Buckmerce\Plaid\Plaid\PlaidEnvironment;
 
 /** Scripted Plaid client for service-level tests. */
 final class FakePlaidClient implements PlaidClientInterface

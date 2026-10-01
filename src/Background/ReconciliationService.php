@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Background;
+namespace Buckmerce\Plaid\Background;
 
-use PayBridge\Plaid\Logging\Logger;
-use PayBridge\Plaid\Payment\OrderSynchronizer;
-use PayBridge\Plaid\Payment\PaymentMonitor;
-use PayBridge\Plaid\Persistence\DatabaseMutex;
-use PayBridge\Plaid\Persistence\PaymentLockStore;
-use PayBridge\Plaid\Plaid\Exception\PlaidApiException;
-use PayBridge\Plaid\Refund\RefundService;
-use PayBridge\Plaid\Settings\Settings;
+use Buckmerce\Plaid\Logging\Logger;
+use Buckmerce\Plaid\Payment\OrderSynchronizer;
+use Buckmerce\Plaid\Payment\PaymentMonitor;
+use Buckmerce\Plaid\Persistence\DatabaseMutex;
+use Buckmerce\Plaid\Persistence\PaymentLockStore;
+use Buckmerce\Plaid\Plaid\Exception\PlaidApiException;
+use Buckmerce\Plaid\Refund\RefundService;
+use Buckmerce\Plaid\Settings\Settings;
 
 /**
  * Recovers from lost webhooks, interrupted workers and stale state using authoritative
@@ -21,8 +21,8 @@ use PayBridge\Plaid\Settings\Settings;
  */
 final class ReconciliationService
 {
-    public const LAST_RUN_OPTION = 'paybridge_plaid_last_reconciliation';
-    public const LAST_ERROR_OPTION = 'paybridge_plaid_last_reconciliation_error';
+    public const LAST_RUN_OPTION = 'buckmerce_plaid_last_reconciliation';
+    public const LAST_ERROR_OPTION = 'buckmerce_plaid_last_reconciliation_error';
 
     public const ORDERS_PER_RUN = 25;
     public const REFUNDS_PER_RUN = 25;
@@ -121,10 +121,10 @@ final class ReconciliationService
         if ($exception instanceof PlaidApiException) {
             return $exception->is_transient() ? 'transient' : 'permanent';
         }
-        if ($exception instanceof \PayBridge\Plaid\Exception\ConfigurationException) {
+        if ($exception instanceof \Buckmerce\Plaid\Exception\ConfigurationException) {
             return 'permanent';
         }
-        if ($exception instanceof \PayBridge\Plaid\Plaid\Exception\PlaidException) {
+        if ($exception instanceof \Buckmerce\Plaid\Plaid\Exception\PlaidException) {
             return 'transient';
         }
         return 'local';

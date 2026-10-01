@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Plaid\DTO;
+namespace Buckmerce\Plaid\Plaid\DTO;
 
-use PayBridge\Plaid\Plaid\Exception\PlaidMalformedResponseException;
+use Buckmerce\Plaid\Plaid\Exception\PlaidMalformedResponseException;
 
 /**
  * One /transfer/event/sync transfer_events[] entry. event_id is kept as a digit string
@@ -72,7 +72,7 @@ final class TransferEvent
         return '' !== $this->refund_id && '' !== $this->transfer_id && '' !== $this->refund_status();
     }
 
-    /** Events PayBridge processes; everything else (sweeps, adjustments, guarantees) is only recorded. */
+    /** Events Buckmerce processes; everything else (sweeps, adjustments, guarantees) is only recorded. */
     public function is_processable(): bool
     {
         return $this->is_lifecycle_event() || $this->is_refund_event();

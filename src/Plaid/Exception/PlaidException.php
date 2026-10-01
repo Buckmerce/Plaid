@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Plaid\Exception;
+namespace Buckmerce\Plaid\Plaid\Exception;
 
-use PayBridge\Plaid\Exception\PayBridgeException;
+use Buckmerce\Plaid\Exception\BuckmerceException;
 
 /** Base class for Plaid API failures. Messages never contain credentials. */
-class PlaidException extends PayBridgeException
+class PlaidException extends BuckmerceException
 {
     public function __construct(string $message, private readonly string $request_id = '', ?\Throwable $previous = null)
     {

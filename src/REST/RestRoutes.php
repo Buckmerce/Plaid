@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\REST;
+namespace Buckmerce\Plaid\REST;
 
-use PayBridge\Plaid\Checkout\PaymentAccess;
-use PayBridge\Plaid\Container;
-use PayBridge\Plaid\Exception\ConfigurationException;
-use PayBridge\Plaid\Exception\MissingAccountHolderNameException;
-use PayBridge\Plaid\Exception\PaymentAttemptBusyException;
-use PayBridge\Plaid\Exception\ReturnedPaymentRetryException;
-use PayBridge\Plaid\Gateway\PayBridgeGateway;
-use PayBridge\Plaid\Exception\PayBridgeException;
-use PayBridge\Plaid\Logging\Logger;
-use PayBridge\Plaid\Payment\CompletionResult;
-use PayBridge\Plaid\Payment\ReturnRetryPolicy;
+use Buckmerce\Plaid\Checkout\PaymentAccess;
+use Buckmerce\Plaid\Container;
+use Buckmerce\Plaid\Exception\ConfigurationException;
+use Buckmerce\Plaid\Exception\MissingAccountHolderNameException;
+use Buckmerce\Plaid\Exception\PaymentAttemptBusyException;
+use Buckmerce\Plaid\Exception\ReturnedPaymentRetryException;
+use Buckmerce\Plaid\Gateway\BuckmerceGateway;
+use Buckmerce\Plaid\Exception\BuckmerceException;
+use Buckmerce\Plaid\Logging\Logger;
+use Buckmerce\Plaid\Payment\CompletionResult;
+use Buckmerce\Plaid\Payment\ReturnRetryPolicy;
 
 /**
  * REST routes. Customer routes require order key + ownership + a payment nonce;
@@ -23,7 +23,7 @@ use PayBridge\Plaid\Payment\ReturnRetryPolicy;
  */
 final class RestRoutes
 {
-    public const NAMESPACE = 'paybridge-for-plaid/v1';
+    public const NAMESPACE = 'buckmerce-for-plaid/v1';
     /** Each Link token is a Plaid API call; a real customer needs a handful per order. */
     private const LINK_TOKENS_PER_WINDOW = 15;
     /** Each completion check is a Plaid /transfer/intent/get call. */
@@ -78,7 +78,7 @@ final class RestRoutes
             || false === wp_verify_nonce($nonce, PaymentAccess::nonce_action($order->get_id()))
         ) {
             // Deliberately indistinguishable: no order existence or ownership oracle.
-            return new \WP_Error('paybridge_forbidden', __('This payment session is not valid.', 'paybridge-for-plaid'), array('status' => 403));
+            return new \WP_Error('buckmerce_forbidden', __('This payment session is not valid.', 'buckmerce-for-plaid'), array('status' => 403));
         }
         return true;
     }
@@ -87,25 +87,25 @@ final class RestRoutes
     {
         $order = wc_get_order((int) $request->get_param('order_id'));
         if (! $order instanceof \WC_Order) {
-            return new \WP_Error('paybridge_forbidden', __('This payment session is not valid.', 'paybridge-for-plaid'), array('status' => 403));
+            return new \WP_Error('buckmerce_forbidden', __('This payment session is not valid.', 'buckmerce-for-plaid'), array('status' => 403));
         }
         if (! $this->consume_rate_limit('link_token', $order->get_id(), self::LINK_TOKENS_PER_WINDOW)) {
-            return new \WP_Error('paybridge_rate_limited', __('Too many attempts. Please wait a few minutes and try again.', 'paybridge-for-plaid'), array('status' => 429));
+            return new \WP_Error('buckmerce_rate_limited', __('Too many attempts. Please wait a few minutes and try again.', 'buckmerce-for-plaid'), array('status' => 429));
         }
         try {
             $token = ( new Container() )->attempts()->issue_link_token($order);
         } catch (PaymentAttemptBusyException $exception) {
-            return new \WP_Error('paybridge_busy', __('Your bank payment is being prepared. Please try again in a few seconds.', 'paybridge-for-plaid'), array('status' => 409));
+            return new \WP_Error('buckmerce_busy', __('Your bank payment is being prepared. Please try again in a few seconds.', 'buckmerce-for-plaid'), array('status' => 409));
         } catch (MissingAccountHolderNameException $exception) {
-            return new \WP_Error('paybridge_missing_name', PayBridgeGateway::legal_name_message() . ' ' . __('If you cannot change it, please contact the store.', 'paybridge-for-plaid'), array('status' => 400));
+            return new \WP_Error('buckmerce_missing_name', BuckmerceGateway::legal_name_message() . ' ' . __('If you cannot change it, please contact the store.', 'buckmerce-for-plaid'), array('status' => 400));
         } catch (ReturnedPaymentRetryException $exception) {
-            return new \WP_Error('paybridge_not_payable', ReturnRetryPolicy::customer_message(), array('status' => 409));
+            return new \WP_Error('buckmerce_not_payable', ReturnRetryPolicy::customer_message(), array('status' => 409));
         } catch (ConfigurationException $exception) {
             ( new Logger() )->log('warning', 'link_token_unavailable', array('order_id' => $order->get_id(), 'error_code' => Logger::fingerprint($exception->getMessage())));
-            return new \WP_Error('paybridge_unavailable', __('Pay by Bank is not available for this order right now. Please contact the store or choose another payment method.', 'paybridge-for-plaid'), array('status' => 503));
-        } catch (PayBridgeException $exception) {
+            return new \WP_Error('buckmerce_unavailable', __('Pay by Bank is not available for this order right now. Please contact the store or choose another payment method.', 'buckmerce-for-plaid'), array('status' => 503));
+        } catch (BuckmerceException $exception) {
             ( new Logger() )->log('warning', 'link_token_failed', array('order_id' => $order->get_id(), 'error_code' => Logger::fingerprint($exception->getMessage())));
-            return new \WP_Error('paybridge_unavailable', __('The bank payment could not be started. Please try again.', 'paybridge-for-plaid'), array('status' => 503));
+            return new \WP_Error('buckmerce_unavailable', __('The bank payment could not be started. Please try again.', 'buckmerce-for-plaid'), array('status' => 503));
         }
         if (null === $token) {
             return new \WP_REST_Response(array('status' => CompletionResult::SUBMITTED, 'redirect' => $order->get_checkout_order_received_url()), 200);
@@ -119,18 +119,18 @@ final class RestRoutes
     {
         $order = wc_get_order((int) $request->get_param('order_id'));
         if (! $order instanceof \WC_Order) {
-            return new \WP_Error('paybridge_forbidden', __('This payment session is not valid.', 'paybridge-for-plaid'), array('status' => 403));
+            return new \WP_Error('buckmerce_forbidden', __('This payment session is not valid.', 'buckmerce-for-plaid'), array('status' => 403));
         }
         if (! $this->consume_rate_limit('complete', $order->get_id(), self::COMPLETIONS_PER_WINDOW)) {
-            return new \WP_Error('paybridge_rate_limited', __('Too many attempts. Please wait a few minutes and try again.', 'paybridge-for-plaid'), array('status' => 429));
+            return new \WP_Error('buckmerce_rate_limited', __('Too many attempts. Please wait a few minutes and try again.', 'buckmerce-for-plaid'), array('status' => 429));
         }
         try {
             $result = ( new Container() )->completion()->complete($order);
         } catch (PaymentAttemptBusyException $exception) {
             return new \WP_REST_Response(array('status' => CompletionResult::UNVERIFIED), 200);
-        } catch (PayBridgeException $exception) {
+        } catch (BuckmerceException $exception) {
             ( new Logger() )->log('warning', 'completion_failed', array('order_id' => $order->get_id(), 'error_code' => Logger::fingerprint($exception->getMessage())));
-            return new \WP_Error('paybridge_unavailable', __('The payment could not be confirmed. Please try again.', 'paybridge-for-plaid'), array('status' => 503));
+            return new \WP_Error('buckmerce_unavailable', __('The payment could not be confirmed. Please try again.', 'buckmerce-for-plaid'), array('status' => 503));
         }
         $body = array('status' => $result->status, 'reason' => preg_replace('/[^A-Z_]/', '', strtoupper($result->reason_code)));
         if (CompletionResult::SUBMITTED === $result->status) {
@@ -141,7 +141,7 @@ final class RestRoutes
 
     private function consume_rate_limit(string $bucket, int $order_id, int $limit): bool
     {
-        $key = 'pbfp_rl_' . $bucket . '_' . $order_id;
+        $key = 'bmfp_rl_' . $bucket . '_' . $order_id;
         $count = get_transient($key);
         $count = is_int($count) ? $count : 0;
         if ($count >= $limit) {

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Payment;
+namespace Buckmerce\Plaid\Payment;
 
 /** Outcome of the server-side completion check that follows Link onSuccess. */
 final class CompletionResult

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Plaid\DTO;
+namespace Buckmerce\Plaid\Plaid\DTO;
 
 /** Short-lived Link token. The token itself is only ever returned to the authorized payer's browser. */
 final class LinkToken

@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Plaid;
+namespace Buckmerce\Plaid\Plaid;
 
-use PayBridge\Plaid\Exception\ConfigurationException;
-use PayBridge\Plaid\Logging\Logger;
-use PayBridge\Plaid\Plaid\Client\PlaidClient;
-use PayBridge\Plaid\Plaid\Client\PlaidClientInterface;
-use PayBridge\Plaid\Settings\Settings;
+use Buckmerce\Plaid\Exception\ConfigurationException;
+use Buckmerce\Plaid\Logging\Logger;
+use Buckmerce\Plaid\Plaid\Client\PlaidClient;
+use Buckmerce\Plaid\Plaid\Client\PlaidClientInterface;
+use Buckmerce\Plaid\Settings\Settings;
 
 final class PlaidClientFactory
 {

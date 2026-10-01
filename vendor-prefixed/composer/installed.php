@@ -1,10 +1,10 @@
 <?php return array (
   'root' => 
   array (
-    'name' => 'al5dy/paybridge-for-plaid',
+    'name' => 'al5dy/buckmerce-for-plaid',
     'pretty_version' => 'dev-master',
     'version' => 'dev-master',
-    'reference' => '0507bcc53a8fba8a0bd291e8043f601cd6c0c710',
+    'reference' => 'b0eafeac7b75d39a4994e8c2eb808afa3e4444b8',
     'type' => 'wordpress-plugin',
     'install_path' => __DIR__ . '/../',
     'aliases' => 

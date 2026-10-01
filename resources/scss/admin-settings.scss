@@ -1,14 +1,14 @@
-// PayBridge for Plaid — admin screens (settings, diagnostics, order list, order panel).
-// All selectors are .pbfp- namespaced. Colors meet WCAG AA contrast on white.
+// Buckmerce for Plaid — admin screens (settings, diagnostics, order list, order panel).
+// All selectors are .bmfp- namespaced. Colors meet WCAG AA contrast on white.
 
 // Text colors reach ≥ 4.5:1 on white and white text ≥ 4.5:1 on them (WCAG 2.2 AA).
-$pbfp-ok: #007017;
-$pbfp-fail: #b32d2e;
-$pbfp-warn: #7a5400;
-$pbfp-info: #2271b1;
-$pbfp-ok-border: #00a32a;
+$bmfp-ok: #007017;
+$bmfp-fail: #b32d2e;
+$bmfp-warn: #7a5400;
+$bmfp-info: #2271b1;
+$bmfp-ok-border: #00a32a;
 
-.pbfp-copy-field {
+.bmfp-copy-field {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 8px;
@@ -22,7 +22,7 @@ $pbfp-ok-border: #00a32a;
 	}
 }
 
-.pbfp-status {
+.bmfp-status {
 	margin: 0 0 8px;
 	padding: 8px 12px;
 	border-left: 4px solid #dba617;
@@ -30,16 +30,16 @@ $pbfp-ok-border: #00a32a;
 	max-width: 760px;
 
 	&--ok {
-		border-left-color: $pbfp-ok-border;
+		border-left-color: $bmfp-ok-border;
 	}
 
 	&--warning {
-		border-left-color: $pbfp-fail;
+		border-left-color: $bmfp-fail;
 		list-style: disc inside;
 	}
 }
 
-.pbfp-status-panel {
+.bmfp-status-panel {
 	max-width: 900px;
 	padding: 12px 16px;
 	background: #fff;
@@ -47,16 +47,16 @@ $pbfp-ok-border: #00a32a;
 	border-left-width: 4px;
 
 	&--ready {
-		border-left-color: $pbfp-ok-border;
+		border-left-color: $bmfp-ok-border;
 	}
 
 	&--disabled {
-		border-left-color: $pbfp-info;
+		border-left-color: $bmfp-info;
 	}
 
 	&--incomplete,
 	&--attention {
-		border-left-color: $pbfp-fail;
+		border-left-color: $bmfp-fail;
 	}
 
 	h3 {
@@ -64,7 +64,7 @@ $pbfp-ok-border: #00a32a;
 	}
 }
 
-.pbfp-badge {
+.bmfp-badge {
 	display: inline-block;
 	margin-left: 6px;
 	padding: 2px 8px;
@@ -74,28 +74,28 @@ $pbfp-ok-border: #00a32a;
 	line-height: 1.6;
 	vertical-align: middle;
 	color: #fff;
-	background: $pbfp-info;
+	background: $bmfp-info;
 
 	&--ready {
-		background: $pbfp-ok;
+		background: $bmfp-ok;
 	}
 
 	&--incomplete,
 	&--attention,
 	&--production {
-		background: $pbfp-fail;
+		background: $bmfp-fail;
 	}
 
 	&--sandbox {
-		background: $pbfp-warn;
+		background: $bmfp-warn;
 	}
 }
 
-.pbfp-checklist {
+.bmfp-checklist {
 	margin: 8px 0 12px;
 }
 
-.pbfp-check {
+.bmfp-check {
 	margin: 0 0 4px;
 
 	&__result {
@@ -104,20 +104,20 @@ $pbfp-ok-border: #00a32a;
 		font-weight: 600;
 	}
 
-	&--pass .pbfp-check__result {
-		color: $pbfp-ok;
+	&--pass .bmfp-check__result {
+		color: $bmfp-ok;
 	}
 
-	&--fail .pbfp-check__result {
-		color: $pbfp-fail;
+	&--fail .bmfp-check__result {
+		color: $bmfp-fail;
 	}
 
-	&--warn .pbfp-check__result {
-		color: $pbfp-warn;
+	&--warn .bmfp-check__result {
+		color: $bmfp-warn;
 	}
 
-	&--info .pbfp-check__result {
-		color: $pbfp-info;
+	&--info .bmfp-check__result {
+		color: $bmfp-info;
 	}
 
 	&__help {
@@ -127,36 +127,36 @@ $pbfp-ok-border: #00a32a;
 	}
 }
 
-.pbfp-secret-status {
+.bmfp-secret-status {
 	display: flex;
 	gap: 12px;
 	align-items: center;
 }
 
-.pbfp-order-panel {
+.bmfp-order-panel {
 	h4 {
 		margin: 16px 0 6px;
 	}
 
 
-	.pbfp-refund--problem td {
-		color: $pbfp-fail;
+	.bmfp-refund--problem td {
+		color: $bmfp-fail;
 	}
 }
 
 // The panel renders inside WooCommerce's order data box, whose `#order_data p { color: #767676 }`
 // is too light on notice backgrounds; alerts and explanations use the admin text color. The ID
 // matches WooCommerce's selector so this rule wins without !important.
-#order_data .pbfp-order-panel .notice p,
-#order_data .pbfp-order-panel .pbfp-retry-policy {
+#order_data .bmfp-order-panel .notice p,
+#order_data .bmfp-order-panel .bmfp-retry-policy {
 	color: #1d2327;
 }
 
-.pbfp-order-actions .button {
+.bmfp-order-actions .button {
 	margin: 0 4px 4px 0;
 }
 
-mark.pbfp-list-badge {
+mark.bmfp-list-badge {
 	&--critical {
 		background: #f8d7da;
 		color: #761919;

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Tests\Unit;
+namespace Buckmerce\Plaid\Tests\Unit;
 
-use PayBridge\Plaid\Exception\PaymentException;
-use PayBridge\Plaid\Support\Money;
+use Buckmerce\Plaid\Exception\PaymentException;
+use Buckmerce\Plaid\Support\Money;
 use PHPUnit\Framework\TestCase;
 
 final class MoneyTest extends TestCase

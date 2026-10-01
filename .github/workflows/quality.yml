@@ -33,10 +33,10 @@ concurrency:
   cancel-in-progress: ${{ github.event_name != 'push' || !startsWith(github.ref, 'refs/tags/') }}
 
 env:
-  PAYBRIDGE_PLAID_TEST_DB_HOST: 127.0.0.1:3306
-  PAYBRIDGE_PLAID_TEST_DB_USER: root
+  BUCKMERCE_PLAID_TEST_DB_HOST: 127.0.0.1:3306
+  BUCKMERCE_PLAID_TEST_DB_USER: root
   # Throwaway password of the CI-only database service containers; not a secret.
-  PAYBRIDGE_PLAID_TEST_DB_PASSWORD: paybridge-ci-only
+  BUCKMERCE_PLAID_TEST_DB_PASSWORD: buckmerce-ci-only
   # vendor-prefixed/composer/InstalledVersions.php is copied from Composer's own runtime, so the
   # committed prefixed tree is reproducible only with this exact Composer version (docs/CI_CD_RELEASE.md).
   COMPOSER_VERSION: '2.10.3'
@@ -72,6 +72,8 @@ jobs:
           fetch-depth: 0
       - name: Mandatory engineering documentation is tracked
         run: bash scripts/check-docs.sh
+      - name: The only identity is Buckmerce (no former identifier in any file name or content)
+        run: bash scripts/check-identity.sh
       - name: The source archive distributes no credentials, .env files, traces, IDE state or caches
         run: bash scripts/audit-source.sh
 
@@ -88,7 +90,7 @@ jobs:
         with:
           php-version: '${{ matrix.php }}'
           coverage: none
-      - run: find src tests paybridge-for-plaid.php uninstall.php -name '*.php' -not -path 'tests/phpstan-wp-root/*' -print0 | xargs -0 -n1 php -l > /dev/null
+      - run: find src tests buckmerce-for-plaid.php uninstall.php -name '*.php' -not -path 'tests/phpstan-wp-root/*' -print0 | xargs -0 -n1 php -l > /dev/null
 
   scripts-lint:
     name: Shell scripts (shellcheck)
@@ -225,12 +227,17 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
+          tools: wp-cli
           coverage: none
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Translations match the sources, are complete and compiled (languages/)
+        env:
+          BUCKMERCE_PLAID_REQUIRE_WP_CLI: '1'
+        run: bash scripts/check-translations.sh
       - name: Build the release ZIP (fresh assets, deterministic zip)
         run: npm run plugin-zip
       - name: Verify contents, source parity, fresh-asset parity, PHP lint and record SHA-256
@@ -239,17 +246,17 @@ jobs:
         name: Publish the artifact identity
         shell: bash
         run: |
-          zip=$(ls dist/paybridge-for-plaid-*.zip)
+          zip=$(ls dist/buckmerce-for-plaid-*.zip)
           echo "zip_name=$(basename "$zip")" >> "$GITHUB_OUTPUT"
           echo "zip_sha256=$(cut -d' ' -f1 "$zip.sha256")" >> "$GITHUB_OUTPUT"
           echo "### Release artifact" >> "$GITHUB_STEP_SUMMARY"
           echo "\`$(cat "$zip.sha256")\`" >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         with:
-          name: paybridge-for-plaid-zip
+          name: buckmerce-for-plaid-zip
           path: |
-            dist/paybridge-for-plaid-*.zip
-            dist/paybridge-for-plaid-*.zip.sha256
+            dist/buckmerce-for-plaid-*.zip
+            dist/buckmerce-for-plaid-*.zip.sha256
           if-no-files-found: error
           retention-days: 14
 
@@ -269,14 +276,14 @@ jobs:
       mysql:
         image: mysql:8.4
         env:
-          MYSQL_ROOT_PASSWORD: paybridge-ci-only
+          MYSQL_ROOT_PASSWORD: buckmerce-ci-only
         ports:
           - 3306:3306
         options: >-
           --health-cmd="mysqladmin ping --silent" --health-interval=10s --health-timeout=5s --health-retries=10
     env:
-      PAYBRIDGE_PLAID_TEST_WP_VERSION: '${{ matrix.wordpress }}'
-      PAYBRIDGE_PLAID_TEST_WC_VERSION: '${{ matrix.woocommerce }}'
+      BUCKMERCE_PLAID_TEST_WP_VERSION: '${{ matrix.wordpress }}'
+      BUCKMERCE_PLAID_TEST_WC_VERSION: '${{ matrix.woocommerce }}'
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
@@ -287,7 +294,7 @@ jobs:
           coverage: none
       - uses: actions/download-artifact@v4
         with:
-          name: paybridge-for-plaid-zip
+          name: buckmerce-for-plaid-zip
           path: dist
       - run: bash scripts/test-package-smoke.sh
 
@@ -308,17 +315,17 @@ jobs:
       - run: npm ci
       - uses: actions/download-artifact@v4
         with:
-          name: paybridge-for-plaid-zip
+          name: buckmerce-for-plaid-zip
           path: dist
       - name: The uploaded ZIP still matches its hash and a fresh build of this commit
         shell: bash
         run: |
-          zip=$(ls dist/paybridge-for-plaid-*.zip)
+          zip=$(ls dist/buckmerce-for-plaid-*.zip)
           (cd dist && sha256sum -c "$(basename "$zip").sha256")
           bash scripts/verify-package.sh "$zip"
           # Reproducible build: rebuilding this commit gives the same bytes as the tested artifact.
           npm run build
-          PBFP_DIST_DIR=rebuild bash scripts/package.sh
+          BUCKMERCE_PLAID_DIST_DIR=rebuild bash scripts/package.sh
           cmp "rebuild/$(basename "$zip")" "$zip"
           echo "Rebuild is byte-identical: $(sha256sum "$zip" | cut -d' ' -f1)"
 
@@ -339,14 +346,14 @@ jobs:
       mysql:
         image: mysql:${{ matrix.mysql }}
         env:
-          MYSQL_ROOT_PASSWORD: paybridge-ci-only
+          MYSQL_ROOT_PASSWORD: buckmerce-ci-only
         ports:
           - 3306:3306
         options: >-
           --health-cmd="mysqladmin ping --silent" --health-interval=10s --health-timeout=5s --health-retries=10
     env:
-      PAYBRIDGE_PLAID_TEST_WP_VERSION: '${{ matrix.wordpress }}'
-      PAYBRIDGE_PLAID_TEST_WC_VERSION: '${{ matrix.woocommerce }}'
+      BUCKMERCE_PLAID_TEST_WP_VERSION: '${{ matrix.wordpress }}'
+      BUCKMERCE_PLAID_TEST_WC_VERSION: '${{ matrix.woocommerce }}'
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
@@ -357,7 +364,7 @@ jobs:
           coverage: none
       - uses: actions/download-artifact@v4
         with:
-          name: paybridge-for-plaid-zip
+          name: buckmerce-for-plaid-zip
           path: dist
       - name: ZIP install, HPOS on/off, payments, refunds, lifecycle, webhooks, concurrency, migration, uninstall
         run: bash scripts/test-integration.sh
@@ -376,14 +383,14 @@ jobs:
       mariadb:
         image: mariadb:${{ matrix.mariadb }}
         env:
-          MARIADB_ROOT_PASSWORD: paybridge-ci-only
+          MARIADB_ROOT_PASSWORD: buckmerce-ci-only
         ports:
           - 3306:3306
         options: >-
           --health-cmd="healthcheck.sh --connect --innodb_initialized" --health-interval=10s --health-timeout=5s --health-retries=10
     env:
-      PAYBRIDGE_PLAID_TEST_WP_VERSION: '${{ matrix.wordpress }}'
-      PAYBRIDGE_PLAID_TEST_WC_VERSION: '${{ matrix.woocommerce }}'
+      BUCKMERCE_PLAID_TEST_WP_VERSION: '${{ matrix.wordpress }}'
+      BUCKMERCE_PLAID_TEST_WC_VERSION: '${{ matrix.woocommerce }}'
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
@@ -394,7 +401,7 @@ jobs:
           coverage: none
       - uses: actions/download-artifact@v4
         with:
-          name: paybridge-for-plaid-zip
+          name: buckmerce-for-plaid-zip
           path: dist
       - name: Same suites on MariaDB (schema, reservations, advisory locks, event leases, reconciliation, uninstall)
         run: bash scripts/test-integration.sh
@@ -407,7 +414,7 @@ jobs:
       mysql:
         image: mysql:8.4
         env:
-          MYSQL_ROOT_PASSWORD: paybridge-ci-only
+          MYSQL_ROOT_PASSWORD: buckmerce-ci-only
         ports:
           - 3306:3306
         options: >-
@@ -422,13 +429,13 @@ jobs:
           coverage: none
       - uses: actions/download-artifact@v4
         with:
-          name: paybridge-for-plaid-zip
+          name: buckmerce-for-plaid-zip
           path: dist
       - run: bash scripts/test-plugin-check.sh
 
   browser-e2e:
     # One browser run covers the Classic Checkout gate, the Checkout Blocks gate and the
-    # accessibility checks (axe-core, keyboard, focus) of PayBridge-owned UI.
+    # accessibility checks (axe-core, keyboard, focus) of Buckmerce-owned UI.
     name: Browser E2E (Classic + Blocks checkout, admin refunds, accessibility)
     needs: package
     runs-on: ubuntu-latest
@@ -436,14 +443,14 @@ jobs:
       mysql:
         image: mysql:8.4
         env:
-          MYSQL_ROOT_PASSWORD: paybridge-ci-only
+          MYSQL_ROOT_PASSWORD: buckmerce-ci-only
         ports:
           - 3306:3306
         options: >-
           --health-cmd="mysqladmin ping --silent" --health-interval=10s --health-timeout=5s --health-retries=10
     env:
-      PAYBRIDGE_PLAID_TEST_WP_VERSION: '7.1.2'
-      PAYBRIDGE_PLAID_TEST_WC_VERSION: '11.1.2'
+      BUCKMERCE_PLAID_TEST_WP_VERSION: '7.1.2'
+      BUCKMERCE_PLAID_TEST_WC_VERSION: '11.1.2'
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
@@ -459,7 +466,7 @@ jobs:
       - run: npm ci
       - uses: actions/download-artifact@v4
         with:
-          name: paybridge-for-plaid-zip
+          name: buckmerce-for-plaid-zip
           path: dist
       - run: npx --yes --package @playwright/cli playwright-cli install-browser chromium
       - name: Allow core dumps of the PHP server (a crash is reported with a backtrace)
@@ -489,25 +496,25 @@ jobs:
       mysql:
         image: mysql:8.4
         env:
-          MYSQL_ROOT_PASSWORD: paybridge-ci-only
+          MYSQL_ROOT_PASSWORD: buckmerce-ci-only
         ports:
           - 3306:3306
         options: >-
           --health-cmd="mysqladmin ping --silent" --health-interval=10s --health-timeout=5s --health-retries=10
     env:
-      PAYBRIDGE_PLAID_SANDBOX_CLIENT_ID: ${{ secrets.PAYBRIDGE_PLAID_SANDBOX_CLIENT_ID }}
-      PAYBRIDGE_PLAID_SANDBOX_SECRET: ${{ secrets.PAYBRIDGE_PLAID_SANDBOX_SECRET }}
-      PAYBRIDGE_PLAID_SANDBOX_USERNAME: ${{ secrets.PAYBRIDGE_PLAID_SANDBOX_USERNAME }}
-      PAYBRIDGE_PLAID_SANDBOX_PASSWORD: ${{ secrets.PAYBRIDGE_PLAID_SANDBOX_PASSWORD }}
+      BUCKMERCE_PLAID_SANDBOX_CLIENT_ID: ${{ secrets.BUCKMERCE_PLAID_SANDBOX_CLIENT_ID }}
+      BUCKMERCE_PLAID_SANDBOX_SECRET: ${{ secrets.BUCKMERCE_PLAID_SANDBOX_SECRET }}
+      BUCKMERCE_PLAID_SANDBOX_USERNAME: ${{ secrets.BUCKMERCE_PLAID_SANDBOX_USERNAME }}
+      BUCKMERCE_PLAID_SANDBOX_PASSWORD: ${{ secrets.BUCKMERCE_PLAID_SANDBOX_PASSWORD }}
       # Name of the Sandbox Link customization (Account Select "Enabled for one account"). Not a
       # secret: a repository variable, or a secret of the same name.
-      PAYBRIDGE_PLAID_SANDBOX_LINK_CUSTOMIZATION: ${{ vars.PAYBRIDGE_PLAID_SANDBOX_LINK_CUSTOMIZATION || secrets.PAYBRIDGE_PLAID_SANDBOX_LINK_CUSTOMIZATION }}
+      BUCKMERCE_PLAID_SANDBOX_LINK_CUSTOMIZATION: ${{ vars.BUCKMERCE_PLAID_SANDBOX_LINK_CUSTOMIZATION || secrets.BUCKMERCE_PLAID_SANDBOX_LINK_CUSTOMIZATION }}
       # Optional public-HTTPS webhook gate (genuine Plaid-signed webhooks through ngrok).
       NGROK_AUTHTOKEN: ${{ secrets.NGROK_AUTHTOKEN }}
-      PAYBRIDGE_PLAID_NGROK_DOMAIN: ${{ vars.PAYBRIDGE_PLAID_NGROK_DOMAIN }}
+      BUCKMERCE_PLAID_NGROK_DOMAIN: ${{ vars.BUCKMERCE_PLAID_NGROK_DOMAIN }}
       REQUIRE_SANDBOX: ${{ inputs.require_sandbox && 'true' || 'false' }}
-      PAYBRIDGE_PLAID_TEST_WP_VERSION: '7.1.2'
-      PAYBRIDGE_PLAID_TEST_WC_VERSION: '11.1.2'
+      BUCKMERCE_PLAID_TEST_WP_VERSION: '7.1.2'
+      BUCKMERCE_PLAID_TEST_WC_VERSION: '11.1.2'
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
@@ -521,11 +528,11 @@ jobs:
           node-version: 22
       - uses: actions/download-artifact@v4
         with:
-          name: paybridge-for-plaid-zip
+          name: buckmerce-for-plaid-zip
           path: dist
       - run: npx --yes --package @playwright/cli playwright-cli install-browser chromium
       - name: Install ngrok
-        if: env.NGROK_AUTHTOKEN != '' && env.PAYBRIDGE_PLAID_NGROK_DOMAIN != ''
+        if: env.NGROK_AUTHTOKEN != '' && env.BUCKMERCE_PLAID_NGROK_DOMAIN != ''
         run: |
           curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
           echo "deb https://ngrok-agent.s3.amazonaws.com bookworm main" | sudo tee /etc/apt/sources.list.d/ngrok.list >/dev/null
@@ -537,7 +544,7 @@ jobs:
           set +e
           echo "executed=false" >> "$GITHUB_OUTPUT"
           mode=''
-          if [[ -n "$NGROK_AUTHTOKEN" && -n "$PAYBRIDGE_PLAID_NGROK_DOMAIN" ]]; then
+          if [[ -n "$NGROK_AUTHTOKEN" && -n "$BUCKMERCE_PLAID_NGROK_DOMAIN" ]]; then
             mode='--ngrok'
           fi
           bash scripts/test-sandbox-e2e.sh $mode

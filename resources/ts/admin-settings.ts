@@ -1,4 +1,4 @@
-/** Copy-to-clipboard for the PayBridge webhook URL on the gateway settings screen. */
+/** Copy-to-clipboard for the Buckmerce webhook URL on the gateway settings screen. */
 
 interface AdminStrings {
 	copied?: string;
@@ -7,13 +7,13 @@ interface AdminStrings {
 
 declare global {
 	interface Window {
-		paybridgePlaidAdmin?: AdminStrings;
+		buckmercePlaidAdmin?: AdminStrings;
 	}
 }
 
 ( function (): void {
-	const strings = window.paybridgePlaidAdmin || {};
-	const status = document.querySelector< HTMLElement >( '[data-pbfp-copy-status]' );
+	const strings = window.buckmercePlaidAdmin || {};
+	const status = document.querySelector< HTMLElement >( '[data-bmfp-copy-status]' );
 	const announce = ( text: string | undefined ): void => {
 		if ( status && text ) {
 			status.textContent = text;
@@ -24,9 +24,9 @@ declare global {
 		input.select();
 		announce( strings.copyFailed );
 	};
-	document.querySelectorAll< HTMLButtonElement >( '[data-pbfp-copy]' ).forEach( ( button ) => {
+	document.querySelectorAll< HTMLButtonElement >( '[data-bmfp-copy]' ).forEach( ( button ) => {
 		button.addEventListener( 'click', () => {
-			const target = document.getElementById( button.dataset.pbfpCopy || '' );
+			const target = document.getElementById( button.dataset.bmfpCopy || '' );
 			if ( ! ( target instanceof HTMLInputElement ) ) {
 				return;
 			}

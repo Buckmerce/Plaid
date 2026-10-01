@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Plaid\Transfer;
+namespace Buckmerce\Plaid\Plaid\Transfer;
 
-use PayBridge\Plaid\Plaid\Client\PlaidClientInterface;
-use PayBridge\Plaid\Plaid\DTO\Transfer;
+use Buckmerce\Plaid\Plaid\Client\PlaidClientInterface;
+use Buckmerce\Plaid\Plaid\DTO\Transfer;
 
 /** Plaid /transfer/get (https://plaid.com/docs/api/products/transfer/reading-transfers/). */
 final class TransferService

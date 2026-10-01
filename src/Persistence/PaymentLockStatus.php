@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Persistence;
+namespace Buckmerce\Plaid\Persistence;
 
 /** Durable lifecycle of one order's Transfer Intent creation fence. */
 final class PaymentLockStatus

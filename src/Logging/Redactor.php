@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Logging;
+namespace Buckmerce\Plaid\Logging;
 
 /**
  * Recursively removes secrets and sensitive personal/banking values from log

@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Admin;
+namespace Buckmerce\Plaid\Admin;
 
-use PayBridge\Plaid\Payment\OrderMeta;
-use PayBridge\Plaid\Payment\PaymentState;
-use PayBridge\Plaid\Settings\Settings;
+use Buckmerce\Plaid\Payment\OrderMeta;
+use Buckmerce\Plaid\Payment\PaymentState;
+use Buckmerce\Plaid\Settings\Settings;
 
 /**
  * "Pay by Bank" column in the WooCommerce orders list (HPOS and legacy). Returned payments
@@ -15,7 +15,7 @@ use PayBridge\Plaid\Settings\Settings;
  */
 final class OrderListColumn
 {
-    public const COLUMN = 'pbfp_payment';
+    public const COLUMN = 'bmfp_payment';
 
     public function register(): void
     {
@@ -35,11 +35,11 @@ final class OrderListColumn
         foreach ($columns as $key => $label) {
             $result[$key] = $label;
             if ('order_status' === $key) {
-                $result[self::COLUMN] = __('Pay by Bank', 'paybridge-for-plaid');
+                $result[self::COLUMN] = __('Pay by Bank', 'buckmerce-for-plaid');
             }
         }
         if (! isset($result[self::COLUMN])) {
-            $result[self::COLUMN] = __('Pay by Bank', 'paybridge-for-plaid');
+            $result[self::COLUMN] = __('Pay by Bank', 'buckmerce-for-plaid');
         }
         return $result;
     }
@@ -72,7 +72,7 @@ final class OrderListColumn
         if ('' === $label) {
             return;
         }
-        echo '<mark class="order-status pbfp-list-badge pbfp-list-badge--' . esc_attr($tone) . '"><span>' . esc_html($label) . '</span></mark>';
+        echo '<mark class="order-status bmfp-list-badge bmfp-list-badge--' . esc_attr($tone) . '"><span>' . esc_html($label) . '</span></mark>';
     }
 
     /** @return array{string, string} label and tone */
@@ -80,14 +80,14 @@ final class OrderListColumn
     {
         return match ($state) {
             /* translators: %s: ACH return code */
-            PaymentState::RETURNED => array('' === $return_code ? __('Bank payment returned', 'paybridge-for-plaid') : sprintf(__('Bank payment returned (%s)', 'paybridge-for-plaid'), $return_code), 'critical'),
-            PaymentState::MANUAL_REVIEW => array(__('Needs review', 'paybridge-for-plaid'), 'warning'),
-            PaymentState::FAILED, PaymentState::INTENT_FAILED => array(__('Bank payment failed', 'paybridge-for-plaid'), 'failed'),
-            PaymentState::CANCELLED => array(__('Bank payment cancelled', 'paybridge-for-plaid'), 'failed'),
-            PaymentState::TRANSFER_CREATED, PaymentState::PENDING, PaymentState::POSTED => array(__('Awaiting ACH settlement', 'paybridge-for-plaid'), 'pending'),
-            PaymentState::SETTLED => array(__('Settled', 'paybridge-for-plaid'), 'pending'),
-            PaymentState::FUNDS_AVAILABLE => array(__('Funds available', 'paybridge-for-plaid'), 'ok'),
-            PaymentState::INTENT_CREATED, PaymentState::INTENT_PENDING, PaymentState::INTENT_CREATING, PaymentState::INTENT_UNCERTAIN => array(__('Awaiting authorization', 'paybridge-for-plaid'), 'pending'),
+            PaymentState::RETURNED => array('' === $return_code ? __('Bank payment returned', 'buckmerce-for-plaid') : sprintf(__('Bank payment returned (%s)', 'buckmerce-for-plaid'), $return_code), 'critical'),
+            PaymentState::MANUAL_REVIEW => array(__('Needs review', 'buckmerce-for-plaid'), 'warning'),
+            PaymentState::FAILED, PaymentState::INTENT_FAILED => array(__('Bank payment failed', 'buckmerce-for-plaid'), 'failed'),
+            PaymentState::CANCELLED => array(__('Bank payment cancelled', 'buckmerce-for-plaid'), 'failed'),
+            PaymentState::TRANSFER_CREATED, PaymentState::PENDING, PaymentState::POSTED => array(__('Awaiting ACH settlement', 'buckmerce-for-plaid'), 'pending'),
+            PaymentState::SETTLED => array(__('Settled', 'buckmerce-for-plaid'), 'pending'),
+            PaymentState::FUNDS_AVAILABLE => array(__('Funds available', 'buckmerce-for-plaid'), 'ok'),
+            PaymentState::INTENT_CREATED, PaymentState::INTENT_PENDING, PaymentState::INTENT_CREATING, PaymentState::INTENT_UNCERTAIN => array(__('Awaiting authorization', 'buckmerce-for-plaid'), 'pending'),
             default => array('', ''),
         };
     }

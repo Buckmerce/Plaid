@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Payment;
+namespace Buckmerce\Plaid\Payment;
 
 /** Outcome of ReturnRetryPolicy for one order (ADR-0019). Immutable value object. */
 final class ReturnRetryDecision

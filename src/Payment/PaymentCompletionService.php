@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Payment;
+namespace Buckmerce\Plaid\Payment;
 
-use PayBridge\Plaid\Exception\PaymentException;
-use PayBridge\Plaid\Logging\Logger;
-use PayBridge\Plaid\Persistence\DatabaseMutex;
-use PayBridge\Plaid\Plaid\DTO\TransferIntent;
-use PayBridge\Plaid\Plaid\Exception\PlaidException;
-use PayBridge\Plaid\Plaid\TransferIntent\TransferIntentService;
-use PayBridge\Plaid\Settings\Settings;
+use Buckmerce\Plaid\Exception\PaymentException;
+use Buckmerce\Plaid\Logging\Logger;
+use Buckmerce\Plaid\Persistence\DatabaseMutex;
+use Buckmerce\Plaid\Plaid\DTO\TransferIntent;
+use Buckmerce\Plaid\Plaid\Exception\PlaidException;
+use Buckmerce\Plaid\Plaid\TransferIntent\TransferIntentService;
+use Buckmerce\Plaid\Settings\Settings;
 
 /**
  * Handles the browser's "Link finished" signal. The browser only triggers the

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Exception;
+namespace Buckmerce\Plaid\Exception;
 
-use PayBridge\Plaid\Payment\ReturnRetryDecision;
+use Buckmerce\Plaid\Payment\ReturnRetryDecision;
 
 /** A new bank debit was refused because the order's transfer was returned (ADR-0019). */
 final class ReturnedPaymentRetryException extends PaymentException

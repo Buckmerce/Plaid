@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
-# Builds dist/paybridge-for-plaid-<version>.zip from the current source tree.
+# Builds dist/buckmerce-for-plaid-<version>.zip from the current source tree.
 # The ZIP is always rebuilt from scratch; a stale archive is never reused.
 # The archive is reproducible: the same source and SOURCE_DATE_EPOCH (default: the HEAD commit
 # time) always give byte-identical ZIPs (fixed timestamps, permissions and entry order).
-# PBFP_DIST_DIR writes the ZIP elsewhere (used to compare a rebuild with a released artifact).
+# BUCKMERCE_PLAID_DIST_DIR writes the ZIP elsewhere (used to compare a rebuild with a released artifact).
 set -euo pipefail
 
 BASE_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-SLUG="paybridge-for-plaid"
+SLUG="buckmerce-for-plaid"
 MAIN_FILE="$BASE_DIR/$SLUG.php"
 
 HEADER_VERSION="$(grep -m1 '^ \* Version:' "$MAIN_FILE" | sed -E 's/^ \* Version:[[:space:]]*//')"
-CONSTANT_VERSION="$(grep -m1 "define( 'PAYBRIDGE_PLAID_VERSION'" "$MAIN_FILE" | sed -E "s/.*'PAYBRIDGE_PLAID_VERSION',[[:space:]]*'([^']+)'.*/\1/")"
+CONSTANT_VERSION="$(grep -m1 "define( 'BUCKMERCE_PLAID_VERSION'" "$MAIN_FILE" | sed -E "s/.*'BUCKMERCE_PLAID_VERSION',[[:space:]]*'([^']+)'.*/\1/")"
 STABLE_TAG="$(grep -m1 '^Stable tag:' "$BASE_DIR/readme.txt" | sed -E 's/^Stable tag:[[:space:]]*//')"
 PACKAGE_VERSION="$(sed -nE 's/^[[:space:]]*"version":[[:space:]]*"([^"]+)".*/\1/p' "$BASE_DIR/package.json" | head -1)"
 VERSION="${1:-$HEADER_VERSION}"
@@ -23,11 +23,11 @@ fi
 # Refuse to build when ANY version source differs from the requested version.
 # shellcheck disable=SC2055
 if [[ "$VERSION" != "$HEADER_VERSION" || "$VERSION" != "$CONSTANT_VERSION" || "$VERSION" != "$STABLE_TAG" || "$VERSION" != "$PACKAGE_VERSION" ]]; then
-    echo "Version mismatch: requested=$VERSION header=$HEADER_VERSION PAYBRIDGE_PLAID_VERSION=$CONSTANT_VERSION readme=$STABLE_TAG package.json=$PACKAGE_VERSION" >&2
+    echo "Version mismatch: requested=$VERSION header=$HEADER_VERSION BUCKMERCE_PLAID_VERSION=$CONSTANT_VERSION readme=$STABLE_TAG package.json=$PACKAGE_VERSION" >&2
     exit 1
 fi
 
-for asset in assets/admin-settings.css assets/payment-page.css assets/build/blocks.js assets/build/payment-page.js assets/build/admin-settings.js assets/images/paybridge-mark.svg; do
+for asset in assets/admin-settings.css assets/payment-page.css assets/build/blocks.js assets/build/payment-page.js assets/build/admin-settings.js assets/images/buckmerce-mark.svg; do
     if [[ ! -f "$BASE_DIR/$asset" ]]; then
         echo "Missing compiled asset $asset. Run 'npm run build' first." >&2
         exit 1
@@ -41,7 +41,7 @@ fi
 STAGE_DIR="$(mktemp -d)"
 trap 'rm -rf "$STAGE_DIR"' EXIT
 PLUGIN_DIR="$STAGE_DIR/$SLUG"
-DIST_DIR="${PBFP_DIST_DIR:-$BASE_DIR/dist}"
+DIST_DIR="${BUCKMERCE_PLAID_DIST_DIR:-$BASE_DIR/dist}"
 mkdir -p "$PLUGIN_DIR" "$DIST_DIR"
 DIST_DIR="$(cd "$DIST_DIR" && pwd)"
 

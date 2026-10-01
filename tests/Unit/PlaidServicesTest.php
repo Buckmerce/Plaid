@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Tests\Unit;
+namespace Buckmerce\Plaid\Tests\Unit;
 
-use PayBridge\Plaid\Payment\PaymentSnapshot;
-use PayBridge\Plaid\Plaid\Client\PlaidResponse;
-use PayBridge\Plaid\Plaid\DTO\TransferIntent;
-use PayBridge\Plaid\Plaid\Exception\PlaidMalformedResponseException;
-use PayBridge\Plaid\Plaid\Link\LinkTokenService;
-use PayBridge\Plaid\Plaid\Transfer\TransferEventService;
-use PayBridge\Plaid\Plaid\Transfer\TransferService;
-use PayBridge\Plaid\Plaid\TransferIntent\TransferIntentRequest;
-use PayBridge\Plaid\Plaid\TransferIntent\TransferIntentService;
-use PayBridge\Plaid\Tests\Support\FakePlaidClient;
+use Buckmerce\Plaid\Payment\PaymentSnapshot;
+use Buckmerce\Plaid\Plaid\Client\PlaidResponse;
+use Buckmerce\Plaid\Plaid\DTO\TransferIntent;
+use Buckmerce\Plaid\Plaid\Exception\PlaidMalformedResponseException;
+use Buckmerce\Plaid\Plaid\Link\LinkTokenService;
+use Buckmerce\Plaid\Plaid\Transfer\TransferEventService;
+use Buckmerce\Plaid\Plaid\Transfer\TransferService;
+use Buckmerce\Plaid\Plaid\TransferIntent\TransferIntentRequest;
+use Buckmerce\Plaid\Plaid\TransferIntent\TransferIntentService;
+use Buckmerce\Plaid\Tests\Support\FakePlaidClient;
 use PHPUnit\Framework\TestCase;
 
 final class PlaidServicesTest extends TestCase
@@ -37,7 +37,7 @@ final class PlaidServicesTest extends TestCase
         self::assertSame('web', $request['ach_class'], 'Transfer UI debits are always WEB.');
         self::assertSame('same-day-ach', $request['network']);
         self::assertArrayNotHasKey('funding_account_id', $request, 'Plaid Ledger accounts reject funding_account_id.');
-        self::assertSame(array('pbfp_order_id' => '1001', 'pbfp_attempt_id' => $snapshot->attempt_id, 'pbfp_environment' => 'sandbox'), $request['metadata']);
+        self::assertSame(array('bmfp_order_id' => '1001', 'bmfp_attempt_id' => $snapshot->attempt_id, 'bmfp_environment' => 'sandbox'), $request['metadata']);
         foreach ($request['metadata'] as $key => $value) {
             self::assertLessThanOrEqual(40, strlen($key));
             self::assertMatchesRegularExpression('/^[\x20-\x7E]*$/', $value);
@@ -46,7 +46,7 @@ final class PlaidServicesTest extends TestCase
         self::assertSame('fa-1', $legacy['funding_account_id']);
         self::assertSame('web', $legacy['ach_class']);
         $marked = TransferIntentRequest::build($snapshot, 'PAYMENT', array('legal_name' => 'A B'), 'ach', '', 'abcdef0123456789');
-        self::assertSame('abcdef0123456789', $marked['metadata']['pbfp_site'], 'Site marker distinguishes stores sharing a Plaid account.');
+        self::assertSame('abcdef0123456789', $marked['metadata']['bmfp_site'], 'Site marker distinguishes stores sharing a Plaid account.');
         self::assertCount(4, $marked['metadata']);
     }
 
@@ -84,7 +84,7 @@ final class PlaidServicesTest extends TestCase
         self::assertSame(TransferIntent::PENDING, $intent->status);
         self::assertSame('11.11', $intent->amount);
         self::assertSame('', $intent->transfer_id);
-        self::assertSame('1001', $intent->metadata['pbfp_order_id']);
+        self::assertSame('1001', $intent->metadata['bmfp_order_id']);
         self::assertSame(array('transfer_intent_id' => '538932c1-9aa1-bcdb-7f86-b359ae3ca7b4'), $client->calls[0]['body']);
     }
 
@@ -109,7 +109,7 @@ final class PlaidServicesTest extends TestCase
     public function test_link_token_is_bound_to_the_intent_and_never_carries_amount(): void
     {
         $client = (new FakePlaidClient())->on('/link/token/create', static fn (): PlaidResponse => new PlaidResponse(array('link_token' => 'link-sandbox-abc', 'expiration' => '2026-09-29T14:12:52Z', 'request_id' => 'r1'), 'r1'));
-        $token = (new LinkTokenService($client))->create_for_intent('ti-1', 'pbfp-user', 'My Store', 'en', 'pay_one_account');
+        $token = (new LinkTokenService($client))->create_for_intent('ti-1', 'bmfp-user', 'My Store', 'en', 'pay_one_account');
         self::assertSame('link-sandbox-abc', $token->token);
         $body = $client->calls[0]['body'];
         self::assertSame(array('transfer'), $body['products']);
@@ -157,12 +157,12 @@ final class PlaidServicesTest extends TestCase
 
     public function test_transfer_get_validates_status_and_amount(): void
     {
-        $transfer = array('id' => 't-1', 'status' => 'returned', 'type' => 'debit', 'amount' => '33.33', 'iso_currency_code' => 'USD', 'failure_reason' => array('failure_code' => 'R01', 'ach_return_code' => 'R01', 'description' => 'Insufficient funds'), 'metadata' => array('pbfp_order_id' => '7'));
+        $transfer = array('id' => 't-1', 'status' => 'returned', 'type' => 'debit', 'amount' => '33.33', 'iso_currency_code' => 'USD', 'failure_reason' => array('failure_code' => 'R01', 'ach_return_code' => 'R01', 'description' => 'Insufficient funds'), 'metadata' => array('bmfp_order_id' => '7'));
         $client = (new FakePlaidClient())->on('/transfer/get', static fn (): PlaidResponse => new PlaidResponse(array('transfer' => $transfer, 'request_id' => 'r'), 'r'));
         $result = (new TransferService($client))->get('t-1');
         self::assertSame('returned', $result->status);
         self::assertSame('R01', $result->failure_code);
-        self::assertSame('7', $result->metadata['pbfp_order_id']);
+        self::assertSame('7', $result->metadata['bmfp_order_id']);
 
         $transfer['status'] = 'paid';
         $bad = (new FakePlaidClient())->on('/transfer/get', static fn (): PlaidResponse => new PlaidResponse(array('transfer' => $transfer), 'r'));

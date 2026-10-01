@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Plaid\Transfer;
+namespace Buckmerce\Plaid\Plaid\Transfer;
 
-use PayBridge\Plaid\Plaid\Client\PlaidClientInterface;
-use PayBridge\Plaid\Plaid\DTO\TransferEvent;
-use PayBridge\Plaid\Plaid\DTO\TransferEventPage;
-use PayBridge\Plaid\Plaid\Exception\PlaidMalformedResponseException;
+use Buckmerce\Plaid\Plaid\Client\PlaidClientInterface;
+use Buckmerce\Plaid\Plaid\DTO\TransferEvent;
+use Buckmerce\Plaid\Plaid\DTO\TransferEventPage;
+use Buckmerce\Plaid\Plaid\Exception\PlaidMalformedResponseException;
 
 /** Plaid /transfer/event/sync (https://plaid.com/docs/api/products/transfer/reading-transfers/#transfereventsync). */
 final class TransferEventService

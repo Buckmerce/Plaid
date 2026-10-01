@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Persistence;
+namespace Buckmerce\Plaid\Persistence;
 
-use PayBridge\Plaid\Exception\PersistenceException;
-use PayBridge\Plaid\Plaid\DTO\TransferEvent;
-use PayBridge\Plaid\Settings\AccountScope;
+use Buckmerce\Plaid\Exception\PersistenceException;
+use Buckmerce\Plaid\Plaid\DTO\TransferEvent;
+use Buckmerce\Plaid\Settings\AccountScope;
 
 // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; lease claims must bypass object caches.
 
@@ -138,7 +138,7 @@ final class TransferEventStore
                     'ach_return_code' => $data['ach_return_code'] ?? null,
                     'description' => $data['failure_description'] ?? null,
                 )), '');
-            } catch (\PayBridge\Plaid\Plaid\Exception\PlaidException $exception) {
+            } catch (\Buckmerce\Plaid\Plaid\Exception\PlaidException $exception) {
                 // A corrupted row must never block the rest of the stream (poison row).
                 $this->finish((int) $id, $token, self::ABANDONED, 'unreadable_event_data');
                 continue;

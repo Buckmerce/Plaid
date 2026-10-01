@@ -2,37 +2,37 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid;
+namespace Buckmerce\Plaid;
 
-use PayBridge\Plaid\Background\EventSyncService;
-use PayBridge\Plaid\Background\ReconciliationService;
-use PayBridge\Plaid\Logging\Logger;
-use PayBridge\Plaid\Payment\ManualActions;
-use PayBridge\Plaid\Payment\OrderLocator;
-use PayBridge\Plaid\Payment\OrderPaymentProjector;
-use PayBridge\Plaid\Payment\OrderSynchronizer;
-use PayBridge\Plaid\Payment\PaymentAlerts;
-use PayBridge\Plaid\Payment\PaymentAttemptService;
-use PayBridge\Plaid\Payment\PaymentCompletionService;
-use PayBridge\Plaid\Payment\PaymentMonitor;
-use PayBridge\Plaid\Payment\TransferBinder;
-use PayBridge\Plaid\Payment\TransferEventProcessor;
-use PayBridge\Plaid\Persistence\EventCursor;
-use PayBridge\Plaid\Persistence\PaymentLockStore;
-use PayBridge\Plaid\Persistence\RefundStore;
-use PayBridge\Plaid\Persistence\TransferEventStore;
-use PayBridge\Plaid\Plaid\Client\PlaidClientInterface;
-use PayBridge\Plaid\Plaid\Link\LinkTokenService;
-use PayBridge\Plaid\Plaid\PlaidClientFactory;
-use PayBridge\Plaid\Plaid\Refund\TransferRefundService;
-use PayBridge\Plaid\Plaid\Transfer\TransferEventService;
-use PayBridge\Plaid\Plaid\Transfer\TransferService;
-use PayBridge\Plaid\Plaid\TransferIntent\TransferIntentService;
-use PayBridge\Plaid\Plaid\Webhook\VerificationKeyProvider;
-use PayBridge\Plaid\Plaid\Webhook\WebhookVerificationService;
-use PayBridge\Plaid\Refund\RefundEventHandler;
-use PayBridge\Plaid\Refund\RefundService;
-use PayBridge\Plaid\Settings\Settings;
+use Buckmerce\Plaid\Background\EventSyncService;
+use Buckmerce\Plaid\Background\ReconciliationService;
+use Buckmerce\Plaid\Logging\Logger;
+use Buckmerce\Plaid\Payment\ManualActions;
+use Buckmerce\Plaid\Payment\OrderLocator;
+use Buckmerce\Plaid\Payment\OrderPaymentProjector;
+use Buckmerce\Plaid\Payment\OrderSynchronizer;
+use Buckmerce\Plaid\Payment\PaymentAlerts;
+use Buckmerce\Plaid\Payment\PaymentAttemptService;
+use Buckmerce\Plaid\Payment\PaymentCompletionService;
+use Buckmerce\Plaid\Payment\PaymentMonitor;
+use Buckmerce\Plaid\Payment\TransferBinder;
+use Buckmerce\Plaid\Payment\TransferEventProcessor;
+use Buckmerce\Plaid\Persistence\EventCursor;
+use Buckmerce\Plaid\Persistence\PaymentLockStore;
+use Buckmerce\Plaid\Persistence\RefundStore;
+use Buckmerce\Plaid\Persistence\TransferEventStore;
+use Buckmerce\Plaid\Plaid\Client\PlaidClientInterface;
+use Buckmerce\Plaid\Plaid\Link\LinkTokenService;
+use Buckmerce\Plaid\Plaid\PlaidClientFactory;
+use Buckmerce\Plaid\Plaid\Refund\TransferRefundService;
+use Buckmerce\Plaid\Plaid\Transfer\TransferEventService;
+use Buckmerce\Plaid\Plaid\Transfer\TransferService;
+use Buckmerce\Plaid\Plaid\TransferIntent\TransferIntentService;
+use Buckmerce\Plaid\Plaid\Webhook\VerificationKeyProvider;
+use Buckmerce\Plaid\Plaid\Webhook\WebhookVerificationService;
+use Buckmerce\Plaid\Refund\RefundEventHandler;
+use Buckmerce\Plaid\Refund\RefundService;
+use Buckmerce\Plaid\Settings\Settings;
 
 /**
  * Lazily wires services. Constructing it performs no I/O; the Plaid client is
@@ -57,7 +57,7 @@ final class Container
         return $this->shared(Logger::class, static fn (): Logger => new Logger());
     }
 
-    /** @throws \PayBridge\Plaid\Exception\ConfigurationException */
+    /** @throws \Buckmerce\Plaid\Exception\ConfigurationException */
     public function client(): PlaidClientInterface
     {
         return $this->client ??= (new PlaidClientFactory())->create($this->settings());

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace PayBridge\Plaid\Payment;
+namespace Buckmerce\Plaid\Payment;
 
-use PayBridge\Plaid\Exception\PersistenceException;
+use Buckmerce\Plaid\Exception\PersistenceException;
 
 /**
  * Durable order writes for payment-critical metadata.
@@ -53,7 +53,7 @@ final class OrderPersistence
         foreach (is_array($rows) ? $rows : array() as $row) {
             $key = is_object($row) ? ($row->meta_key ?? null) : null;
             $value = is_object($row) ? ($row->meta_value ?? null) : null;
-            if (! is_string($key) || ! str_starts_with($key, '_pbfp_')) {
+            if (! is_string($key) || ! str_starts_with($key, '_bmfp_')) {
                 continue;
             }
             $value = is_string($value) ? maybe_unserialize($value) : $value;

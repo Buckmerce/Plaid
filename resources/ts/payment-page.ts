@@ -1,5 +1,5 @@
 /**
- * PayBridge payment page: launches Plaid Transfer UI for the order's stored
+ * Buckmerce payment page: launches Plaid Transfer UI for the order's stored
  * Transfer Intent and asks the server to verify the result.
  *
  * The browser never decides the amount, the Transfer Intent or whether the
@@ -44,7 +44,7 @@ interface ServerResponse {
 
 declare global {
 	interface Window {
-		paybridgePlaidPayment?: PaymentConfig;
+		buckmercePlaidPayment?: PaymentConfig;
 		Plaid?: PlaidGlobal;
 	}
 }
@@ -53,13 +53,13 @@ const MAX_VERIFY_ATTEMPTS = 6;
 const VERIFY_DELAY_MS = 4000;
 
 ( function (): void {
-	const config = window.paybridgePlaidPayment;
-	const root = document.querySelector< HTMLElement >( '.pbfp-payment' );
+	const config = window.buckmercePlaidPayment;
+	const root = document.querySelector< HTMLElement >( '.bmfp-payment' );
 	if ( ! config || ! root ) {
 		return;
 	}
-	const button = root.querySelector< HTMLButtonElement >( '[data-pbfp-pay]' );
-	const status = root.querySelector< HTMLElement >( '[data-pbfp-status]' );
+	const button = root.querySelector< HTMLButtonElement >( '[data-bmfp-pay]' );
+	const status = root.querySelector< HTMLElement >( '[data-bmfp-status]' );
 	if ( ! button || ! status ) {
 		return;
 	}
@@ -71,7 +71,7 @@ const VERIFY_DELAY_MS = 4000;
 
 	const setStatus = ( key: string, isError = false ): void => {
 		status.textContent = message( key );
-		status.classList.toggle( 'pbfp-payment__status--error', isError );
+		status.classList.toggle( 'bmfp-payment__status--error', isError );
 		root.setAttribute( 'aria-busy', busy ? 'true' : 'false' );
 	};
 
@@ -100,13 +100,13 @@ const VERIFY_DELAY_MS = 4000;
 	const errorKey = ( error: unknown ): string => {
 		const code = error instanceof Error ? error.message : '';
 		switch ( code ) {
-			case 'paybridge_unavailable':
+			case 'buckmerce_unavailable':
 				return 'notPayable';
-			case 'paybridge_not_payable':
+			case 'buckmerce_not_payable':
 				return 'returned';
-			case 'paybridge_rate_limited':
+			case 'buckmerce_rate_limited':
 				return 'rateLimited';
-			case 'paybridge_missing_name':
+			case 'buckmerce_missing_name':
 				return 'missingName';
 			default:
 				return 'error';
