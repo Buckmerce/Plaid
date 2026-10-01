@@ -33,39 +33,39 @@ final class BuckmerceGateway extends \WC_Payment_Gateway
     public function __construct()
     {
         $this->id = Settings::GATEWAY_ID;
-        $this->method_title = __('Buckmerce for Plaid', 'buckmerce-for-plaid');
-        $this->method_description = __('Pay by Bank through Plaid Transfer. Customers authorize a one-time ACH debit in Plaid Transfer UI; orders are updated from verified Plaid transfer events, and refunds are sent back to the customer\'s bank through Plaid.', 'buckmerce-for-plaid');
+        $this->method_title = __('Buckmerce for Plaid', 'buckmerce-plaid');
+        $this->method_description = __('Pay by Bank through Plaid Transfer. Customers authorize a one-time ACH debit in Plaid Transfer UI; orders are updated from verified Plaid transfer events, and refunds are sent back to the customer\'s bank through Plaid.', 'buckmerce-plaid');
         $this->has_fields = false;
         $this->supports = array('products', 'refunds');
         $this->icon = BUCKMERCE_PLAID_URL . 'assets/images/buckmerce-mark.svg';
         $this->init_form_fields();
         $this->init_settings();
-        $this->title = $this->get_option('title', __('Pay by Bank', 'buckmerce-for-plaid'));
-        $this->description = $this->get_option('description', __('Securely pay directly from your bank account.', 'buckmerce-for-plaid'));
+        $this->title = $this->get_option('title', __('Pay by Bank', 'buckmerce-plaid'));
+        $this->description = $this->get_option('description', __('Securely pay directly from your bank account.', 'buckmerce-plaid'));
         add_action('woocommerce_update_options_payment_gateways_' . $this->id, array($this, 'process_admin_options'));
     }
 
     public function init_form_fields(): void
     {
         $this->form_fields = array(
-            'general' => array('title' => __('General', 'buckmerce-for-plaid'), 'type' => 'title', 'description' => __('Disabling Pay by Bank only hides it at checkout. Existing bank payments, returns and refunds keep being monitored.', 'buckmerce-for-plaid')),
-            'enabled' => array('title' => __('Enable/Disable', 'buckmerce-for-plaid'), 'type' => 'checkbox', 'label' => __('Offer Pay by Bank at checkout', 'buckmerce-for-plaid'), 'default' => 'no'),
-            'title' => array('title' => __('Title', 'buckmerce-for-plaid'), 'type' => 'text', 'default' => __('Pay by Bank', 'buckmerce-for-plaid'), 'desc_tip' => true, 'description' => __('Payment method name shown at checkout.', 'buckmerce-for-plaid')),
-            'description' => array('title' => __('Description', 'buckmerce-for-plaid'), 'type' => 'textarea', 'default' => __('Securely pay directly from your bank account.', 'buckmerce-for-plaid'), 'desc_tip' => true, 'description' => __('Shown below the payment method at checkout.', 'buckmerce-for-plaid')),
-            'plaid' => array('title' => __('Plaid connection', 'buckmerce-for-plaid'), 'type' => 'title', 'description' => __('API keys are in the Plaid Dashboard under Developers → Keys. Plaid Transfer must be enabled for your team. Changing the Client ID or environment is refused while Production payments are still monitored.', 'buckmerce-for-plaid')),
-            'environment' => array('title' => __('Environment', 'buckmerce-for-plaid'), 'type' => 'select', 'default' => 'sandbox', 'options' => array('sandbox' => __('Sandbox (test, no real money)', 'buckmerce-for-plaid'), 'production' => __('Production (real money)', 'buckmerce-for-plaid')), 'description' => __('Production moves real money and requires HTTPS.', 'buckmerce-for-plaid')),
-            'client_id' => array('title' => __('Client ID', 'buckmerce-for-plaid'), 'type' => 'text', 'default' => '', 'custom_attributes' => array('autocomplete' => 'off', 'spellcheck' => 'false')),
-            'secret' => array('title' => __('Secret', 'buckmerce-for-plaid'), 'type' => 'bmfp_secret', 'default' => '', 'description' => __('Use the secret of the selected environment. Leave blank when saving to keep the stored secret.', 'buckmerce-for-plaid')),
-            'funding_account_id' => array('title' => __('Funding Account ID (optional)', 'buckmerce-for-plaid'), 'type' => 'text', 'default' => '', 'description' => __('Leave empty when your Plaid Transfer account uses Plaid Ledger (the default). Only accounts without a Ledger configure a funding account ID here.', 'buckmerce-for-plaid')),
-            'pay_by_bank' => array('title' => __('Pay by Bank', 'buckmerce-for-plaid'), 'type' => 'title'),
-            'link_customization_name' => array('title' => __('Link customization name', 'buckmerce-for-plaid'), 'type' => 'text', 'default' => '', 'description' => __('Required in Sandbox and Production. In the Plaid Dashboard of the selected environment open Link → Link Customization, create a customization with Account Select set to “Enabled for one account” (its language must match your store language), publish it and enter its name here.', 'buckmerce-for-plaid')),
-            'statement_descriptor' => array('title' => __('Bank statement description', 'buckmerce-for-plaid'), 'type' => 'text', 'default' => Settings::DEFAULT_STATEMENT_DESCRIPTOR, 'custom_attributes' => array('maxlength' => (string) Settings::STATEMENT_DESCRIPTOR_MAX, 'autocomplete' => 'off'), 'description' => __('Shown on the customer\'s bank statement after the company name Plaid has on file. Use a stable word that describes the purpose, such as PAYMENT or ORDER: recognizable descriptions reduce "unrecognized payment" disputes and returns. Letters, digits and spaces only, at most 10 characters; never put order numbers or personal data here.', 'buckmerce-for-plaid')),
-            'network' => array('title' => __('Payment network', 'buckmerce-for-plaid'), 'type' => 'select', 'default' => 'same-day-ach', 'options' => array('same-day-ach' => __('Same Day ACH', 'buckmerce-for-plaid'), 'ach' => __('Standard ACH', 'buckmerce-for-plaid')), 'description' => __('Same Day ACH payments made after Plaid\'s cutoff are sent as Standard ACH automatically.', 'buckmerce-for-plaid')),
-            'confirmation_state' => array('title' => __('Mark order paid when', 'buckmerce-for-plaid'), 'type' => 'select', 'default' => 'funds_available', 'options' => array('funds_available' => __('Funds are available (recommended)', 'buckmerce-for-plaid'), 'settled' => __('Transfer is settled', 'buckmerce-for-plaid')), 'description' => __('Until then orders stay On hold. ACH debits can still be returned later; returns are always recorded and flagged.', 'buckmerce-for-plaid')),
-            'background' => array('title' => __('Background processing', 'buckmerce-for-plaid'), 'type' => 'title', 'description' => __('Buckmerce follows every bank payment until its ACH return window closes, using verified Plaid webhooks, Plaid transfer events and a reconciliation job every 15 minutes (WooCommerce Action Scheduler). This cannot be turned off while payments exist.', 'buckmerce-for-plaid')),
-            'advanced' => array('title' => __('Advanced and logging', 'buckmerce-for-plaid'), 'type' => 'title'),
-            'debug' => array('title' => __('Debug logging', 'buckmerce-for-plaid'), 'type' => 'checkbox', 'label' => __('Write redacted debug logs (WooCommerce → Status → Logs)', 'buckmerce-for-plaid'), 'default' => 'no'),
-            'delete_data_on_uninstall' => array('title' => __('Uninstall cleanup', 'buckmerce-for-plaid'), 'type' => 'checkbox', 'label' => __('Delete Buckmerce settings, event and refund history and tables when the plugin is deleted', 'buckmerce-for-plaid'), 'default' => 'no', 'description' => __('Order payment records stay on the orders for auditing. Leave this off while payments may still be returned.', 'buckmerce-for-plaid')),
+            'general' => array('title' => __('General', 'buckmerce-plaid'), 'type' => 'title', 'description' => __('Disabling Pay by Bank only hides it at checkout. Existing bank payments, returns and refunds keep being monitored.', 'buckmerce-plaid')),
+            'enabled' => array('title' => __('Enable/Disable', 'buckmerce-plaid'), 'type' => 'checkbox', 'label' => __('Offer Pay by Bank at checkout', 'buckmerce-plaid'), 'default' => 'no'),
+            'title' => array('title' => __('Title', 'buckmerce-plaid'), 'type' => 'text', 'default' => __('Pay by Bank', 'buckmerce-plaid'), 'desc_tip' => true, 'description' => __('Payment method name shown at checkout.', 'buckmerce-plaid')),
+            'description' => array('title' => __('Description', 'buckmerce-plaid'), 'type' => 'textarea', 'default' => __('Securely pay directly from your bank account.', 'buckmerce-plaid'), 'desc_tip' => true, 'description' => __('Shown below the payment method at checkout.', 'buckmerce-plaid')),
+            'plaid' => array('title' => __('Plaid connection', 'buckmerce-plaid'), 'type' => 'title', 'description' => __('API keys are in the Plaid Dashboard under Developers → Keys. Plaid Transfer must be enabled for your team. Changing the Client ID or environment is refused while Production payments are still monitored.', 'buckmerce-plaid')),
+            'environment' => array('title' => __('Environment', 'buckmerce-plaid'), 'type' => 'select', 'default' => 'sandbox', 'options' => array('sandbox' => __('Sandbox (test, no real money)', 'buckmerce-plaid'), 'production' => __('Production (real money)', 'buckmerce-plaid')), 'description' => __('Production moves real money and requires HTTPS.', 'buckmerce-plaid')),
+            'client_id' => array('title' => __('Client ID', 'buckmerce-plaid'), 'type' => 'text', 'default' => '', 'custom_attributes' => array('autocomplete' => 'off', 'spellcheck' => 'false')),
+            'secret' => array('title' => __('Secret', 'buckmerce-plaid'), 'type' => 'bmfp_secret', 'default' => '', 'description' => __('Use the secret of the selected environment. Leave blank when saving to keep the stored secret.', 'buckmerce-plaid')),
+            'funding_account_id' => array('title' => __('Funding Account ID (optional)', 'buckmerce-plaid'), 'type' => 'text', 'default' => '', 'description' => __('Leave empty when your Plaid Transfer account uses Plaid Ledger (the default). Only accounts without a Ledger configure a funding account ID here.', 'buckmerce-plaid')),
+            'pay_by_bank' => array('title' => __('Pay by Bank', 'buckmerce-plaid'), 'type' => 'title'),
+            'link_customization_name' => array('title' => __('Link customization name', 'buckmerce-plaid'), 'type' => 'text', 'default' => '', 'description' => __('Required in Sandbox and Production. In the Plaid Dashboard of the selected environment open Link → Link Customization, create a customization with Account Select set to “Enabled for one account” (its language must match your store language), publish it and enter its name here.', 'buckmerce-plaid')),
+            'statement_descriptor' => array('title' => __('Bank statement description', 'buckmerce-plaid'), 'type' => 'text', 'default' => Settings::DEFAULT_STATEMENT_DESCRIPTOR, 'custom_attributes' => array('maxlength' => (string) Settings::STATEMENT_DESCRIPTOR_MAX, 'autocomplete' => 'off'), 'description' => __('Shown on the customer\'s bank statement after the company name Plaid has on file. Use a stable word that describes the purpose, such as PAYMENT or ORDER: recognizable descriptions reduce "unrecognized payment" disputes and returns. Letters, digits and spaces only, at most 10 characters; never put order numbers or personal data here.', 'buckmerce-plaid')),
+            'network' => array('title' => __('Payment network', 'buckmerce-plaid'), 'type' => 'select', 'default' => 'same-day-ach', 'options' => array('same-day-ach' => __('Same Day ACH', 'buckmerce-plaid'), 'ach' => __('Standard ACH', 'buckmerce-plaid')), 'description' => __('Same Day ACH payments made after Plaid\'s cutoff are sent as Standard ACH automatically.', 'buckmerce-plaid')),
+            'confirmation_state' => array('title' => __('Mark order paid when', 'buckmerce-plaid'), 'type' => 'select', 'default' => 'funds_available', 'options' => array('funds_available' => __('Funds are available (recommended)', 'buckmerce-plaid'), 'settled' => __('Transfer is settled', 'buckmerce-plaid')), 'description' => __('Until then orders stay On hold. ACH debits can still be returned later; returns are always recorded and flagged.', 'buckmerce-plaid')),
+            'background' => array('title' => __('Background processing', 'buckmerce-plaid'), 'type' => 'title', 'description' => __('Buckmerce follows every bank payment until its ACH return window closes, using verified Plaid webhooks, Plaid transfer events and a reconciliation job every 15 minutes (WooCommerce Action Scheduler). This cannot be turned off while payments exist.', 'buckmerce-plaid')),
+            'advanced' => array('title' => __('Advanced and logging', 'buckmerce-plaid'), 'type' => 'title'),
+            'debug' => array('title' => __('Debug logging', 'buckmerce-plaid'), 'type' => 'checkbox', 'label' => __('Write redacted debug logs (WooCommerce → Status → Logs)', 'buckmerce-plaid'), 'default' => 'no'),
+            'delete_data_on_uninstall' => array('title' => __('Uninstall cleanup', 'buckmerce-plaid'), 'type' => 'checkbox', 'label' => __('Delete Buckmerce settings, event and refund history and tables when the plugin is deleted', 'buckmerce-plaid'), 'default' => 'no', 'description' => __('Order payment records stay on the orders for auditing. Leave this off while payments may still be returned.', 'buckmerce-plaid')),
         );
     }
 
@@ -85,7 +85,7 @@ final class BuckmerceGateway extends \WC_Payment_Gateway
         }
         wp_enqueue_style('buckmerce-plaid-admin', BUCKMERCE_PLAID_URL . 'assets/admin-settings.css', array(), BUCKMERCE_PLAID_VERSION);
         wp_enqueue_script('buckmerce-plaid-admin', BUCKMERCE_PLAID_URL . 'assets/build/admin-settings.js', array(), BUCKMERCE_PLAID_VERSION, true);
-        wp_add_inline_script('buckmerce-plaid-admin', 'window.buckmercePlaidAdmin = ' . wp_json_encode(array('copied' => __('Webhook URL copied.', 'buckmerce-for-plaid'), 'copyFailed' => __('Select the URL and copy it manually.', 'buckmerce-for-plaid'))) . ';', 'before');
+        wp_add_inline_script('buckmerce-plaid-admin', 'window.buckmercePlaidAdmin = ' . wp_json_encode(array('copied' => __('Webhook URL copied.', 'buckmerce-plaid'), 'copyFailed' => __('Select the URL and copy it manually.', 'buckmerce-plaid'))) . ';', 'before');
     }
 
     /** Blank secret keeps the stored value; the explicit reset button clears it. */
@@ -139,8 +139,8 @@ final class BuckmerceGateway extends \WC_Payment_Gateway
                 <p class="description" id="<?php echo esc_attr($field_key); ?>-description"><?php echo esc_html((string) ($data['description'] ?? '')); ?></p>
                 <?php if ($configured) : ?>
                     <p class="description bmfp-secret-status">
-                        <span><?php esc_html_e('A secret is stored.', 'buckmerce-for-plaid'); ?></span>
-                        <button type="submit" class="button button-secondary" name="save" value="<?php echo esc_attr(self::RESET_SECRET_VALUE); ?>"><?php esc_html_e('Remove stored secret', 'buckmerce-for-plaid'); ?></button>
+                        <span><?php esc_html_e('A secret is stored.', 'buckmerce-plaid'); ?></span>
+                        <button type="submit" class="button button-secondary" name="save" value="<?php echo esc_attr(self::RESET_SECRET_VALUE); ?>"><?php esc_html_e('Remove stored secret', 'buckmerce-plaid'); ?></button>
                     </p>
                 <?php endif; ?>
             </td>
@@ -171,9 +171,9 @@ final class BuckmerceGateway extends \WC_Payment_Gateway
         <tr valign="top" class="bmfp-integration"><td colspan="2" class="forminp">
         <div class="bmfp-status-panel bmfp-status-panel--<?php echo esc_attr($status['level']); ?>" role="region" aria-labelledby="bmfp-status-heading">
             <h3 id="bmfp-status-heading">
-                <?php esc_html_e('Status', 'buckmerce-for-plaid'); ?>:
+                <?php esc_html_e('Status', 'buckmerce-plaid'); ?>:
                 <span class="bmfp-badge bmfp-badge--<?php echo esc_attr($status['level']); ?>"><?php echo esc_html($status['label']); ?></span>
-                <span class="bmfp-badge bmfp-badge--<?php echo esc_attr($settings->is_production() ? 'production' : 'sandbox'); ?>"><?php echo esc_html($settings->is_production() ? __('Production', 'buckmerce-for-plaid') : __('Sandbox', 'buckmerce-for-plaid')); ?></span>
+                <span class="bmfp-badge bmfp-badge--<?php echo esc_attr($settings->is_production() ? 'production' : 'sandbox'); ?>"><?php echo esc_html($settings->is_production() ? __('Production', 'buckmerce-plaid') : __('Sandbox', 'buckmerce-plaid')); ?></span>
             </h3>
             <ul class="bmfp-checklist">
                 <?php foreach ($status['checks'] as $check) : ?>
@@ -187,18 +187,18 @@ final class BuckmerceGateway extends \WC_Payment_Gateway
                 <?php endforeach; ?>
             </ul>
             <p>
-                <a class="button button-secondary" href="<?php echo esc_url($test_url); ?>"><?php esc_html_e('Test connection', 'buckmerce-for-plaid'); ?></a>
-                <a class="button button-link" href="<?php echo esc_url(DiagnosticsPage::url()); ?>"><?php esc_html_e('Open diagnostics', 'buckmerce-for-plaid'); ?></a>
+                <a class="button button-secondary" href="<?php echo esc_url($test_url); ?>"><?php esc_html_e('Test connection', 'buckmerce-plaid'); ?></a>
+                <a class="button button-link" href="<?php echo esc_url(DiagnosticsPage::url()); ?>"><?php esc_html_e('Open diagnostics', 'buckmerce-plaid'); ?></a>
             </p>
             <?php if (is_array($result)) : ?>
                 <p class="bmfp-status <?php echo 'connected' === ($result['status'] ?? '') ? 'bmfp-status--ok' : 'bmfp-status--warning'; ?>" role="status"><?php echo esc_html(ConnectionTester::message($result)); ?></p>
             <?php endif; ?>
             <div class="bmfp-copy-field">
-                <label for="bmfp-webhook-url"><strong><?php esc_html_e('Webhook URL', 'buckmerce-for-plaid'); ?></strong></label>
+                <label for="bmfp-webhook-url"><strong><?php esc_html_e('Webhook URL', 'buckmerce-plaid'); ?></strong></label>
                 <input type="text" readonly class="large-text code" id="bmfp-webhook-url" value="<?php echo esc_attr($webhook_url); ?>" aria-describedby="bmfp-webhook-help" />
-                <button type="button" class="button button-secondary" data-bmfp-copy="bmfp-webhook-url"><?php esc_html_e('Copy', 'buckmerce-for-plaid'); ?></button>
+                <button type="button" class="button button-secondary" data-bmfp-copy="bmfp-webhook-url"><?php esc_html_e('Copy', 'buckmerce-plaid'); ?></button>
             </div>
-            <p class="description" id="bmfp-webhook-help"><?php esc_html_e('In the Plaid Dashboard open Team Settings → Webhooks, add a webhook for “Transfer event” in the selected environment and paste this URL. Webhooks are cryptographically verified.', 'buckmerce-for-plaid'); ?></p>
+            <p class="description" id="bmfp-webhook-help"><?php esc_html_e('In the Plaid Dashboard open Team Settings → Webhooks, add a webhook for “Transfer event” in the selected environment and paste this URL. Webhooks are cryptographically verified.', 'buckmerce-plaid'); ?></p>
             <p class="screen-reader-text" data-bmfp-copy-status aria-live="polite"></p>
         </div>
         </td></tr>
@@ -248,7 +248,7 @@ final class BuckmerceGateway extends \WC_Payment_Gateway
 
     public static function legal_name_message(): string
     {
-        return __('Please enter the account holder\'s legal first and last name in the billing details before paying by bank.', 'buckmerce-for-plaid');
+        return __('Please enter the account holder\'s legal first and last name in the billing details before paying by bank.', 'buckmerce-plaid');
     }
 
     /** @return array{result:string, redirect?:string} */
@@ -256,7 +256,7 @@ final class BuckmerceGateway extends \WC_Payment_Gateway
     {
         $order = wc_get_order($order_id);
         if (! $order instanceof \WC_Order) {
-            wc_add_notice(__('We could not find this order.', 'buckmerce-for-plaid'), 'error');
+            wc_add_notice(__('We could not find this order.', 'buckmerce-plaid'), 'error');
             return array('result' => 'failure');
         }
         try {
@@ -269,13 +269,13 @@ final class BuckmerceGateway extends \WC_Payment_Gateway
         } catch (ReturnedPaymentRetryException $exception) {
             wc_add_notice(ReturnRetryPolicy::customer_message(), 'error');
         } catch (PaymentAttemptBusyException $exception) {
-            wc_add_notice(__('Your bank payment is already being prepared. Please wait a few seconds and try again.', 'buckmerce-for-plaid'), 'error');
+            wc_add_notice(__('Your bank payment is already being prepared. Please wait a few seconds and try again.', 'buckmerce-plaid'), 'error');
         } catch (ConfigurationException $exception) {
             ( new Logger() )->log('error', 'gateway_misconfigured', array('order_id' => $order->get_id(), 'error_code' => Logger::fingerprint($exception->getMessage())));
-            wc_add_notice(__('Pay by Bank is temporarily unavailable. Please choose another payment method.', 'buckmerce-for-plaid'), 'error');
+            wc_add_notice(__('Pay by Bank is temporarily unavailable. Please choose another payment method.', 'buckmerce-plaid'), 'error');
         } catch (BuckmerceException $exception) {
             ( new Logger() )->log('warning', 'payment_start_failed', array('order_id' => $order->get_id(), 'error_code' => Logger::fingerprint($exception->getMessage())));
-            wc_add_notice(__('We could not start the bank payment. Please try again or choose another payment method.', 'buckmerce-for-plaid'), 'error');
+            wc_add_notice(__('We could not start the bank payment. Please try again or choose another payment method.', 'buckmerce-plaid'), 'error');
         }
         return array('result' => 'failure');
     }
@@ -307,19 +307,19 @@ final class BuckmerceGateway extends \WC_Payment_Gateway
     {
         $order = wc_get_order($order_id);
         if (! $order instanceof \WC_Order || Settings::GATEWAY_ID !== $order->get_payment_method()) {
-            return new \WP_Error('buckmerce_refund_invalid_order', __('This order was not paid with Pay by Bank.', 'buckmerce-for-plaid'));
+            return new \WP_Error('buckmerce_refund_invalid_order', __('This order was not paid with Pay by Bank.', 'buckmerce-plaid'));
         }
         if (null === $amount || '' === (string) $amount) {
-            return new \WP_Error('buckmerce_refund_amount', __('Enter the amount to refund.', 'buckmerce-for-plaid'));
+            return new \WP_Error('buckmerce_refund_amount', __('Enter the amount to refund.', 'buckmerce-plaid'));
         }
         $amount = (string) $amount;
         try {
             $outcome = ( new Container() )->refunds()->refund($order, WooRefundContext::for_order($order, $amount), $amount, (string) $reason);
         } catch (ConfigurationException $exception) {
-            return new \WP_Error('buckmerce_refund_unavailable', __('Pay by Bank refunds are unavailable because the Plaid connection is not configured.', 'buckmerce-for-plaid'));
+            return new \WP_Error('buckmerce_refund_unavailable', __('Pay by Bank refunds are unavailable because the Plaid connection is not configured.', 'buckmerce-plaid'));
         } catch (BuckmerceException $exception) {
             ( new Logger() )->log('error', 'refund_failed_unexpectedly', array('order_id' => $order->get_id(), 'error_code' => Logger::fingerprint($exception->getMessage())));
-            return new \WP_Error('buckmerce_refund_failed', __('The refund could not be processed. No refund was sent to Plaid; see the Buckmerce logs.', 'buckmerce-for-plaid'));
+            return new \WP_Error('buckmerce_refund_failed', __('The refund could not be processed. No refund was sent to Plaid; see the Buckmerce logs.', 'buckmerce-plaid'));
         }
         return $outcome->ok ? true : new \WP_Error('buckmerce_refund_failed', $outcome->message);
     }

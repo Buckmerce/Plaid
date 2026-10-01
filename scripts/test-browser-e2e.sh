@@ -7,8 +7,8 @@ base_dir=$(cd "$(dirname "$0")/.." && pwd)
 bmfp_base_dir=$base_dir
 # shellcheck source=lib/test-env.sh
 . "$base_dir/scripts/lib/test-env.sh"
-plugin_version=$(grep -m1 '^ \* Version:' "$base_dir/buckmerce-for-plaid.php" | sed -E 's/^ \* Version:[[:space:]]*//')
-plugin_zip=${BUCKMERCE_PLAID_TEST_PLUGIN_ZIP:-"$base_dir/dist/buckmerce-for-plaid-$plugin_version.zip"}
+plugin_version=$(grep -m1 '^ \* Version:' "$base_dir/buckmerce-plaid.php" | sed -E 's/^ \* Version:[[:space:]]*//')
+plugin_zip=${BUCKMERCE_PLAID_TEST_PLUGIN_ZIP:-"$base_dir/dist/buckmerce-plaid-$plugin_version.zip"}
 port=${BUCKMERCE_PLAID_E2E_PORT:-8893}
 base_url="http://127.0.0.1:${port}"
 site_dir=$(mktemp -d /tmp/buckmerce-browser.XXXXXXXX)

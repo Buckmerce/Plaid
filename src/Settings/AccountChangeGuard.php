@@ -101,13 +101,13 @@ final class AccountChangeGuard
         $message = 'blocked' === $decision['result']
             ? sprintf(
                 /* translators: 1: number of open payments, 2: number of open refunds */
-                __('Buckmerce kept the previous Plaid environment, Client ID and Secret: %1$d Production payment(s) and %2$d refund(s) are still monitored for ACH returns or refund outcomes, and only the Plaid account that created them can read them. Other settings were saved. You can rotate the secret of the same Client ID at any time; switch accounts after Buckmerce diagnostics show no monitored payments.', 'buckmerce-for-plaid'),
+                __('Buckmerce kept the previous Plaid environment, Client ID and Secret: %1$d Production payment(s) and %2$d refund(s) are still monitored for ACH returns or refund outcomes, and only the Plaid account that created them can read them. Other settings were saved. You can rotate the secret of the same Client ID at any time; switch accounts after Buckmerce diagnostics show no monitored payments.', 'buckmerce-plaid'),
                 $decision['payments'],
                 $decision['refunds']
             )
             : sprintf(
                 /* translators: 1: number of open payments, 2: number of open refunds */
-                __('Buckmerce: %1$d open Sandbox payment(s) and %2$d refund(s) of the previous Plaid account/environment are no longer monitored. Sandbox moves no real money.', 'buckmerce-for-plaid'),
+                __('Buckmerce: %1$d open Sandbox payment(s) and %2$d refund(s) of the previous Plaid account/environment are no longer monitored. Sandbox moves no real money.', 'buckmerce-plaid'),
                 $decision['payments'],
                 $decision['refunds']
             );

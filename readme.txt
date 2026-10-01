@@ -70,7 +70,7 @@ Production moves real money. The site must use HTTPS; the gateway is hidden othe
 * **Bank statement description** — shown on the customer's bank statement after your company name (default PAYMENT, up to 10 letters/digits/spaces).
 * **Payment network** — Same Day ACH (default) or Standard ACH.
 * **Mark order paid when** — Funds are available (recommended) or the transfer is settled. Until then the order is On hold.
-* **Debug logging** — redacted logs under WooCommerce → Status → Logs (source `buckmerce-for-plaid`).
+* **Debug logging** — redacted logs under WooCommerce → Status → Logs (source `buckmerce-plaid`).
 * **Uninstall cleanup** — when enabled, deleting the plugin removes its settings, event and refund history and database tables. Payment records on orders are always kept.
 
 The ACH class is always WEB (internet-authorized consumer debit), as required for Plaid Transfer UI. Customers must provide a billing first and last name (the bank account holder's legal name).
@@ -134,6 +134,16 @@ Buckmerce sends only the data needed to create the payment or refund (amount, st
 * Payment endpoints require the order key and the order owner's session; a numeric order ID alone never grants access.
 * Every administrator action (sync, cancel, review decisions, alerts) requires the WooCommerce management capability and a nonce.
 * Report security issues privately to the plugin author.
+
+== Development and Source Code ==
+
+The JavaScript and CSS files in `assets/` are compiled and minified. The complete human-readable source code of this plugin — the TypeScript and SCSS sources (`resources/`), the PHP code, the dependency definitions (`composer.json`, `composer.lock`, `package.json`, `package-lock.json`) and the build and test scripts — is available in the public source repository:
+
+https://github.com/al5dy/buckmerce-plaid
+
+To build the plugin from source, run `composer install` (installs the development tools and regenerates the namespace-prefixed library in `vendor-prefixed/` with Strauss), `npm ci` and `npm run plugin-zip` (compiles the assets with Parcel and builds the plugin ZIP). The repository's README describes the build and the test suites in detail.
+
+The plugin bundles one third-party library: `firebase/php-jwt` (BSD-3-Clause), used to verify the signature of Plaid webhooks. It is prefixed into the `Buckmerce\Plaid\Vendor` namespace so it cannot conflict with another plugin's copy; its license is in `vendor-prefixed/firebase/php-jwt/LICENSE` and the plugin's `composer.json` declares it.
 
 == Screenshots ==
 

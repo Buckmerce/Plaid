@@ -13,7 +13,7 @@ use Buckmerce\Plaid\Plaid\Webhook\WebhookVerificationService;
 use Buckmerce\Plaid\Settings\Settings;
 
 /**
- * POST /wp-json/buckmerce-for-plaid/v1/webhook
+ * POST /wp-json/buckmerce-plaid/v1/webhook
  *
  * Nothing about the request is trusted until WebhookVerificationService has
  * verified the ES256 JWT and the raw-body hash. A verified

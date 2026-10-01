@@ -41,8 +41,8 @@ function harness( { responses = [], plaid = true, restNonce = '' } = {} ) {
 			orderKey: 'wc_order_abc123',
 			paymentNonce: '0123456789',
 			restNonce,
-			linkTokenUrl: 'https://shop.test/wp-json/buckmerce-for-plaid/v1/link-token',
-			completeUrl: 'https://shop.test/wp-json/buckmerce-for-plaid/v1/complete',
+			linkTokenUrl: 'https://shop.test/wp-json/buckmerce-plaid/v1/link-token',
+			completeUrl: 'https://shop.test/wp-json/buckmerce-plaid/v1/complete',
 			returnUrl: 'https://shop.test/checkout/order-received/42/?key=wc_order_abc123',
 			i18n: { preparing: 'preparing', opening: 'opening', verifying: 'verifying', submitted: 'submitted', exited: 'exited', incomplete: 'incomplete', insufficient: 'insufficient', failed: 'failed', unverified: 'unverified', review: 'review', error: 'error', unavailable: 'unavailable', notPayable: 'notPayable', missingName: 'missingName', returned: 'returned', rateLimited: 'rateLimited', retry: 'Try again' },
 		},
@@ -93,7 +93,7 @@ test( 'onSuccess only asks the server to verify and follows the server redirect'
 	await tick();
 	page.handlers[ 0 ].config.onSuccess( 'public-sandbox-x', { transfer_status: 'COMPLETE', accounts: [ { id: 'acc' } ] } );
 	await tick();
-	assert.equal( page.requests[ 1 ].url, 'https://shop.test/wp-json/buckmerce-for-plaid/v1/complete' );
+	assert.equal( page.requests[ 1 ].url, 'https://shop.test/wp-json/buckmerce-plaid/v1/complete' );
 	assert.deepEqual( page.requests[ 1 ].body, { order_id: 42, order_key: 'wc_order_abc123', payment_nonce: '0123456789' }, 'no public token, metadata or status is sent' );
 	assert.deepEqual( page.redirects, [ 'https://shop.test/order-received/42/' ] );
 } );
@@ -136,7 +136,7 @@ test( 'failed authorization and Link errors allow retry; manual review does not'
 	await tick();
 	closed.handlers[ 0 ].config.onExit( null, {} );
 	await tick();
-	assert.equal( closed.requests[ 1 ].url, 'https://shop.test/wp-json/buckmerce-for-plaid/v1/complete', 'a user exit is verified server-side' );
+	assert.equal( closed.requests[ 1 ].url, 'https://shop.test/wp-json/buckmerce-plaid/v1/complete', 'a user exit is verified server-side' );
 	assert.equal( closed.status.textContent, 'exited' );
 	assert.equal( closed.button.disabled, false );
 

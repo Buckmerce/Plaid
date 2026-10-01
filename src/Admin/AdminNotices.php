@@ -33,16 +33,16 @@ final class AdminNotices
             $critical = in_array($alert['type'], PaymentAlerts::CRITICAL, true);
             echo '<div class="notice ' . esc_attr($critical ? 'notice-error' : 'notice-warning') . ' bmfp-alert"><p><strong>' . esc_html(PaymentAlerts::message($alert)) . '</strong> ';
             if ('' !== $link) {
-                echo '<a href="' . esc_url($link) . '">' . esc_html__('Review order', 'buckmerce-for-plaid') . '</a> · ';
+                echo '<a href="' . esc_url($link) . '">' . esc_html__('Review order', 'buckmerce-plaid') . '</a> · ';
             }
-            echo '<a href="' . esc_url($dismiss) . '">' . esc_html__('Dismiss', 'buckmerce-for-plaid') . '</a></p></div>';
+            echo '<a href="' . esc_url($dismiss) . '">' . esc_html__('Dismiss', 'buckmerce-plaid') . '</a></p></div>';
         }
     }
 
     public function dismiss(): void
     {
         if (! current_user_can('manage_woocommerce')) {
-            wp_die(esc_html__('You are not allowed to do this.', 'buckmerce-for-plaid'), '', array('response' => 403));
+            wp_die(esc_html__('You are not allowed to do this.', 'buckmerce-plaid'), '', array('response' => 403));
         }
         check_admin_referer(self::DISMISS_ACTION);
         $key = isset($_GET['alert']) ? sanitize_text_field(wp_unslash($_GET['alert'])) : '';

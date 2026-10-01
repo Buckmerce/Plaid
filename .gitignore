@@ -84,10 +84,14 @@ desktop.ini
 # Temporary translation files
 *.po~
 
-# Local, regenerable copy of the public Plaid documentation (scripts/fetch-plaid-docs.sh).
-# Engineering documentation (AGENTS.md, CHANGELOG.md, docs/**) IS version-controlled;
-# only this third-party mirror is not (docs/api/README.md explains why).
-/docs/api/plaid-mirror/
+# Local project documentation
+/docs/
+
+# Keep only the public root README in Git
+*.md
+!/README.md
+!/.github/PULL_REQUEST_TEMPLATE.md
+!/.github/SECURITY.md
 
 # Local archives
 *.zip

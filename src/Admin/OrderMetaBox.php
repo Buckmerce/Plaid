@@ -54,31 +54,31 @@ final class OrderMetaBox
         $records = $refunds->for_order($order);
         $eligibility = $refunds->eligibility($order);
         $rows = array(
-            __('Buckmerce state', 'buckmerce-for-plaid') => $state,
-            __('Environment', 'buckmerce-for-plaid') => $meta(OrderMeta::ENVIRONMENT),
-            __('Payment attempt', 'buckmerce-for-plaid') => null !== $snapshot ? $snapshot->attempt_id : '',
-            __('Attempt created', 'buckmerce-for-plaid') => null !== $snapshot ? $snapshot->created_at : '',
-            __('Amount', 'buckmerce-for-plaid') => null !== $snapshot ? $snapshot->amount . ' ' . $snapshot->currency : '',
-            __('Transfer Intent ID', 'buckmerce-for-plaid') => $meta(OrderMeta::TRANSFER_INTENT_ID),
-            __('Transfer Intent status (Plaid)', 'buckmerce-for-plaid') => $meta(OrderMeta::TRANSFER_INTENT_STATUS),
-            __('Transfer ID', 'buckmerce-for-plaid') => $meta(OrderMeta::TRANSFER_ID),
-            __('Transfer status (Plaid)', 'buckmerce-for-plaid') => $meta(OrderMeta::TRANSFER_STATUS),
-            __('Transfer created', 'buckmerce-for-plaid') => $meta(OrderMeta::TRANSFER_CREATED_AT),
-            __('Settled', 'buckmerce-for-plaid') => $meta(OrderMeta::SETTLED_AT),
-            __('Funds available', 'buckmerce-for-plaid') => '' !== $meta(OrderMeta::FUNDS_AVAILABLE_AT) ? $meta(OrderMeta::FUNDS_AVAILABLE_AT) : ('' !== $meta(OrderMeta::EXPECTED_FUNDS_AVAILABLE_DATE) ? sprintf(/* translators: %s: date */ __('expected %s', 'buckmerce-for-plaid'), $meta(OrderMeta::EXPECTED_FUNDS_AVAILABLE_DATE)) : ''),
-            __('Standard return window', 'buckmerce-for-plaid') => '' !== $meta(OrderMeta::STANDARD_RETURN_WINDOW) ? $meta(OrderMeta::STANDARD_RETURN_WINDOW) : (null !== $windows ? sprintf(/* translators: %s: date */ __('about %s (estimated)', 'buckmerce-for-plaid'), gmdate('Y-m-d', $windows[0])) : ''),
-            __('Unauthorized return window', 'buckmerce-for-plaid') => '' !== $meta(OrderMeta::UNAUTHORIZED_RETURN_WINDOW) ? $meta(OrderMeta::UNAUTHORIZED_RETURN_WINDOW) : (null !== $windows ? sprintf(/* translators: %s: date */ __('about %s (estimated)', 'buckmerce-for-plaid'), gmdate('Y-m-d', $windows[1])) : ''),
-            __('Returned', 'buckmerce-for-plaid') => $meta(OrderMeta::RETURNED_AT),
-            __('Return code', 'buckmerce-for-plaid') => $meta(OrderMeta::RETURN_CODE),
-            __('Failure code', 'buckmerce-for-plaid') => $meta(OrderMeta::FAILURE_CODE),
-            __('Failure / return reason', 'buckmerce-for-plaid') => $meta(OrderMeta::FAILURE_DESCRIPTION),
-            __('Manual review reason', 'buckmerce-for-plaid') => $meta(OrderMeta::MANUAL_REVIEW_REASON),
-            __('Last synchronized', 'buckmerce-for-plaid') => $meta(OrderMeta::LAST_SYNC_AT),
-            __('Last event ID', 'buckmerce-for-plaid') => $meta(OrderMeta::LAST_EVENT_ID),
-            __('Plaid request ID', 'buckmerce-for-plaid') => $meta(OrderMeta::REQUEST_ID),
-            __('Refunded through Plaid', 'buckmerce-for-plaid') => array() === $records ? '' : '$' . $eligibility->refunded . ($eligibility->allowed ? ' · ' . sprintf(/* translators: %s: amount */ __('$%s refundable', 'buckmerce-for-plaid'), $eligibility->remaining) : ''),
+            __('Buckmerce state', 'buckmerce-plaid') => $state,
+            __('Environment', 'buckmerce-plaid') => $meta(OrderMeta::ENVIRONMENT),
+            __('Payment attempt', 'buckmerce-plaid') => null !== $snapshot ? $snapshot->attempt_id : '',
+            __('Attempt created', 'buckmerce-plaid') => null !== $snapshot ? $snapshot->created_at : '',
+            __('Amount', 'buckmerce-plaid') => null !== $snapshot ? $snapshot->amount . ' ' . $snapshot->currency : '',
+            __('Transfer Intent ID', 'buckmerce-plaid') => $meta(OrderMeta::TRANSFER_INTENT_ID),
+            __('Transfer Intent status (Plaid)', 'buckmerce-plaid') => $meta(OrderMeta::TRANSFER_INTENT_STATUS),
+            __('Transfer ID', 'buckmerce-plaid') => $meta(OrderMeta::TRANSFER_ID),
+            __('Transfer status (Plaid)', 'buckmerce-plaid') => $meta(OrderMeta::TRANSFER_STATUS),
+            __('Transfer created', 'buckmerce-plaid') => $meta(OrderMeta::TRANSFER_CREATED_AT),
+            __('Settled', 'buckmerce-plaid') => $meta(OrderMeta::SETTLED_AT),
+            __('Funds available', 'buckmerce-plaid') => '' !== $meta(OrderMeta::FUNDS_AVAILABLE_AT) ? $meta(OrderMeta::FUNDS_AVAILABLE_AT) : ('' !== $meta(OrderMeta::EXPECTED_FUNDS_AVAILABLE_DATE) ? sprintf(/* translators: %s: date */ __('expected %s', 'buckmerce-plaid'), $meta(OrderMeta::EXPECTED_FUNDS_AVAILABLE_DATE)) : ''),
+            __('Standard return window', 'buckmerce-plaid') => '' !== $meta(OrderMeta::STANDARD_RETURN_WINDOW) ? $meta(OrderMeta::STANDARD_RETURN_WINDOW) : (null !== $windows ? sprintf(/* translators: %s: date */ __('about %s (estimated)', 'buckmerce-plaid'), gmdate('Y-m-d', $windows[0])) : ''),
+            __('Unauthorized return window', 'buckmerce-plaid') => '' !== $meta(OrderMeta::UNAUTHORIZED_RETURN_WINDOW) ? $meta(OrderMeta::UNAUTHORIZED_RETURN_WINDOW) : (null !== $windows ? sprintf(/* translators: %s: date */ __('about %s (estimated)', 'buckmerce-plaid'), gmdate('Y-m-d', $windows[1])) : ''),
+            __('Returned', 'buckmerce-plaid') => $meta(OrderMeta::RETURNED_AT),
+            __('Return code', 'buckmerce-plaid') => $meta(OrderMeta::RETURN_CODE),
+            __('Failure code', 'buckmerce-plaid') => $meta(OrderMeta::FAILURE_CODE),
+            __('Failure / return reason', 'buckmerce-plaid') => $meta(OrderMeta::FAILURE_DESCRIPTION),
+            __('Manual review reason', 'buckmerce-plaid') => $meta(OrderMeta::MANUAL_REVIEW_REASON),
+            __('Last synchronized', 'buckmerce-plaid') => $meta(OrderMeta::LAST_SYNC_AT),
+            __('Last event ID', 'buckmerce-plaid') => $meta(OrderMeta::LAST_EVENT_ID),
+            __('Plaid request ID', 'buckmerce-plaid') => $meta(OrderMeta::REQUEST_ID),
+            __('Refunded through Plaid', 'buckmerce-plaid') => array() === $records ? '' : '$' . $eligibility->refunded . ($eligibility->allowed ? ' · ' . sprintf(/* translators: %s: amount */ __('$%s refundable', 'buckmerce-plaid'), $eligibility->remaining) : ''),
         );
-        echo '<div class="bmfp-order-panel" style="clear:both;padding-top:12px"><h3>' . esc_html__('Buckmerce for Plaid', 'buckmerce-for-plaid') . '</h3>';
+        echo '<div class="bmfp-order-panel" style="clear:both;padding-top:12px"><h3>' . esc_html__('Buckmerce for Plaid', 'buckmerce-plaid') . '</h3>';
         $notice_key = 'bmfp_sync_notice_' . get_current_user_id() . '_' . $order->get_id();
         $notice = get_transient($notice_key);
         if (is_array($notice) && isset($notice['type'], $notice['message'])) {
@@ -91,7 +91,7 @@ final class OrderMetaBox
         }
         $retry = ReturnRetryPolicy::for_order($order);
         if (PaymentState::RETURNED === $state) {
-            echo '<div class="notice notice-error inline"><p><strong>' . esc_html__('Bank payment returned: the customer\'s bank reversed this payment. The original payment details are kept below.', 'buckmerce-for-plaid') . '</strong></p>';
+            echo '<div class="notice notice-error inline"><p><strong>' . esc_html__('Bank payment returned: the customer\'s bank reversed this payment. The original payment details are kept below.', 'buckmerce-plaid') . '</strong></p>';
             if ($retry->is_blocked()) {
                 echo '<p class="bmfp-retry-policy">' . esc_html(ReturnRetryPolicy::merchant_explanation($retry)) . '</p>';
             }
@@ -116,13 +116,13 @@ final class OrderMetaBox
         if (array() === $records) {
             return;
         }
-        echo '<h4>' . esc_html__('Refunds', 'buckmerce-for-plaid') . '</h4><table class="widefat striped"><thead><tr>';
-        foreach (array(__('Amount', 'buckmerce-for-plaid'), __('Status', 'buckmerce-for-plaid'), __('Plaid refund ID', 'buckmerce-for-plaid'), __('WooCommerce refund', 'buckmerce-for-plaid'), __('Code', 'buckmerce-for-plaid'), __('Updated', 'buckmerce-for-plaid')) as $heading) {
+        echo '<h4>' . esc_html__('Refunds', 'buckmerce-plaid') . '</h4><table class="widefat striped"><thead><tr>';
+        foreach (array(__('Amount', 'buckmerce-plaid'), __('Status', 'buckmerce-plaid'), __('Plaid refund ID', 'buckmerce-plaid'), __('WooCommerce refund', 'buckmerce-plaid'), __('Code', 'buckmerce-plaid'), __('Updated', 'buckmerce-plaid')) as $heading) {
             echo '<th scope="col">' . esc_html($heading) . '</th>';
         }
         echo '</tr></thead><tbody>';
         foreach ($records as $record) {
-            $origin = 'external' === $record->origin ? ' (' . __('created outside WooCommerce', 'buckmerce-for-plaid') . ')' : '';
+            $origin = 'external' === $record->origin ? ' (' . __('created outside WooCommerce', 'buckmerce-plaid') . ')' : '';
             echo '<tr' . (RefundState::is_failure($record->status) || RefundState::UNCERTAIN === $record->status ? ' class="bmfp-refund--problem"' : '') . '>';
             echo '<td>$' . esc_html($record->amount) . '</td><td><strong>' . esc_html($record->status) . '</strong>' . esc_html($origin) . '</td>';
             echo '<td><code>' . esc_html($record->refund_id) . '</code></td><td>' . esc_html($record->wc_refund_id > 0 ? '#' . $record->wc_refund_id : '—') . '</td>';
@@ -137,8 +137,8 @@ final class OrderMetaBox
         if (array() === $attempts) {
             return;
         }
-        echo '<h4>' . esc_html__('Earlier payment attempts', 'buckmerce-for-plaid') . '</h4><table class="widefat striped"><thead><tr>';
-        foreach (array(__('Created', 'buckmerce-for-plaid'), __('Amount', 'buckmerce-for-plaid'), __('Final state', 'buckmerce-for-plaid'), __('Transfer ID', 'buckmerce-for-plaid'), __('Return / failure', 'buckmerce-for-plaid'), __('Retired', 'buckmerce-for-plaid')) as $heading) {
+        echo '<h4>' . esc_html__('Earlier payment attempts', 'buckmerce-plaid') . '</h4><table class="widefat striped"><thead><tr>';
+        foreach (array(__('Created', 'buckmerce-plaid'), __('Amount', 'buckmerce-plaid'), __('Final state', 'buckmerce-plaid'), __('Transfer ID', 'buckmerce-plaid'), __('Return / failure', 'buckmerce-plaid'), __('Retired', 'buckmerce-plaid')) as $heading) {
             echo '<th scope="col">' . esc_html($heading) . '</th>';
         }
         echo '</tr></thead><tbody>';
@@ -156,18 +156,18 @@ final class OrderMetaBox
     {
         $links = array();
         if ('' !== $meta(OrderMeta::TRANSFER_INTENT_ID)) {
-            $links[] = '<a class="button" href="' . esc_url(self::action_url(self::SYNC_ACTION, $order)) . '">' . esc_html__('Sync with Plaid', 'buckmerce-for-plaid') . '</a>';
+            $links[] = '<a class="button" href="' . esc_url(self::action_url(self::SYNC_ACTION, $order)) . '">' . esc_html__('Sync with Plaid', 'buckmerce-plaid') . '</a>';
         }
         if ('yes' === $meta(OrderMeta::TRANSFER_CANCELLABLE) && in_array($state, array(PaymentState::TRANSFER_CREATED, PaymentState::PENDING, PaymentState::MANUAL_REVIEW), true)) {
-            $confirm = __('Cancel this bank payment at Plaid? The customer will not be charged and the order will be cancelled.', 'buckmerce-for-plaid');
-            $links[] = '<a class="button" href="' . esc_url(self::action_url(self::CANCEL_ACTION, $order)) . '" onclick="return window.confirm(' . esc_attr((string) wp_json_encode($confirm)) . ');">' . esc_html__('Cancel bank payment', 'buckmerce-for-plaid') . '</a>';
+            $confirm = __('Cancel this bank payment at Plaid? The customer will not be charged and the order will be cancelled.', 'buckmerce-plaid');
+            $links[] = '<a class="button" href="' . esc_url(self::action_url(self::CANCEL_ACTION, $order)) . '" onclick="return window.confirm(' . esc_attr((string) wp_json_encode($confirm)) . ');">' . esc_html__('Cancel bank payment', 'buckmerce-plaid') . '</a>';
         }
         if (PaymentState::MANUAL_REVIEW === $state) {
-            foreach (array('fulfil' => __('Reviewed: fulfil manually', 'buckmerce-for-plaid'), 'refunded' => __('Reviewed: refunded', 'buckmerce-for-plaid'), 'contacted_customer' => __('Reviewed: customer contacted', 'buckmerce-for-plaid')) as $decision => $label) {
+            foreach (array('fulfil' => __('Reviewed: fulfil manually', 'buckmerce-plaid'), 'refunded' => __('Reviewed: refunded', 'buckmerce-plaid'), 'contacted_customer' => __('Reviewed: customer contacted', 'buckmerce-plaid')) as $decision => $label) {
                 $links[] = '<a class="button" href="' . esc_url(self::action_url(self::REVIEW_ACTION, $order, array('decision' => $decision))) . '">' . esc_html($label) . '</a>';
             }
             if ('' === $meta(OrderMeta::TRANSFER_ID) && ReturnRetryPolicy::for_order($order)->allows_new_debit()) {
-                $links[] = '<a class="button" href="' . esc_url(self::action_url(self::REVIEW_ACTION, $order, array('decision' => 'other', 'release' => '1'))) . '">' . esc_html__('Let the customer pay again', 'buckmerce-for-plaid') . '</a>';
+                $links[] = '<a class="button" href="' . esc_url(self::action_url(self::REVIEW_ACTION, $order, array('decision' => 'other', 'release' => '1'))) . '">' . esc_html__('Let the customer pay again', 'buckmerce-plaid') . '</a>';
             }
         }
         if (array() !== $links) {
@@ -192,12 +192,12 @@ final class OrderMetaBox
             if ($fresh instanceof \WC_Order) {
                 $container->monitor()->refresh($fresh);
             }
-            $notice = array('type' => 'success', 'message' => __('Synchronized with Plaid.', 'buckmerce-for-plaid'));
+            $notice = array('type' => 'success', 'message' => __('Synchronized with Plaid.', 'buckmerce-plaid'));
         } catch (PaymentAttemptBusyException $exception) {
-            $notice = array('type' => 'error', 'message' => __('The payment is being processed right now. Try again in a moment.', 'buckmerce-for-plaid'));
+            $notice = array('type' => 'error', 'message' => __('The payment is being processed right now. Try again in a moment.', 'buckmerce-plaid'));
         } catch (\Throwable $exception) {
             ( new Logger() )->log('warning', 'manual_sync_failed', array('order_id' => $order->get_id(), 'error_code' => Logger::fingerprint($exception->getMessage())));
-            $notice = array('type' => 'error', 'message' => __('Plaid could not be reached or returned an error. See the Buckmerce logs.', 'buckmerce-for-plaid'));
+            $notice = array('type' => 'error', 'message' => __('Plaid could not be reached or returned an error. See the Buckmerce logs.', 'buckmerce-plaid'));
         }
         $this->finish($order, $notice);
     }
@@ -208,13 +208,13 @@ final class OrderMetaBox
         try {
             $result = ( new Container() )->manual_actions()->cancel_transfer($order, get_current_user_id());
             $notice = 'cancelled' === $result
-                ? array('type' => 'success', 'message' => __('The bank payment was cancelled at Plaid.', 'buckmerce-for-plaid'))
-                : array('type' => 'error', 'message' => __('Plaid no longer allows cancelling this bank payment (it was already sent to the bank). Refund it after it settles instead.', 'buckmerce-for-plaid'));
+                ? array('type' => 'success', 'message' => __('The bank payment was cancelled at Plaid.', 'buckmerce-plaid'))
+                : array('type' => 'error', 'message' => __('Plaid no longer allows cancelling this bank payment (it was already sent to the bank). Refund it after it settles instead.', 'buckmerce-plaid'));
         } catch (PaymentAttemptBusyException $exception) {
-            $notice = array('type' => 'error', 'message' => __('The payment is being processed right now. Try again in a moment.', 'buckmerce-for-plaid'));
+            $notice = array('type' => 'error', 'message' => __('The payment is being processed right now. Try again in a moment.', 'buckmerce-plaid'));
         } catch (\Throwable $exception) {
             ( new Logger() )->log('warning', 'manual_cancel_failed', array('order_id' => $order->get_id(), 'error_code' => Logger::fingerprint($exception->getMessage())));
-            $notice = array('type' => 'error', 'message' => __('The cancellation could not be confirmed with Plaid. Nothing was changed; use Sync with Plaid to check the payment.', 'buckmerce-for-plaid'));
+            $notice = array('type' => 'error', 'message' => __('The cancellation could not be confirmed with Plaid. Nothing was changed; use Sync with Plaid to check the payment.', 'buckmerce-plaid'));
         }
         $this->finish($order, $notice);
     }
@@ -225,18 +225,18 @@ final class OrderMetaBox
         $decision = isset($_GET['decision']) ? sanitize_key(wp_unslash($_GET['decision'])) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Verified in authorize().
         $release = isset($_GET['release']) && '1' === $_GET['release']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Verified in authorize().
         if (! in_array($decision, ManualActions::DECISIONS, true)) {
-            wp_die(esc_html__('Unknown decision.', 'buckmerce-for-plaid'), '', array('response' => 400));
+            wp_die(esc_html__('Unknown decision.', 'buckmerce-plaid'), '', array('response' => 400));
         }
         try {
             $result = ( new Container() )->manual_actions()->resolve_review($order, $decision, $release, get_current_user_id());
             $notice = match ($result) {
-                'released' => array('type' => 'success', 'message' => __('Review recorded. The customer can pay for this order again.', 'buckmerce-for-plaid')),
-                'recorded' => array('type' => 'success', 'message' => __('Review decision recorded.', 'buckmerce-for-plaid')),
-                default => array('type' => 'error', 'message' => __('This payment cannot be released: Plaid shows it may still be authorized or it already created a transfer.', 'buckmerce-for-plaid')),
+                'released' => array('type' => 'success', 'message' => __('Review recorded. The customer can pay for this order again.', 'buckmerce-plaid')),
+                'recorded' => array('type' => 'success', 'message' => __('Review decision recorded.', 'buckmerce-plaid')),
+                default => array('type' => 'error', 'message' => __('This payment cannot be released: Plaid shows it may still be authorized or it already created a transfer.', 'buckmerce-plaid')),
             };
         } catch (\Throwable $exception) {
             ( new Logger() )->log('warning', 'manual_review_action_failed', array('order_id' => $order->get_id(), 'error_code' => Logger::fingerprint($exception->getMessage())));
-            $notice = array('type' => 'error', 'message' => __('The review could not be recorded. See the Buckmerce logs.', 'buckmerce-for-plaid'));
+            $notice = array('type' => 'error', 'message' => __('The review could not be recorded. See the Buckmerce logs.', 'buckmerce-plaid'));
         }
         $this->finish($order, $notice);
     }
@@ -244,13 +244,13 @@ final class OrderMetaBox
     private function authorize(string $action): \WC_Order
     {
         if (! current_user_can('manage_woocommerce')) {
-            wp_die(esc_html__('You are not allowed to manage payments.', 'buckmerce-for-plaid'), '', array('response' => 403));
+            wp_die(esc_html__('You are not allowed to manage payments.', 'buckmerce-plaid'), '', array('response' => 403));
         }
         $order_id = isset($_GET['order_id']) ? absint(wp_unslash($_GET['order_id'])) : 0;
         check_admin_referer($action . '_' . $order_id);
         $order = wc_get_order($order_id);
         if (! $order instanceof \WC_Order || Settings::GATEWAY_ID !== $order->get_payment_method()) {
-            wp_die(esc_html__('The order is not a Buckmerce order.', 'buckmerce-for-plaid'), '', array('response' => 404));
+            wp_die(esc_html__('The order is not a Buckmerce order.', 'buckmerce-plaid'), '', array('response' => 404));
         }
         return $order;
     }

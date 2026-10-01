@@ -7,12 +7,12 @@ declare(strict_types=1);
 require __DIR__ . '/helpers.php';
 
 global $wpdb;
-$uninstall = WP_PLUGIN_DIR . '/buckmerce-for-plaid/uninstall.php';
+$uninstall = WP_PLUGIN_DIR . '/buckmerce-plaid/uninstall.php';
 bmfp_assert(is_file($uninstall), 'The installed ZIP must contain uninstall.php.');
 
 // Deactivation removed only Buckmerce scheduled actions.
 foreach (array('buckmerce_plaid_transfer_event_sync', 'buckmerce_plaid_reconcile', 'buckmerce_plaid_reconcile_continue') as $hook) {
-    bmfp_assert(! as_has_scheduled_action($hook, array(), 'buckmerce-for-plaid'), 'Deactivation must unschedule ' . $hook);
+    bmfp_assert(! as_has_scheduled_action($hook, array(), 'buckmerce-plaid'), 'Deactivation must unschedule ' . $hook);
 }
 
 // Decoys owned by other plugins must survive every uninstall mode.
@@ -27,7 +27,7 @@ $order->save();
 
 $run_uninstall = static function () use ($uninstall): void {
     if (! defined('WP_UNINSTALL_PLUGIN')) {
-        define('WP_UNINSTALL_PLUGIN', 'buckmerce-for-plaid/buckmerce-for-plaid.php');
+        define('WP_UNINSTALL_PLUGIN', 'buckmerce-plaid/buckmerce-plaid.php');
     }
     include $uninstall;
 };

@@ -56,8 +56,8 @@ $order = bmfp_order('11.11');
 bmfp_assert_same('success', bmfp_gateway()->process_payment($order->get_id())['result'], 'A payment attempt exists for the order commands.');
 $succeeds('sync-order ' . $order->get_id(), 'Success: Order ' . $order->get_id() . ': payment state ');
 $succeeds('refunds ' . $order->get_id(), 'Refunded: $');
-$succeeds('fire-sandbox-webhook --webhook-url=https://' . $public_host . '/wp-json/buckmerce-for-plaid/v1/webhook', 'Success: Plaid accepted the request (request_id ');
-bmfp_assert_same('https://' . $public_host . '/wp-json/buckmerce-for-plaid/v1/webhook', $mock::calls('/sandbox/transfer/fire_webhook')[0]['body']['webhook'] ?? null, 'The webhook URL reaches Plaid unchanged.');
+$succeeds('fire-sandbox-webhook --webhook-url=https://' . $public_host . '/wp-json/buckmerce-plaid/v1/webhook', 'Success: Plaid accepted the request (request_id ');
+bmfp_assert_same('https://' . $public_host . '/wp-json/buckmerce-plaid/v1/webhook', $mock::calls('/sandbox/transfer/fire_webhook')[0]['body']['webhook'] ?? null, 'The webhook URL reaches Plaid unchanged.');
 // "--url" is a global WP-CLI parameter: it never reaches the command, which then uses this site's own (HTTP) endpoint.
 $fails('fire-sandbox-webhook --url=https://' . $public_host . '/webhook', 'must be a public HTTPS URL');
 

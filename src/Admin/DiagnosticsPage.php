@@ -42,16 +42,16 @@ final class DiagnosticsPage
 
     public function menu(): void
     {
-        add_submenu_page('woocommerce', __('Buckmerce diagnostics', 'buckmerce-for-plaid'), __('Buckmerce diagnostics', 'buckmerce-for-plaid'), 'manage_woocommerce', self::PAGE_SLUG, array($this, 'render'));
+        add_submenu_page('woocommerce', __('Buckmerce diagnostics', 'buckmerce-plaid'), __('Buckmerce diagnostics', 'buckmerce-plaid'), 'manage_woocommerce', self::PAGE_SLUG, array($this, 'render'));
     }
 
     /** @return array<string, string> */
     public static function report(): array
     {
         $settings = Settings::load();
-        $yes = __('Yes', 'buckmerce-for-plaid');
-        $no = __('No', 'buckmerce-for-plaid');
-        $never = __('Never', 'buckmerce-for-plaid');
+        $yes = __('Yes', 'buckmerce-plaid');
+        $no = __('No', 'buckmerce-plaid');
+        $never = __('Never', 'buckmerce-plaid');
         $connection = get_option(ConnectionTester::LAST_RESULT_OPTION, array());
         $reconcile_error = get_option(ReconciliationService::LAST_ERROR_OPTION, array());
         $scope = $settings->account_scope();
@@ -65,45 +65,45 @@ final class DiagnosticsPage
         $status = ConfigurationStatus::evaluate($settings);
         $environment = $settings->environment_name();
         $report = array(
-            __('Status', 'buckmerce-for-plaid') => $status['label'],
-            __('Plugin version', 'buckmerce-for-plaid') => BUCKMERCE_PLAID_VERSION,
-            __('PHP', 'buckmerce-for-plaid') => PHP_VERSION,
-            __('WordPress', 'buckmerce-for-plaid') => (string) get_bloginfo('version'),
-            __('WooCommerce', 'buckmerce-for-plaid') => defined('WC_VERSION') ? (string) WC_VERSION : __('Not active', 'buckmerce-for-plaid'),
-            __('Database server', 'buckmerce-for-plaid') => self::database_version(),
-            __('HPOS (custom order tables)', 'buckmerce-for-plaid') => class_exists(OrderUtil::class) && OrderUtil::custom_orders_table_usage_is_enabled() ? $yes : $no,
-            __('Checkout Blocks available', 'buckmerce-for-plaid') => class_exists('Automattic\\WooCommerce\\Blocks\\Payments\\Integrations\\AbstractPaymentMethodType') ? $yes : $no,
-            __('HTTPS', 'buckmerce-for-plaid') => GatewayAvailability::site_uses_https() ? $yes : $no,
-            __('REST API route registered', 'buckmerce-for-plaid') => isset(rest_get_server()->get_routes()['/' . RestRoutes::NAMESPACE . '/webhook']) ? $yes : $no,
-            __('Action Scheduler', 'buckmerce-for-plaid') => function_exists('as_schedule_single_action') ? $yes : $no,
-            __('WP-Cron disabled (DISABLE_WP_CRON)', 'buckmerce-for-plaid') => defined('DISABLE_WP_CRON') && DISABLE_WP_CRON ? $yes : $no,
-            __('Background maintenance active', 'buckmerce-for-plaid') => Scheduler::maintenance_active($settings) ? $yes : $no,
-            __('Reconciliation scheduled', 'buckmerce-for-plaid') => function_exists('as_has_scheduled_action') && as_has_scheduled_action(Scheduler::RECONCILE_HOOK, array(), Scheduler::GROUP) ? $yes : $no,
-            __('Overdue Buckmerce jobs (>30 min)', 'buckmerce-for-plaid') => (string) ConfigurationStatus::stalled_actions(),
-            __('Failed Buckmerce jobs (7 days)', 'buckmerce-for-plaid') => (string) ConfigurationStatus::failed_actions(),
-            __('Database schema', 'buckmerce-for-plaid') => $schema_ok ? sprintf(/* translators: %s: schema version */ __('Valid (version %s)', 'buckmerce-for-plaid'), (string) get_option(Installer::OPTION, '')) : __('INVALID', 'buckmerce-for-plaid'),
-            __('Gateway enabled (new payments)', 'buckmerce-for-plaid') => $settings->enabled() ? $yes : $no,
-            __('Plaid environment', 'buckmerce-for-plaid') => $environment,
-            __('Client ID configured', 'buckmerce-for-plaid') => '' !== $settings->client_id() ? $yes : $no,
-            __('Secret configured', 'buckmerce-for-plaid') => '' !== $settings->secret() ? $yes : $no,
-            __('Plaid account fingerprint', 'buckmerce-for-plaid') => '' === $settings->account_fingerprint() ? '-' : $settings->account_fingerprint(),
-            __('Funding Account configured', 'buckmerce-for-plaid') => '' !== $settings->funding_account_id() ? $yes : __('No (Plaid Ledger)', 'buckmerce-for-plaid'),
-            __('Link customization configured', 'buckmerce-for-plaid') => '' !== $settings->link_customization_name() ? __('PASS', 'buckmerce-for-plaid') : __('FAIL (required by Transfer UI in Sandbox and Production)', 'buckmerce-for-plaid'),
-            __('Last Link session error', 'buckmerce-for-plaid') => is_array($link_error) && isset($link_error['at']) ? sprintf('%s %s', (string) $link_error['at'], (string) ($link_error['code'] ?? '')) : $never,
-            __('Bank statement description', 'buckmerce-for-plaid') => $settings->statement_descriptor(),
-            __('ACH class', 'buckmerce-for-plaid') => strtoupper($settings->ach_class()),
-            __('Plaid connectivity (last test)', 'buckmerce-for-plaid') => is_array($connection) && array() !== $connection ? ConnectionTester::message($connection) . ' ' . (string) ($connection['at'] ?? '') : __('Not tested', 'buckmerce-for-plaid'),
-            __('Webhook URL', 'buckmerce-for-plaid') => rest_url(RestRoutes::NAMESPACE . '/webhook'),
-            __('Last verified webhook', 'buckmerce-for-plaid') => is_array($webhook) && isset($webhook['at']) ? sprintf('%s %s (%s)', (string) $webhook['at'], (string) ($webhook['code'] ?? ''), (string) ($webhook['outcome'] ?? '')) : $never,
-            __('Last rejected webhook', 'buckmerce-for-plaid') => is_array($rejection) && isset($rejection['at']) ? sprintf('%s %s (HTTP %d)', (string) $rejection['at'], (string) ($rejection['reason'] ?? ''), (int) ($rejection['status'] ?? 0)) : $never,
-            __('Event stream (environment/account)', 'buckmerce-for-plaid') => $scope->is_valid() ? $scope->environment . ' / ' . $scope->account_fp : '-',
-            __('Event stream cursor (last stored event ID)', 'buckmerce-for-plaid') => $scope->is_valid() ? ( new EventCursor() )->get($scope) : '-',
-            __('First payment with this account (epoch)', 'buckmerce-for-plaid') => null === $epoch ? $never : gmdate('c', $epoch),
-            __('Last successful event sync', 'buckmerce-for-plaid') => '' === $sync['last_sync'] ? $never : $sync['last_sync'],
-            __('Last event sync error', 'buckmerce-for-plaid') => isset($sync_error['at']) ? sprintf('%s %s (%s)', $sync_error['at'], $sync_error['code'] ?? '', $sync_error['category'] ?? '') : $never,
-            __('Consecutive event sync failures', 'buckmerce-for-plaid') => (string) $sync['failures'],
-            __('Last reconciliation', 'buckmerce-for-plaid') => (string) get_option(ReconciliationService::LAST_RUN_OPTION, $never),
-            __('Last reconciliation error', 'buckmerce-for-plaid') => is_array($reconcile_error) && isset($reconcile_error['at']) ? sprintf('%s (%s)', (string) $reconcile_error['at'], (string) ($reconcile_error['category'] ?? '')) : $never,
+            __('Status', 'buckmerce-plaid') => $status['label'],
+            __('Plugin version', 'buckmerce-plaid') => BUCKMERCE_PLAID_VERSION,
+            __('PHP', 'buckmerce-plaid') => PHP_VERSION,
+            __('WordPress', 'buckmerce-plaid') => (string) get_bloginfo('version'),
+            __('WooCommerce', 'buckmerce-plaid') => defined('WC_VERSION') ? (string) WC_VERSION : __('Not active', 'buckmerce-plaid'),
+            __('Database server', 'buckmerce-plaid') => self::database_version(),
+            __('HPOS (custom order tables)', 'buckmerce-plaid') => class_exists(OrderUtil::class) && OrderUtil::custom_orders_table_usage_is_enabled() ? $yes : $no,
+            __('Checkout Blocks available', 'buckmerce-plaid') => class_exists('Automattic\\WooCommerce\\Blocks\\Payments\\Integrations\\AbstractPaymentMethodType') ? $yes : $no,
+            __('HTTPS', 'buckmerce-plaid') => GatewayAvailability::site_uses_https() ? $yes : $no,
+            __('REST API route registered', 'buckmerce-plaid') => isset(rest_get_server()->get_routes()['/' . RestRoutes::NAMESPACE . '/webhook']) ? $yes : $no,
+            __('Action Scheduler', 'buckmerce-plaid') => function_exists('as_schedule_single_action') ? $yes : $no,
+            __('WP-Cron disabled (DISABLE_WP_CRON)', 'buckmerce-plaid') => defined('DISABLE_WP_CRON') && DISABLE_WP_CRON ? $yes : $no,
+            __('Background maintenance active', 'buckmerce-plaid') => Scheduler::maintenance_active($settings) ? $yes : $no,
+            __('Reconciliation scheduled', 'buckmerce-plaid') => function_exists('as_has_scheduled_action') && as_has_scheduled_action(Scheduler::RECONCILE_HOOK, array(), Scheduler::GROUP) ? $yes : $no,
+            __('Overdue Buckmerce jobs (>30 min)', 'buckmerce-plaid') => (string) ConfigurationStatus::stalled_actions(),
+            __('Failed Buckmerce jobs (7 days)', 'buckmerce-plaid') => (string) ConfigurationStatus::failed_actions(),
+            __('Database schema', 'buckmerce-plaid') => $schema_ok ? sprintf(/* translators: %s: schema version */ __('Valid (version %s)', 'buckmerce-plaid'), (string) get_option(Installer::OPTION, '')) : __('INVALID', 'buckmerce-plaid'),
+            __('Gateway enabled (new payments)', 'buckmerce-plaid') => $settings->enabled() ? $yes : $no,
+            __('Plaid environment', 'buckmerce-plaid') => $environment,
+            __('Client ID configured', 'buckmerce-plaid') => '' !== $settings->client_id() ? $yes : $no,
+            __('Secret configured', 'buckmerce-plaid') => '' !== $settings->secret() ? $yes : $no,
+            __('Plaid account fingerprint', 'buckmerce-plaid') => '' === $settings->account_fingerprint() ? '-' : $settings->account_fingerprint(),
+            __('Funding Account configured', 'buckmerce-plaid') => '' !== $settings->funding_account_id() ? $yes : __('No (Plaid Ledger)', 'buckmerce-plaid'),
+            __('Link customization configured', 'buckmerce-plaid') => '' !== $settings->link_customization_name() ? __('PASS', 'buckmerce-plaid') : __('FAIL (required by Transfer UI in Sandbox and Production)', 'buckmerce-plaid'),
+            __('Last Link session error', 'buckmerce-plaid') => is_array($link_error) && isset($link_error['at']) ? sprintf('%s %s', (string) $link_error['at'], (string) ($link_error['code'] ?? '')) : $never,
+            __('Bank statement description', 'buckmerce-plaid') => $settings->statement_descriptor(),
+            __('ACH class', 'buckmerce-plaid') => strtoupper($settings->ach_class()),
+            __('Plaid connectivity (last test)', 'buckmerce-plaid') => is_array($connection) && array() !== $connection ? ConnectionTester::message($connection) . ' ' . (string) ($connection['at'] ?? '') : __('Not tested', 'buckmerce-plaid'),
+            __('Webhook URL', 'buckmerce-plaid') => rest_url(RestRoutes::NAMESPACE . '/webhook'),
+            __('Last verified webhook', 'buckmerce-plaid') => is_array($webhook) && isset($webhook['at']) ? sprintf('%s %s (%s)', (string) $webhook['at'], (string) ($webhook['code'] ?? ''), (string) ($webhook['outcome'] ?? '')) : $never,
+            __('Last rejected webhook', 'buckmerce-plaid') => is_array($rejection) && isset($rejection['at']) ? sprintf('%s %s (HTTP %d)', (string) $rejection['at'], (string) ($rejection['reason'] ?? ''), (int) ($rejection['status'] ?? 0)) : $never,
+            __('Event stream (environment/account)', 'buckmerce-plaid') => $scope->is_valid() ? $scope->environment . ' / ' . $scope->account_fp : '-',
+            __('Event stream cursor (last stored event ID)', 'buckmerce-plaid') => $scope->is_valid() ? ( new EventCursor() )->get($scope) : '-',
+            __('First payment with this account (epoch)', 'buckmerce-plaid') => null === $epoch ? $never : gmdate('c', $epoch),
+            __('Last successful event sync', 'buckmerce-plaid') => '' === $sync['last_sync'] ? $never : $sync['last_sync'],
+            __('Last event sync error', 'buckmerce-plaid') => isset($sync_error['at']) ? sprintf('%s %s (%s)', $sync_error['at'], $sync_error['code'] ?? '', $sync_error['category'] ?? '') : $never,
+            __('Consecutive event sync failures', 'buckmerce-plaid') => (string) $sync['failures'],
+            __('Last reconciliation', 'buckmerce-plaid') => (string) get_option(ReconciliationService::LAST_RUN_OPTION, $never),
+            __('Last reconciliation error', 'buckmerce-plaid') => is_array($reconcile_error) && isset($reconcile_error['at']) ? sprintf('%s (%s)', (string) $reconcile_error['at'], (string) ($reconcile_error['category'] ?? '')) : $never,
         );
         if (! $schema_ok) {
             return $report;
@@ -116,21 +116,21 @@ final class DiagnosticsPage
         $monitored = $locks->monitored($environment, $settings->account_fingerprint());
         $sum = static fn (array $counts, array $keys): int => array_sum(array_intersect_key($counts, array_flip($keys)));
         return $report + array(
-            __('Monitored bank payments', 'buckmerce-for-plaid') => (string) $monitored['count'],
-            __('Oldest monitored payment (attempt created)', 'buckmerce-for-plaid') => '' === $monitored['oldest'] ? '-' : $monitored['oldest'] . ' UTC',
-            __('Payments in flight (pending/posted)', 'buckmerce-for-plaid') => (string) $sum($states, array('transfer_created', 'pending', 'posted')),
-            __('Payments awaiting authorization', 'buckmerce-for-plaid') => (string) $sum($states, array('intent_created', 'intent_pending')),
-            __('Payments in manual review', 'buckmerce-for-plaid') => (string) ($states['manual_review'] ?? 0),
-            __('Returned payments', 'buckmerce-for-plaid') => (string) ($states['returned'] ?? 0),
-            __('Intent creations with unknown outcome', 'buckmerce-for-plaid') => (string) $locks->count_by_lock_status(PaymentLockStatus::UNCERTAIN),
-            __('Payments of another Plaid account', 'buckmerce-for-plaid') => (string) $locks->count_other_account($environment, $settings->account_fingerprint()),
-            __('Refunds pending (in flight/unconfirmed)', 'buckmerce-for-plaid') => (string) $sum($refund_counts, array('creating', 'uncertain', 'pending', 'posted')),
-            __('Refunds settled', 'buckmerce-for-plaid') => (string) ($refund_counts['settled'] ?? 0),
-            __('Refunds failed or returned', 'buckmerce-for-plaid') => (string) $sum($refund_counts, array('failed', 'returned')),
-            __('Event backlog (waiting to be processed)', 'buckmerce-for-plaid') => (string) $sum($event_counts, array(TransferEventStore::RECEIVED, TransferEventStore::RETRY, TransferEventStore::PROCESSING)),
-            __('Events waiting for an order match', 'buckmerce-for-plaid') => (string) ($event_counts[TransferEventStore::UNMATCHED] ?? 0),
-            __('Events abandoned after retries', 'buckmerce-for-plaid') => (string) ($event_counts[TransferEventStore::ABANDONED] ?? 0),
-            __('Events of previous accounts or schema 2 (audit only)', 'buckmerce-for-plaid') => (string) $events->count_outside($scope),
+            __('Monitored bank payments', 'buckmerce-plaid') => (string) $monitored['count'],
+            __('Oldest monitored payment (attempt created)', 'buckmerce-plaid') => '' === $monitored['oldest'] ? '-' : $monitored['oldest'] . ' UTC',
+            __('Payments in flight (pending/posted)', 'buckmerce-plaid') => (string) $sum($states, array('transfer_created', 'pending', 'posted')),
+            __('Payments awaiting authorization', 'buckmerce-plaid') => (string) $sum($states, array('intent_created', 'intent_pending')),
+            __('Payments in manual review', 'buckmerce-plaid') => (string) ($states['manual_review'] ?? 0),
+            __('Returned payments', 'buckmerce-plaid') => (string) ($states['returned'] ?? 0),
+            __('Intent creations with unknown outcome', 'buckmerce-plaid') => (string) $locks->count_by_lock_status(PaymentLockStatus::UNCERTAIN),
+            __('Payments of another Plaid account', 'buckmerce-plaid') => (string) $locks->count_other_account($environment, $settings->account_fingerprint()),
+            __('Refunds pending (in flight/unconfirmed)', 'buckmerce-plaid') => (string) $sum($refund_counts, array('creating', 'uncertain', 'pending', 'posted')),
+            __('Refunds settled', 'buckmerce-plaid') => (string) ($refund_counts['settled'] ?? 0),
+            __('Refunds failed or returned', 'buckmerce-plaid') => (string) $sum($refund_counts, array('failed', 'returned')),
+            __('Event backlog (waiting to be processed)', 'buckmerce-plaid') => (string) $sum($event_counts, array(TransferEventStore::RECEIVED, TransferEventStore::RETRY, TransferEventStore::PROCESSING)),
+            __('Events waiting for an order match', 'buckmerce-plaid') => (string) ($event_counts[TransferEventStore::UNMATCHED] ?? 0),
+            __('Events abandoned after retries', 'buckmerce-plaid') => (string) ($event_counts[TransferEventStore::ABANDONED] ?? 0),
+            __('Events of previous accounts or schema 2 (audit only)', 'buckmerce-plaid') => (string) $events->count_outside($scope),
         );
     }
 
@@ -151,11 +151,11 @@ final class DiagnosticsPage
         $report = self::report();
         $test_url = wp_nonce_url(admin_url('admin-post.php?action=' . ConnectionTester::ACTION), ConnectionTester::ACTION);
         $result = get_transient(ConnectionTester::TRANSIENT_PREFIX . get_current_user_id());
-        echo '<div class="wrap"><h1>' . esc_html__('Buckmerce for Plaid — diagnostics', 'buckmerce-for-plaid') . ' <span class="bmfp-badge bmfp-badge--' . esc_attr($settings->is_production() ? 'production' : 'sandbox') . '">' . esc_html($settings->is_production() ? __('Production', 'buckmerce-for-plaid') : __('Sandbox', 'buckmerce-for-plaid')) . '</span></h1>';
+        echo '<div class="wrap"><h1>' . esc_html__('Buckmerce for Plaid — diagnostics', 'buckmerce-plaid') . ' <span class="bmfp-badge bmfp-badge--' . esc_attr($settings->is_production() ? 'production' : 'sandbox') . '">' . esc_html($settings->is_production() ? __('Production', 'buckmerce-plaid') : __('Sandbox', 'buckmerce-plaid')) . '</span></h1>';
         if (is_array($result)) {
             echo '<div class="notice ' . esc_attr('connected' === ($result['status'] ?? '') ? 'notice-success' : 'notice-error') . '"><p>' . esc_html(ConnectionTester::message($result)) . '</p></div>';
         }
-        echo '<h2>' . esc_html(sprintf(/* translators: %s: status label */ __('Status: %s', 'buckmerce-for-plaid'), $status['label'])) . '</h2><ul class="bmfp-checklist">';
+        echo '<h2>' . esc_html(sprintf(/* translators: %s: status label */ __('Status: %s', 'buckmerce-plaid'), $status['label'])) . '</h2><ul class="bmfp-checklist">';
         foreach ($status['checks'] as $check) {
             echo '<li class="bmfp-check bmfp-check--' . esc_attr($check['result']) . '"><strong>' . esc_html(ConfigurationStatus::result_label($check['result'])) . '</strong> ' . esc_html($check['label']) . ('' !== $check['help'] ? ' — ' . esc_html($check['help']) : '') . '</li>';
         }
@@ -164,12 +164,12 @@ final class DiagnosticsPage
             echo '<tr><th scope="row">' . esc_html($label) . '</th><td>' . esc_html($value) . '</td></tr>';
         }
         echo '</tbody></table>';
-        echo '<p><a class="button button-primary" href="' . esc_url($test_url) . '">' . esc_html__('Test Plaid connection', 'buckmerce-for-plaid') . '</a></p>';
-        echo '<h2>' . esc_html__('Support report', 'buckmerce-for-plaid') . '</h2><p id="bmfp-support-help">' . esc_html__('Safe to share: contains no credentials or customer data.', 'buckmerce-for-plaid') . '</p>';
+        echo '<p><a class="button button-primary" href="' . esc_url($test_url) . '">' . esc_html__('Test Plaid connection', 'buckmerce-plaid') . '</a></p>';
+        echo '<h2>' . esc_html__('Support report', 'buckmerce-plaid') . '</h2><p id="bmfp-support-help">' . esc_html__('Safe to share: contains no credentials or customer data.', 'buckmerce-plaid') . '</p>';
         $lines = array();
         foreach ($report as $label => $value) {
             $lines[] = $label . ': ' . $value;
         }
-        echo '<label class="screen-reader-text" for="bmfp-support-report">' . esc_html__('Support report', 'buckmerce-for-plaid') . '</label><textarea id="bmfp-support-report" aria-describedby="bmfp-support-help" readonly class="large-text code" rows="16">' . esc_textarea(implode("\n", $lines)) . '</textarea></div>';
+        echo '<label class="screen-reader-text" for="bmfp-support-report">' . esc_html__('Support report', 'buckmerce-plaid') . '</label><textarea id="bmfp-support-report" aria-describedby="bmfp-support-help" readonly class="large-text code" rows="16">' . esc_textarea(implode("\n", $lines)) . '</textarea></div>';
     }
 }

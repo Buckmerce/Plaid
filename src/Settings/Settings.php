@@ -55,13 +55,13 @@ final class Settings
     public function title(): string
     {
         $title = $this->string('title');
-        return '' !== $title ? $title : __('Pay by Bank', 'buckmerce-for-plaid');
+        return '' !== $title ? $title : __('Pay by Bank', 'buckmerce-plaid');
     }
 
     public function description(): string
     {
         $description = $this->string('description');
-        return '' !== $description ? $description : __('Securely pay directly from your bank account.', 'buckmerce-for-plaid');
+        return '' !== $description ? $description : __('Securely pay directly from your bank account.', 'buckmerce-plaid');
     }
 
     public function environment_name(): string

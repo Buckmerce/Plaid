@@ -39,7 +39,7 @@ final class ConnectionTester
     public function handle(): void
     {
         if (! current_user_can('manage_woocommerce')) {
-            wp_die(esc_html__('You are not allowed to run this check.', 'buckmerce-for-plaid'), '', array('response' => 403));
+            wp_die(esc_html__('You are not allowed to run this check.', 'buckmerce-plaid'), '', array('response' => 403));
         }
         check_admin_referer(self::ACTION);
         $result = $this->test(Settings::load());
@@ -109,28 +109,28 @@ final class ConnectionTester
         $code = '' === $code ? 'UNKNOWN' : $code;
         $message = match ($status) {
             self::CONNECTED => 'enabled' === ($result['ledger'] ?? '')
-                ? __('Connected to Plaid Transfer. Plaid Ledger is enabled (leave Funding Account ID empty).', 'buckmerce-for-plaid')
-                : __('Connected to Plaid Transfer.', 'buckmerce-for-plaid'),
-            self::NOT_CONFIGURED => __('Configuration incomplete: enter the Client ID and Secret, save, then test again.', 'buckmerce-for-plaid'),
+                ? __('Connected to Plaid Transfer. Plaid Ledger is enabled (leave Funding Account ID empty).', 'buckmerce-plaid')
+                : __('Connected to Plaid Transfer.', 'buckmerce-plaid'),
+            self::NOT_CONFIGURED => __('Configuration incomplete: enter the Client ID and Secret, save, then test again.', 'buckmerce-plaid'),
             /* translators: %s: Plaid error code such as INVALID_API_KEYS */
-            self::INVALID_CREDENTIALS => sprintf(__('Invalid Plaid credentials (%s): check the Client ID and that the Secret belongs to the selected environment.', 'buckmerce-for-plaid'), $code),
+            self::INVALID_CREDENTIALS => sprintf(__('Invalid Plaid credentials (%s): check the Client ID and that the Secret belongs to the selected environment.', 'buckmerce-plaid'), $code),
             /* translators: %s: Plaid error code */
-            self::PRODUCT_NOT_ENABLED => sprintf(__('Plaid Transfer is not enabled for this Plaid account/environment (%s). Request Transfer access in the Plaid Dashboard.', 'buckmerce-for-plaid'), $code),
+            self::PRODUCT_NOT_ENABLED => sprintf(__('Plaid Transfer is not enabled for this Plaid account/environment (%s). Request Transfer access in the Plaid Dashboard.', 'buckmerce-plaid'), $code),
             /* translators: %s: Plaid error code */
-            self::PERMISSION_DENIED => sprintf(__('Plaid denied access to Transfer (%s). Your team may not be approved for this environment yet.', 'buckmerce-for-plaid'), $code),
-            self::RATE_LIMITED => __('Plaid rate-limited the check. Wait a minute and test again.', 'buckmerce-for-plaid'),
-            self::PLAID_UNAVAILABLE => __('Plaid is temporarily unavailable or returned an unexpected response. Try again later; see status.plaid.com.', 'buckmerce-for-plaid'),
-            self::NETWORK_ERROR => __('Plaid could not be reached from this server (network error). Check outbound HTTPS connectivity and firewall rules.', 'buckmerce-for-plaid'),
+            self::PERMISSION_DENIED => sprintf(__('Plaid denied access to Transfer (%s). Your team may not be approved for this environment yet.', 'buckmerce-plaid'), $code),
+            self::RATE_LIMITED => __('Plaid rate-limited the check. Wait a minute and test again.', 'buckmerce-plaid'),
+            self::PLAID_UNAVAILABLE => __('Plaid is temporarily unavailable or returned an unexpected response. Try again later; see status.plaid.com.', 'buckmerce-plaid'),
+            self::NETWORK_ERROR => __('Plaid could not be reached from this server (network error). Check outbound HTTPS connectivity and firewall rules.', 'buckmerce-plaid'),
             /* translators: %s: Plaid error code */
-            self::REJECTED => sprintf(__('Plaid rejected the request (%s). Check the credentials, the environment and that Transfer is enabled for your account.', 'buckmerce-for-plaid'), $code),
-            default => __('No connection test has been run.', 'buckmerce-for-plaid'),
+            self::REJECTED => sprintf(__('Plaid rejected the request (%s). Check the credentials, the environment and that Transfer is enabled for your account.', 'buckmerce-plaid'), $code),
+            default => __('No connection test has been run.', 'buckmerce-plaid'),
         };
         $issues = is_array($result['issues'] ?? null) ? $result['issues'] : array();
         foreach ($issues as $issue) {
             $message .= ' ' . match ((string) $issue) {
-                'missing_link_customization' => __('Link customization missing: Plaid Transfer UI requires one with Account Select “Enabled for one account” in this environment.', 'buckmerce-for-plaid'),
-                'funding_account_conflict' => __('Plaid Ledger is enabled, so remove the Funding Account ID (Plaid rejects it).', 'buckmerce-for-plaid'),
-                'funding_account_required' => __('No Plaid Ledger was found: enter your Funding Account ID from the Plaid Dashboard.', 'buckmerce-for-plaid'),
+                'missing_link_customization' => __('Link customization missing: Plaid Transfer UI requires one with Account Select “Enabled for one account” in this environment.', 'buckmerce-plaid'),
+                'funding_account_conflict' => __('Plaid Ledger is enabled, so remove the Funding Account ID (Plaid rejects it).', 'buckmerce-plaid'),
+                'funding_account_required' => __('No Plaid Ledger was found: enter your Funding Account ID from the Plaid Dashboard.', 'buckmerce-plaid'),
                 default => '',
             };
         }

@@ -36,7 +36,7 @@ async page => {
 	);
 	let linkTokenRequests = 0;
 	page.on( 'request', ( request ) => {
-		if ( request.url().includes( '/buckmerce-for-plaid/v1/link-token' ) ) {
+		if ( request.url().includes( '/buckmerce-plaid/v1/link-token' ) ) {
 			linkTokenRequests++;
 		}
 	} );
@@ -116,7 +116,7 @@ async page => {
 	assert( ! settingsHtml.includes( 'browser-sandbox-secret-value' ), 'The stored secret is never rendered.' );
 	assert( await page.locator( '#woocommerce_buckmerce_plaid_secret' ).getAttribute( 'type' ) === 'password', 'Secret input is a password field.' );
 	assert( ( await page.locator( '#woocommerce_buckmerce_plaid_secret' ).inputValue() ) === '', 'Secret input is empty.' );
-	assert( ( await page.locator( '#bmfp-webhook-url' ).inputValue() ).endsWith( '/buckmerce-for-plaid/v1/webhook' ), 'Webhook URL is shown.' );
+	assert( ( await page.locator( '#bmfp-webhook-url' ).inputValue() ).endsWith( '/buckmerce-plaid/v1/webhook' ), 'Webhook URL is shown.' );
 	assert( await page.getByRole( 'button', { name: 'Copy' } ).isVisible(), 'Copy webhook URL button is shown.' );
 	assert( ( await page.locator( '#woocommerce_buckmerce_plaid_ach_class' ).count() ) === 0, 'ACH class is not a merchant setting (always WEB).' );
 	assert( ( await page.locator( '#woocommerce_buckmerce_plaid_statement_descriptor' ).inputValue() ) === 'PAYMENT', 'Statement descriptor setting.' );
@@ -192,14 +192,14 @@ async page => {
 	await payButton.waitFor();
 	await page.evaluate( () => { window.__bmfpOutcome = 'failed'; } );
 	// Loading state: the Link token request is slowed down so the busy state can be observed.
-	await page.route( '**/buckmerce-for-plaid/v1/link-token', async ( route ) => { await new Promise( ( resolve ) => setTimeout( resolve, 1200 ) ); await route.continue(); } );
+	await page.route( '**/buckmerce-plaid/v1/link-token', async ( route ) => { await new Promise( ( resolve ) => setTimeout( resolve, 1200 ) ); await route.continue(); } );
 	await payButton.focus();
 	await page.keyboard.press( 'Enter' );
 	await page.waitForFunction( () => document.querySelector( '.bmfp-payment' ).getAttribute( 'aria-busy' ) === 'true' );
 	assert( await payButton.isDisabled(), 'Loading state: the button is disabled while the bank connection is prepared.' );
 	assert( ( await statusText() ).length > 0, 'Loading state is announced in the status region.' );
 	await axe( '.bmfp-payment', 'payment page (loading)' );
-	await page.unroute( '**/buckmerce-for-plaid/v1/link-token' );
+	await page.unroute( '**/buckmerce-plaid/v1/link-token' );
 	await waitStatus( 'could not be authorized' );
 	assert( await payButton.isEnabled() && ( await payButton.textContent() ).includes( 'Try again' ), 'Failure re-enables the button as a retry (keyboard activation works).' );
 	assert( await activeIsPayButton(), 'Focus returns to the retry button after the failure is announced.' );

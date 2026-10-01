@@ -129,14 +129,14 @@ final class ReturnRetryPolicy
         return match ($decision->outcome) {
             ReturnRetryDecision::BLOCK_RETURN_CODE => sprintf(
                 /* translators: %s: ACH return code such as R10 */
-                __('Return code %s may not be debited again (Plaid allows retries only for R01 and R09; unauthorized returns such as R10 must never be resubmitted). Collect this payment another way after contacting the customer.', 'buckmerce-for-plaid'),
+                __('Return code %s may not be debited again (Plaid allows retries only for R01 and R09; unauthorized returns such as R10 must never be resubmitted). Collect this payment another way after contacting the customer.', 'buckmerce-plaid'),
                 $decision->return_code
             ),
-            ReturnRetryDecision::BLOCK_RETRY_LIMIT => __('Plaid allows at most two retries of a returned transfer and they are used up. Collect this payment another way.', 'buckmerce-for-plaid'),
-            ReturnRetryDecision::BLOCK_WINDOW_EXPIRED => __('Plaid allows retries only within 180 days of the original transfer. Collect this payment another way.', 'buckmerce-for-plaid'),
+            ReturnRetryDecision::BLOCK_RETRY_LIMIT => __('Plaid allows at most two retries of a returned transfer and they are used up. Collect this payment another way.', 'buckmerce-plaid'),
+            ReturnRetryDecision::BLOCK_WINDOW_EXPIRED => __('Plaid allows retries only within 180 days of the original transfer. Collect this payment another way.', 'buckmerce-plaid'),
             ReturnRetryDecision::BLOCK_UNSUPPORTED_FLOW => sprintf(
                 /* translators: %s: ACH return code R01 or R09 */
-                __('Return code %s could be retried under Plaid\'s rules only as a marked retry ("Retry 1"/"Retry 2") of the original transfer, which Plaid Transfer UI does not support. Buckmerce therefore never debits this order again automatically. Contact the customer and collect the payment another way.', 'buckmerce-for-plaid'),
+                __('Return code %s could be retried under Plaid\'s rules only as a marked retry ("Retry 1"/"Retry 2") of the original transfer, which Plaid Transfer UI does not support. Buckmerce therefore never debits this order again automatically. Contact the customer and collect the payment another way.', 'buckmerce-plaid'),
                 $decision->return_code
             ),
             default => '',
@@ -146,6 +146,6 @@ final class ReturnRetryPolicy
     /** Customer-facing text on the order-pay page: no codes, no internals. */
     public static function customer_message(): string
     {
-        return __('Your bank returned the earlier bank payment for this order, so Pay by Bank cannot be used to pay it again. Please choose another payment method or contact the store.', 'buckmerce-for-plaid');
+        return __('Your bank returned the earlier bank payment for this order, so Pay by Bank cannot be used to pay it again. Please choose another payment method or contact the store.', 'buckmerce-plaid');
     }
 }

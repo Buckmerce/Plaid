@@ -1,5 +1,5 @@
 {
-  "name": "al5dy/buckmerce-for-plaid",
+  "name": "al5dy/buckmerce-plaid",
   "description": "Buckmerce – Bank Payments via Plaid for WooCommerce (Pay by Bank through Plaid Transfer).",
   "type": "wordpress-plugin",
   "license": "GPL-2.0-or-later",
@@ -51,7 +51,7 @@
     "test:integration": "bash scripts/test-integration.sh",
     "lint": "phpcs --standard=phpcs.xml.dist",
     "stan": "phpstan analyse --memory-limit=1G",
-    "syntax": "find src tests buckmerce-for-plaid.php uninstall.php -name '*.php' -not -path 'tests/phpstan-wp-root/*' -print0 | xargs -0 -n1 php -l"
+    "syntax": "find src tests buckmerce-plaid.php uninstall.php -name '*.php' -not -path 'tests/phpstan-wp-root/*' -print0 | xargs -0 -n1 php -l"
   },
   "config": {
     "sort-packages": true,

@@ -3,7 +3,7 @@ parameters:
   treatPhpDocTypesAsCertain: false
   paths:
     - src
-    - buckmerce-for-plaid.php
+    - buckmerce-plaid.php
     - uninstall.php
   bootstrapFiles:
     - tests/phpstan-bootstrap.php

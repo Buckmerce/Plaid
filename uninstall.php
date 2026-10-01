@@ -15,7 +15,7 @@ defined('WP_UNINSTALL_PLUGIN') || exit;
 
 if (function_exists('as_unschedule_all_actions')) {
     foreach (array('buckmerce_plaid_transfer_event_sync', 'buckmerce_plaid_reconcile', 'buckmerce_plaid_reconcile_continue') as $bmfp_hook) {
-        as_unschedule_all_actions($bmfp_hook, array(), 'buckmerce-for-plaid');
+        as_unschedule_all_actions($bmfp_hook, array(), 'buckmerce-plaid');
     }
 }
 

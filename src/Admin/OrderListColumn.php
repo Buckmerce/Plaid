@@ -35,11 +35,11 @@ final class OrderListColumn
         foreach ($columns as $key => $label) {
             $result[$key] = $label;
             if ('order_status' === $key) {
-                $result[self::COLUMN] = __('Pay by Bank', 'buckmerce-for-plaid');
+                $result[self::COLUMN] = __('Pay by Bank', 'buckmerce-plaid');
             }
         }
         if (! isset($result[self::COLUMN])) {
-            $result[self::COLUMN] = __('Pay by Bank', 'buckmerce-for-plaid');
+            $result[self::COLUMN] = __('Pay by Bank', 'buckmerce-plaid');
         }
         return $result;
     }
@@ -80,14 +80,14 @@ final class OrderListColumn
     {
         return match ($state) {
             /* translators: %s: ACH return code */
-            PaymentState::RETURNED => array('' === $return_code ? __('Bank payment returned', 'buckmerce-for-plaid') : sprintf(__('Bank payment returned (%s)', 'buckmerce-for-plaid'), $return_code), 'critical'),
-            PaymentState::MANUAL_REVIEW => array(__('Needs review', 'buckmerce-for-plaid'), 'warning'),
-            PaymentState::FAILED, PaymentState::INTENT_FAILED => array(__('Bank payment failed', 'buckmerce-for-plaid'), 'failed'),
-            PaymentState::CANCELLED => array(__('Bank payment cancelled', 'buckmerce-for-plaid'), 'failed'),
-            PaymentState::TRANSFER_CREATED, PaymentState::PENDING, PaymentState::POSTED => array(__('Awaiting ACH settlement', 'buckmerce-for-plaid'), 'pending'),
-            PaymentState::SETTLED => array(__('Settled', 'buckmerce-for-plaid'), 'pending'),
-            PaymentState::FUNDS_AVAILABLE => array(__('Funds available', 'buckmerce-for-plaid'), 'ok'),
-            PaymentState::INTENT_CREATED, PaymentState::INTENT_PENDING, PaymentState::INTENT_CREATING, PaymentState::INTENT_UNCERTAIN => array(__('Awaiting authorization', 'buckmerce-for-plaid'), 'pending'),
+            PaymentState::RETURNED => array('' === $return_code ? __('Bank payment returned', 'buckmerce-plaid') : sprintf(__('Bank payment returned (%s)', 'buckmerce-plaid'), $return_code), 'critical'),
+            PaymentState::MANUAL_REVIEW => array(__('Needs review', 'buckmerce-plaid'), 'warning'),
+            PaymentState::FAILED, PaymentState::INTENT_FAILED => array(__('Bank payment failed', 'buckmerce-plaid'), 'failed'),
+            PaymentState::CANCELLED => array(__('Bank payment cancelled', 'buckmerce-plaid'), 'failed'),
+            PaymentState::TRANSFER_CREATED, PaymentState::PENDING, PaymentState::POSTED => array(__('Awaiting ACH settlement', 'buckmerce-plaid'), 'pending'),
+            PaymentState::SETTLED => array(__('Settled', 'buckmerce-plaid'), 'pending'),
+            PaymentState::FUNDS_AVAILABLE => array(__('Funds available', 'buckmerce-plaid'), 'ok'),
+            PaymentState::INTENT_CREATED, PaymentState::INTENT_PENDING, PaymentState::INTENT_CREATING, PaymentState::INTENT_UNCERTAIN => array(__('Awaiting authorization', 'buckmerce-plaid'), 'pending'),
             default => array('', ''),
         };
     }

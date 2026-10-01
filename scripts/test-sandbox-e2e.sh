@@ -34,8 +34,8 @@ for required in BUCKMERCE_PLAID_SANDBOX_CLIENT_ID BUCKMERCE_PLAID_SANDBOX_SECRET
     fi
 done
 [[ "$BUCKMERCE_PLAID_SANDBOX_LINK_CUSTOMIZATION" =~ ^[A-Za-z0-9\ _-]{1,100}$ ]] || { printf 'BUCKMERCE_PLAID_SANDBOX_LINK_CUSTOMIZATION must be a Plaid Link customization name.\n' >&2; exit 64; }
-plugin_version=$(grep -m1 '^ \* Version:' "$base_dir/buckmerce-for-plaid.php" | sed -E 's/^ \* Version:[[:space:]]*//')
-plugin_zip=${BUCKMERCE_PLAID_TEST_PLUGIN_ZIP:-"$base_dir/dist/buckmerce-for-plaid-$plugin_version.zip"}
+plugin_version=$(grep -m1 '^ \* Version:' "$base_dir/buckmerce-plaid.php" | sed -E 's/^ \* Version:[[:space:]]*//')
+plugin_zip=${BUCKMERCE_PLAID_TEST_PLUGIN_ZIP:-"$base_dir/dist/buckmerce-plaid-$plugin_version.zip"}
 port=${BUCKMERCE_PLAID_SANDBOX_PORT:-8895}
 ngrok_domain=''
 case "${1:-}" in
@@ -170,7 +170,7 @@ run_event_sync_queue() {
 if [[ -n "$ngrok_domain" ]]; then
     printf '== Public HTTPS through ngrok: %s\n' "$base_url"
     bmfp_ngrok_start "$ngrok_domain" "$port" "$artifacts/ngrok.log"
-    bmfp_wait_public "$base_url/wp-json/buckmerce-for-plaid/v1"
+    bmfp_wait_public "$base_url/wp-json/buckmerce-plaid/v1"
     printf '== Catching up with the Plaid account event history\n'
     gate catch-up
 fi

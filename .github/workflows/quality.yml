@@ -90,7 +90,7 @@ jobs:
         with:
           php-version: '${{ matrix.php }}'
           coverage: none
-      - run: find src tests buckmerce-for-plaid.php uninstall.php -name '*.php' -not -path 'tests/phpstan-wp-root/*' -print0 | xargs -0 -n1 php -l > /dev/null
+      - run: find src tests buckmerce-plaid.php uninstall.php -name '*.php' -not -path 'tests/phpstan-wp-root/*' -print0 | xargs -0 -n1 php -l > /dev/null
 
   scripts-lint:
     name: Shell scripts (shellcheck)
@@ -246,17 +246,17 @@ jobs:
         name: Publish the artifact identity
         shell: bash
         run: |
-          zip=$(ls dist/buckmerce-for-plaid-*.zip)
+          zip=$(ls dist/buckmerce-plaid-*.zip)
           echo "zip_name=$(basename "$zip")" >> "$GITHUB_OUTPUT"
           echo "zip_sha256=$(cut -d' ' -f1 "$zip.sha256")" >> "$GITHUB_OUTPUT"
           echo "### Release artifact" >> "$GITHUB_STEP_SUMMARY"
           echo "\`$(cat "$zip.sha256")\`" >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         with:
-          name: buckmerce-for-plaid-zip
+          name: buckmerce-plaid-zip
           path: |
-            dist/buckmerce-for-plaid-*.zip
-            dist/buckmerce-for-plaid-*.zip.sha256
+            dist/buckmerce-plaid-*.zip
+            dist/buckmerce-plaid-*.zip.sha256
           if-no-files-found: error
           retention-days: 14
 
@@ -294,7 +294,7 @@ jobs:
           coverage: none
       - uses: actions/download-artifact@v4
         with:
-          name: buckmerce-for-plaid-zip
+          name: buckmerce-plaid-zip
           path: dist
       - run: bash scripts/test-package-smoke.sh
 
@@ -315,12 +315,12 @@ jobs:
       - run: npm ci
       - uses: actions/download-artifact@v4
         with:
-          name: buckmerce-for-plaid-zip
+          name: buckmerce-plaid-zip
           path: dist
       - name: The uploaded ZIP still matches its hash and a fresh build of this commit
         shell: bash
         run: |
-          zip=$(ls dist/buckmerce-for-plaid-*.zip)
+          zip=$(ls dist/buckmerce-plaid-*.zip)
           (cd dist && sha256sum -c "$(basename "$zip").sha256")
           bash scripts/verify-package.sh "$zip"
           # Reproducible build: rebuilding this commit gives the same bytes as the tested artifact.
@@ -364,7 +364,7 @@ jobs:
           coverage: none
       - uses: actions/download-artifact@v4
         with:
-          name: buckmerce-for-plaid-zip
+          name: buckmerce-plaid-zip
           path: dist
       - name: ZIP install, HPOS on/off, payments, refunds, lifecycle, webhooks, concurrency, migration, uninstall
         run: bash scripts/test-integration.sh
@@ -401,7 +401,7 @@ jobs:
           coverage: none
       - uses: actions/download-artifact@v4
         with:
-          name: buckmerce-for-plaid-zip
+          name: buckmerce-plaid-zip
           path: dist
       - name: Same suites on MariaDB (schema, reservations, advisory locks, event leases, reconciliation, uninstall)
         run: bash scripts/test-integration.sh
@@ -429,7 +429,7 @@ jobs:
           coverage: none
       - uses: actions/download-artifact@v4
         with:
-          name: buckmerce-for-plaid-zip
+          name: buckmerce-plaid-zip
           path: dist
       - run: bash scripts/test-plugin-check.sh
 
@@ -466,7 +466,7 @@ jobs:
       - run: npm ci
       - uses: actions/download-artifact@v4
         with:
-          name: buckmerce-for-plaid-zip
+          name: buckmerce-plaid-zip
           path: dist
       - run: npx --yes --package @playwright/cli playwright-cli install-browser chromium
       - name: Allow core dumps of the PHP server (a crash is reported with a backtrace)
@@ -528,7 +528,7 @@ jobs:
           node-version: 22
       - uses: actions/download-artifact@v4
         with:
-          name: buckmerce-for-plaid-zip
+          name: buckmerce-plaid-zip
           path: dist
       - run: npx --yes --package @playwright/cli playwright-cli install-browser chromium
       - name: Install ngrok

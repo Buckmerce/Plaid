@@ -84,6 +84,6 @@ bmfp_run_scheduled(Scheduler::EVENT_SYNC_HOOK);
 bmfp_assert(bmfp_reload($order)->is_paid(), 'Verified webhook → event sync → order paid.');
 
 // GET is not an allowed method.
-$get = rest_do_request(new WP_REST_Request('GET', '/buckmerce-for-plaid/v1/webhook'));
+$get = rest_do_request(new WP_REST_Request('GET', '/buckmerce-plaid/v1/webhook'));
 bmfp_assert_same(404, $get->get_status(), 'Webhook route accepts POST only.');
 WP_CLI::success('Buckmerce webhook REST suite passed (HPOS=' . (getenv('BUCKMERCE_PLAID_EXPECT_HPOS') ?: '?') . ').');

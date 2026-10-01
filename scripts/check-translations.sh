@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Translation gate: every bundled translation (languages/buckmerce-for-plaid-<locale>.po) must
+# Translation gate: every bundled translation (languages/buckmerce-plaid-<locale>.po) must
 #   - contain exactly the strings of the POT template (nothing missing, nothing obsolete);
 #   - translate every string (no empty or fuzzy entries) with the same printf placeholders;
 #   - declare its locale and plural forms;

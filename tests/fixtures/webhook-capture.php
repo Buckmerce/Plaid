@@ -15,7 +15,7 @@ if (! defined('BUCKMERCE_PLAID_SANDBOX_TEST') || ! BUCKMERCE_PLAID_SANDBOX_TEST)
 add_filter(
     'rest_request_after_callbacks',
     static function ($response, $handler, WP_REST_Request $request) {
-        if ('/buckmerce-for-plaid/v1/webhook' !== $request->get_route() || 'POST' !== $request->get_method()) {
+        if ('/buckmerce-plaid/v1/webhook' !== $request->get_route() || 'POST' !== $request->get_method()) {
             return $response;
         }
         $status = $response instanceof WP_REST_Response ? $response->get_status() : (is_wp_error($response) ? 500 : 200);

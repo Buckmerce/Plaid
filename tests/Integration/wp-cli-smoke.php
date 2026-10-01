@@ -40,9 +40,9 @@ foreach (array('payment_state', 'account_fp', 'monitor_until') as $column) {
 $expect_hpos = 'yes' === getenv('BUCKMERCE_PLAID_EXPECT_HPOS');
 bmfp_assert_same($expect_hpos, OrderUtil::custom_orders_table_usage_is_enabled(), 'Unexpected HPOS mode.');
 $compatible = FeaturesUtil::get_compatible_plugins_for_feature('custom_order_tables');
-bmfp_assert(in_array('buckmerce-for-plaid/buckmerce-for-plaid.php', $compatible['compatible'] ?? array(), true), 'HPOS compatibility must be declared.');
+bmfp_assert(in_array('buckmerce-plaid/buckmerce-plaid.php', $compatible['compatible'] ?? array(), true), 'HPOS compatibility must be declared.');
 $blocks = FeaturesUtil::get_compatible_plugins_for_feature('cart_checkout_blocks');
-bmfp_assert(in_array('buckmerce-for-plaid/buckmerce-for-plaid.php', $blocks['compatible'] ?? array(), true), 'Checkout Blocks compatibility must be declared.');
+bmfp_assert(in_array('buckmerce-plaid/buckmerce-plaid.php', $blocks['compatible'] ?? array(), true), 'Checkout Blocks compatibility must be declared.');
 
 // Gateway registration and settings.
 $gateway = bmfp_gateway();
@@ -65,7 +65,7 @@ bmfp_assert_same('Securely pay directly from your bank account.', $gateway->form
 // The settings screen never renders the stored secret.
 $html = $gateway->generate_settings_html($gateway->get_form_fields(), false);
 bmfp_assert(! str_contains($html, 'test-sandbox-secret'), 'Stored secret must never be rendered.');
-bmfp_assert(str_contains($html, rest_url('buckmerce-for-plaid/v1/webhook')), 'Settings must show the webhook URL.');
+bmfp_assert(str_contains($html, rest_url('buckmerce-plaid/v1/webhook')), 'Settings must show the webhook URL.');
 
 // Blank-save keeps the secret; explicit reset removes it.
 $key = $gateway->get_field_key('secret');
@@ -120,7 +120,7 @@ bmfp_configure();
 
 // REST routes and Blocks registration.
 $routes = rest_get_server()->get_routes();
-foreach (array('/buckmerce-for-plaid/v1/webhook', '/buckmerce-for-plaid/v1/link-token', '/buckmerce-for-plaid/v1/complete') as $route) {
+foreach (array('/buckmerce-plaid/v1/webhook', '/buckmerce-plaid/v1/link-token', '/buckmerce-plaid/v1/complete') as $route) {
     bmfp_assert(isset($routes[$route]), 'Missing REST route ' . $route);
 }
 $registry = Automattic\WooCommerce\Blocks\Package::container()->get(Automattic\WooCommerce\Blocks\Payments\PaymentMethodRegistry::class);
@@ -134,7 +134,7 @@ bmfp_assert(! array_key_exists('directions', $data) && ! str_contains((string) w
 
 // Action Scheduler: recurring reconciliation in the Buckmerce group.
 ( new Scheduler(new Buckmerce\Plaid\Container()) )->ensure_recurring();
-bmfp_assert(as_has_scheduled_action(Scheduler::RECONCILE_HOOK, array(), 'buckmerce-for-plaid'), 'Reconciliation must be scheduled in the buckmerce-for-plaid group.');
+bmfp_assert(as_has_scheduled_action(Scheduler::RECONCILE_HOOK, array(), 'buckmerce-plaid'), 'Reconciliation must be scheduled in the buckmerce-plaid group.');
 
 // Operational WP-CLI commands.
 $cli_commands = WP_CLI::get_root_command()->get_subcommands();

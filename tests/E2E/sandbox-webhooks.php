@@ -28,7 +28,7 @@ $step = (string) getenv('BMFP_STEP');
 $orders = json_decode((string) getenv('BMFP_ORDERS'), true);
 $orders = is_array($orders) ? $orders : array();
 $public_url = rtrim((string) getenv('BMFP_PUBLIC_URL'), '/');
-$webhook_url = $public_url . '/wp-json/buckmerce-for-plaid/v1/webhook';
+$webhook_url = $public_url . '/wp-json/buckmerce-plaid/v1/webhook';
 $events_table = Installer::events_table();
 
 $check = static function (bool $condition, string $message): void {

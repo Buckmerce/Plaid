@@ -81,12 +81,12 @@ final class GatewayAvailability
     public static function label(string $problem): string
     {
         return match ($problem) {
-            self::DISABLED => __('The gateway is disabled, so Pay by Bank is not offered to customers. Existing bank payments are still monitored.', 'buckmerce-for-plaid'),
-            self::INVALID_ENVIRONMENT => __('The Plaid environment setting is invalid.', 'buckmerce-for-plaid'),
-            self::MISSING_CREDENTIALS => __('Plaid Client ID and Secret are required.', 'buckmerce-for-plaid'),
-            self::MISSING_LINK_CUSTOMIZATION => __('Plaid Transfer UI requires a Link customization: create one in the Plaid Dashboard (in the selected environment) with Account Select set to “Enabled for one account” and enter its name.', 'buckmerce-for-plaid'),
-            self::UNSUPPORTED_CURRENCY => __('The store or order currency is not USD.', 'buckmerce-for-plaid'),
-            self::PRODUCTION_REQUIRES_HTTPS => __('Production requires the site to use HTTPS.', 'buckmerce-for-plaid'),
+            self::DISABLED => __('The gateway is disabled, so Pay by Bank is not offered to customers. Existing bank payments are still monitored.', 'buckmerce-plaid'),
+            self::INVALID_ENVIRONMENT => __('The Plaid environment setting is invalid.', 'buckmerce-plaid'),
+            self::MISSING_CREDENTIALS => __('Plaid Client ID and Secret are required.', 'buckmerce-plaid'),
+            self::MISSING_LINK_CUSTOMIZATION => __('Plaid Transfer UI requires a Link customization: create one in the Plaid Dashboard (in the selected environment) with Account Select set to “Enabled for one account” and enter its name.', 'buckmerce-plaid'),
+            self::UNSUPPORTED_CURRENCY => __('The store or order currency is not USD.', 'buckmerce-plaid'),
+            self::PRODUCTION_REQUIRES_HTTPS => __('Production requires the site to use HTTPS.', 'buckmerce-plaid'),
             default => $problem,
         };
     }

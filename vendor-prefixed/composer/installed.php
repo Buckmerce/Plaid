@@ -1,10 +1,10 @@
 <?php return array (
   'root' => 
   array (
-    'name' => 'al5dy/buckmerce-for-plaid',
+    'name' => 'al5dy/buckmerce-plaid',
     'pretty_version' => 'dev-master',
     'version' => 'dev-master',
-    'reference' => 'b0eafeac7b75d39a4994e8c2eb808afa3e4444b8',
+    'reference' => 'fb080019479142a324f8adc225c41a354eee137c',
     'type' => 'wordpress-plugin',
     'install_path' => __DIR__ . '/../',
     'aliases' => 

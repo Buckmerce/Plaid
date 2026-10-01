@@ -14,7 +14,7 @@ use Buckmerce\Plaid\Settings\Settings;
 
 /**
  * Action Scheduler integration. All actions are Buckmerce-owned and grouped under
- * buckmerce-for-plaid.
+ * buckmerce-plaid.
  *
  * Accepting new payments and maintaining existing ones are separate (ADR-0014): disabling
  * the gateway only hides Pay by Bank at checkout. The recurring reconciliation keeps running
@@ -24,7 +24,7 @@ use Buckmerce\Plaid\Settings\Settings;
  */
 final class Scheduler
 {
-    public const GROUP = 'buckmerce-for-plaid';
+    public const GROUP = 'buckmerce-plaid';
     public const EVENT_SYNC_HOOK = 'buckmerce_plaid_transfer_event_sync';
     public const RECONCILE_HOOK = 'buckmerce_plaid_reconcile';
     public const RECONCILE_CONTINUE_HOOK = 'buckmerce_plaid_reconcile_continue';

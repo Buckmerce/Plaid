@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Buckmerce – Bank Payments via Plaid for WooCommerce 1.0.0\n"
-"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/buckmerce-for-plaid\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/buckmerce-plaid\n"
 "Last-Translator: Buckmerce\n"
 "Language-Team: Russian\n"
 "MIME-Version: 1.0\n"
@@ -11,20 +11,20 @@ msgstr ""
 "PO-Revision-Date: 2026-10-01T06:24:05+00:00\n"
 "Language: ru_RU\n"
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<12 || n%100>14) ? 1 : 2);\n"
-"X-Domain: buckmerce-for-plaid\n"
+"X-Domain: buckmerce-plaid\n"
 
 #. Plugin Name of the plugin
-#: buckmerce-for-plaid.php
+#: buckmerce-plaid.php
 msgid "Buckmerce – Bank Payments via Plaid for WooCommerce"
 msgstr "Buckmerce – Bank Payments via Plaid for WooCommerce"
 
 #. Description of the plugin
-#: buckmerce-for-plaid.php
+#: buckmerce-plaid.php
 msgid "Secure Pay by Bank payments for WooCommerce using Plaid."
 msgstr "Безопасная оплата с банковского счёта для WooCommerce через Plaid."
 
 #. Author of the plugin
-#: buckmerce-for-plaid.php
+#: buckmerce-plaid.php
 msgid "al5dy"
 msgstr "al5dy"
 

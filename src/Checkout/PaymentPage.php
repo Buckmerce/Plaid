@@ -51,7 +51,7 @@ final class PaymentPage
         $order = wc_get_order($order_id);
         $order_key = isset($_GET['key']) && is_string($_GET['key']) ? sanitize_text_field(wp_unslash($_GET['key'])) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- WooCommerce validates the order key for this screen.
         if (! $order instanceof \WC_Order || ! $this->access->can_access($order, $order_key)) {
-            echo '<div class="woocommerce-error bmfp-access-denied" role="alert">' . esc_html__('This payment session has expired. Please open the payment link from your order confirmation email or log in to your account to pay for this order.', 'buckmerce-for-plaid') . '</div>';
+            echo '<div class="woocommerce-error bmfp-access-denied" role="alert">' . esc_html__('This payment session has expired. Please open the payment link from your order confirmation email or log in to your account to pay for this order.', 'buckmerce-plaid') . '</div>';
             return;
         }
 
@@ -66,30 +66,30 @@ final class PaymentPage
             <h2 id="bmfp-payment-title" class="bmfp-payment__title">
                 <?php echo esc_html($settings->title()); ?>
                 <?php if (! $settings->is_production()) : ?>
-                    <span class="bmfp-payment__sandbox"><?php esc_html_e('Sandbox — test mode, no real money', 'buckmerce-for-plaid'); ?></span>
+                    <span class="bmfp-payment__sandbox"><?php esc_html_e('Sandbox — test mode, no real money', 'buckmerce-plaid'); ?></span>
                 <?php endif; ?>
             </h2>
             <dl class="bmfp-payment__summary">
-                <div><dt><?php esc_html_e('Order', 'buckmerce-for-plaid'); ?></dt><dd>#<?php echo esc_html((string) $order->get_order_number()); ?></dd></div>
-                <div><dt><?php esc_html_e('Amount', 'buckmerce-for-plaid'); ?></dt><dd><?php echo wp_kses_post($order->get_formatted_order_total()); ?></dd></div>
+                <div><dt><?php esc_html_e('Order', 'buckmerce-plaid'); ?></dt><dd>#<?php echo esc_html((string) $order->get_order_number()); ?></dd></div>
+                <div><dt><?php esc_html_e('Amount', 'buckmerce-plaid'); ?></dt><dd><?php echo wp_kses_post($order->get_formatted_order_total()); ?></dd></div>
             </dl>
             <p class="bmfp-payment__description"><?php echo esc_html($settings->description()); ?></p>
-            <h3 class="bmfp-payment__steps-title"><?php esc_html_e('What happens next', 'buckmerce-for-plaid'); ?></h3>
+            <h3 class="bmfp-payment__steps-title"><?php esc_html_e('What happens next', 'buckmerce-plaid'); ?></h3>
             <ol class="bmfp-payment__steps">
-                <li><?php esc_html_e('A secure window from Plaid opens. Choose your bank and sign in there.', 'buckmerce-for-plaid'); ?></li>
-                <li><?php esc_html_e('Select the account to pay from and confirm the amount.', 'buckmerce-for-plaid'); ?></li>
-                <li><?php esc_html_e('We confirm the payment and show your order. Bank payments usually take 1–3 business days to complete; we update your order when they do.', 'buckmerce-for-plaid'); ?></li>
+                <li><?php esc_html_e('A secure window from Plaid opens. Choose your bank and sign in there.', 'buckmerce-plaid'); ?></li>
+                <li><?php esc_html_e('Select the account to pay from and confirm the amount.', 'buckmerce-plaid'); ?></li>
+                <li><?php esc_html_e('We confirm the payment and show your order. Bank payments usually take 1–3 business days to complete; we update your order when they do.', 'buckmerce-plaid'); ?></li>
             </ol>
             <?php if ($returned) : ?>
                 <p class="woocommerce-error bmfp-payment__blocked" role="alert"><?php echo esc_html(ReturnRetryPolicy::customer_message()); ?></p>
             <?php elseif ($name_missing) : ?>
-                <p class="woocommerce-error bmfp-payment__blocked" role="alert"><?php esc_html_e('This order has no account holder name, which is required to pay by bank. Please contact the store or place a new order with your legal first and last name.', 'buckmerce-for-plaid'); ?></p>
+                <p class="woocommerce-error bmfp-payment__blocked" role="alert"><?php esc_html_e('This order has no account holder name, which is required to pay by bank. Please contact the store or place a new order with your legal first and last name.', 'buckmerce-plaid'); ?></p>
             <?php else : ?>
-                <button type="button" class="button alt bmfp-payment__button" data-bmfp-pay aria-describedby="bmfp-payment-status" disabled><?php esc_html_e('Connect bank and pay', 'buckmerce-for-plaid'); ?></button>
+                <button type="button" class="button alt bmfp-payment__button" data-bmfp-pay aria-describedby="bmfp-payment-status" disabled><?php esc_html_e('Connect bank and pay', 'buckmerce-plaid'); ?></button>
                 <p class="bmfp-payment__status" id="bmfp-payment-status" data-bmfp-status role="status" aria-live="polite" aria-atomic="true"></p>
             <?php endif; ?>
-            <p class="bmfp-payment__disclosure"><?php esc_html_e('Your bank connection and payment authorization are handled securely by Plaid. This store never sees your bank login credentials.', 'buckmerce-for-plaid'); ?></p>
-            <noscript><p class="woocommerce-error"><?php esc_html_e('JavaScript is required to connect your bank.', 'buckmerce-for-plaid'); ?></p></noscript>
+            <p class="bmfp-payment__disclosure"><?php esc_html_e('Your bank connection and payment authorization are handled securely by Plaid. This store never sees your bank login credentials.', 'buckmerce-plaid'); ?></p>
+            <noscript><p class="woocommerce-error"><?php esc_html_e('JavaScript is required to connect your bank.', 'buckmerce-plaid'); ?></p></noscript>
         </section>
         <?php
     }
@@ -110,23 +110,23 @@ final class PaymentPage
             'completeUrl' => rest_url(RestRoutes::NAMESPACE . '/complete'),
             'returnUrl' => $order->get_checkout_order_received_url(),
             'i18n' => array(
-                'preparing' => __('Preparing a secure bank connection…', 'buckmerce-for-plaid'),
-                'opening' => __('Opening the secure bank connection…', 'buckmerce-for-plaid'),
-                'verifying' => __('Confirming your payment…', 'buckmerce-for-plaid'),
-                'submitted' => __('Payment submitted. Taking you to your order…', 'buckmerce-for-plaid'),
-                'exited' => __('The bank connection was closed before the payment was completed. No payment was made. You can try again.', 'buckmerce-for-plaid'),
-                'incomplete' => __('Your bank payment was not completed. You can try again.', 'buckmerce-for-plaid'),
-                'insufficient' => __('Your bank reported insufficient funds. You can try again or use another account.', 'buckmerce-for-plaid'),
-                'failed' => __('Your bank payment could not be authorized. You can try again.', 'buckmerce-for-plaid'),
-                'unverified' => __('We could not confirm your payment yet. Please wait a moment…', 'buckmerce-for-plaid'),
-                'review' => __('Your payment needs review by the store. Please contact the store.', 'buckmerce-for-plaid'),
-                'error' => __('The bank payment could not be started. Please try again.', 'buckmerce-for-plaid'),
-                'unavailable' => __('The secure bank connection could not be loaded. Check your connection and try again.', 'buckmerce-for-plaid'),
-                'notPayable' => __('Pay by Bank is not available for this order right now. Please contact the store or choose another payment method.', 'buckmerce-for-plaid'),
-                'missingName' => __('This order has no account holder name. Please contact the store.', 'buckmerce-for-plaid'),
+                'preparing' => __('Preparing a secure bank connection…', 'buckmerce-plaid'),
+                'opening' => __('Opening the secure bank connection…', 'buckmerce-plaid'),
+                'verifying' => __('Confirming your payment…', 'buckmerce-plaid'),
+                'submitted' => __('Payment submitted. Taking you to your order…', 'buckmerce-plaid'),
+                'exited' => __('The bank connection was closed before the payment was completed. No payment was made. You can try again.', 'buckmerce-plaid'),
+                'incomplete' => __('Your bank payment was not completed. You can try again.', 'buckmerce-plaid'),
+                'insufficient' => __('Your bank reported insufficient funds. You can try again or use another account.', 'buckmerce-plaid'),
+                'failed' => __('Your bank payment could not be authorized. You can try again.', 'buckmerce-plaid'),
+                'unverified' => __('We could not confirm your payment yet. Please wait a moment…', 'buckmerce-plaid'),
+                'review' => __('Your payment needs review by the store. Please contact the store.', 'buckmerce-plaid'),
+                'error' => __('The bank payment could not be started. Please try again.', 'buckmerce-plaid'),
+                'unavailable' => __('The secure bank connection could not be loaded. Check your connection and try again.', 'buckmerce-plaid'),
+                'notPayable' => __('Pay by Bank is not available for this order right now. Please contact the store or choose another payment method.', 'buckmerce-plaid'),
+                'missingName' => __('This order has no account holder name. Please contact the store.', 'buckmerce-plaid'),
                 'returned' => ReturnRetryPolicy::customer_message(),
-                'rateLimited' => __('Too many attempts. Please wait a few minutes and try again.', 'buckmerce-for-plaid'),
-                'retry' => __('Try again', 'buckmerce-for-plaid'),
+                'rateLimited' => __('Too many attempts. Please wait a few minutes and try again.', 'buckmerce-plaid'),
+                'retry' => __('Try again', 'buckmerce-plaid'),
             ),
         );
         wp_add_inline_script('buckmerce-plaid-payment', 'window.buckmercePlaidPayment = ' . wp_json_encode($config) . ';', 'before');

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Identity gate. The plugin's only identity is Buckmerce (AGENTS.md §1): slug
-# buckmerce-for-plaid, namespace Buckmerce\Plaid, prefixes buckmerce_plaid_ / bmfp_ / _bmfp_.
+# buckmerce-plaid, namespace Buckmerce\Plaid, prefixes buckmerce_plaid_ / bmfp_ / _bmfp_.
 # The pre-release working name and its short prefix must never come back — no aliases, hooks,
 # meta keys, table names, comments or documentation. This gate fails when a former identifier
 # appears in

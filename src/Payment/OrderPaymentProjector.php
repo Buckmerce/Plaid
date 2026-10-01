@@ -122,7 +122,7 @@ final class OrderPaymentProjector
             case PaymentState::PENDING:
             case PaymentState::POSTED:
                 if ($order->has_status(array('pending', 'failed'))) {
-                    $order->update_status('on-hold', __('Bank payment submitted; awaiting ACH settlement.', 'buckmerce-for-plaid'));
+                    $order->update_status('on-hold', __('Bank payment submitted; awaiting ACH settlement.', 'buckmerce-plaid'));
                 }
                 break;
             case PaymentState::SETTLED:
@@ -164,10 +164,10 @@ final class OrderPaymentProjector
                     $this->notifier->send(
                         $order,
                         /* translators: %s: order number */
-                        sprintf(__('Bank payment for order #%s needs review', 'buckmerce-for-plaid'), $order->get_order_number()),
+                        sprintf(__('Bank payment for order #%s needs review', 'buckmerce-plaid'), $order->get_order_number()),
                         sprintf(
                             /* translators: 1: order number, 2: reason code */
-                            __("Buckmerce stopped automatic processing of the bank payment for order #%1\$s (%2\$s). No order was fulfilled automatically. Open the order to see the Plaid identifiers and decide how to proceed.", 'buckmerce-for-plaid'),
+                            __("Buckmerce stopped automatic processing of the bank payment for order #%1\$s (%2\$s). No order was fulfilled automatically. Open the order to see the Plaid identifiers and decide how to proceed.", 'buckmerce-plaid'),
                             $order->get_order_number(),
                             '' === $reason ? 'manual_review' : $reason
                         )
@@ -186,7 +186,7 @@ final class OrderPaymentProjector
     private function project_return(\WC_Order $order, string $transfer_id): void
     {
         if (! $order->has_status(array('failed', 'refunded'))) {
-            $order->update_status('failed', __('ACH return received: the bank payment was reversed. The original payment details are kept on this order.', 'buckmerce-for-plaid'));
+            $order->update_status('failed', __('ACH return received: the bank payment was reversed. The original payment details are kept on this order.', 'buckmerce-plaid'));
         }
         if ('yes' === $order->get_meta(OrderMeta::RETURN_ALERTED, true)) {
             return;
@@ -195,26 +195,26 @@ final class OrderPaymentProjector
         $retry = ReturnRetryPolicy::for_order($order);
         if ($retry->is_blocked()) {
             // Plaid restricts reprocessing returned debits; Buckmerce never re-debits this order (ADR-0019).
-            $order->add_order_note(__('Buckmerce: this order will not be debited again by bank.', 'buckmerce-for-plaid') . ' ' . ReturnRetryPolicy::merchant_explanation($retry));
+            $order->add_order_note(__('Buckmerce: this order will not be debited again by bank.', 'buckmerce-plaid') . ' ' . ReturnRetryPolicy::merchant_explanation($retry));
         }
         $exposure = null === $this->return_listener ? array('count' => 0, 'amount' => '0.00') : $this->return_listener->on_payment_returned($order, $transfer_id);
         if ($exposure['count'] > 0) {
             $this->alerts->add($order, PaymentAlerts::RETURNED_AFTER_REFUND, $code, '', $exposure['amount']);
             $order->add_order_note(sprintf(
                 /* translators: 1: refunded amount, 2: ACH return code */
-                __('Buckmerce: CRITICAL — the bank payment was returned (%2$s) after refunds of $%1$s were issued. The customer may have received this money twice. Contact the customer before taking further action.', 'buckmerce-for-plaid'),
+                __('Buckmerce: CRITICAL — the bank payment was returned (%2$s) after refunds of $%1$s were issued. The customer may have received this money twice. Contact the customer before taking further action.', 'buckmerce-plaid'),
                 $exposure['amount'],
                 '' === $code ? '—' : $code
             ));
             $this->notifier->send(
                 $order,
                 /* translators: %s: order number */
-                sprintf(__('URGENT: ACH return after refund for order #%s', 'buckmerce-for-plaid'), $order->get_order_number()),
+                sprintf(__('URGENT: ACH return after refund for order #%s', 'buckmerce-plaid'), $order->get_order_number()),
                 sprintf(
                     /* translators: 1: order number, 2: ACH return code, 3: refunded amount */
-                    __("The bank payment for order #%1\$s was returned (%2\$s) after you refunded $%3\$s. The customer's bank reversed the payment, so the customer may have received this money twice and you may lose both the payment and the refund. Pending refunds were cancelled where Plaid still allowed it; check the order notes.", 'buckmerce-for-plaid'),
+                    __("The bank payment for order #%1\$s was returned (%2\$s) after you refunded $%3\$s. The customer's bank reversed the payment, so the customer may have received this money twice and you may lose both the payment and the refund. Pending refunds were cancelled where Plaid still allowed it; check the order notes.", 'buckmerce-plaid'),
                     $order->get_order_number(),
-                    '' === $code ? __('no return code', 'buckmerce-for-plaid') : $code,
+                    '' === $code ? __('no return code', 'buckmerce-plaid') : $code,
                     $exposure['amount']
                 )
             );
@@ -223,12 +223,12 @@ final class OrderPaymentProjector
             $this->notifier->send(
                 $order,
                 /* translators: %s: order number */
-                sprintf(__('ACH return received for order #%s', 'buckmerce-for-plaid'), $order->get_order_number()),
+                sprintf(__('ACH return received for order #%s', 'buckmerce-plaid'), $order->get_order_number()),
                 sprintf(
                     /* translators: 1: order number, 2: ACH return code */
-                    __('The bank payment for order #%1$s was returned (%2$s). The funds were reversed. The order is now Failed; its original payment details are kept.', 'buckmerce-for-plaid'),
+                    __('The bank payment for order #%1$s was returned (%2$s). The funds were reversed. The order is now Failed; its original payment details are kept.', 'buckmerce-plaid'),
                     $order->get_order_number(),
-                    '' === $code ? __('no return code', 'buckmerce-for-plaid') : $code
+                    '' === $code ? __('no return code', 'buckmerce-plaid') : $code
                 ) . ' ' . ReturnRetryPolicy::merchant_explanation($retry)
             );
         }
@@ -255,39 +255,39 @@ final class OrderPaymentProjector
     /** @param array<string, string> $context */
     private function note(string $state, array $context): string
     {
-        $transfer = '' !== ($context['transfer_id'] ?? '') ? ' ' . sprintf(/* translators: %s: Plaid transfer ID */ __('Transfer ID: %s.', 'buckmerce-for-plaid'), $context['transfer_id']) : '';
+        $transfer = '' !== ($context['transfer_id'] ?? '') ? ' ' . sprintf(/* translators: %s: Plaid transfer ID */ __('Transfer ID: %s.', 'buckmerce-plaid'), $context['transfer_id']) : '';
         $code = self::code($context['return_code'] ?? ($context['failure_code'] ?? ''));
         $reason = '' !== $code ? ' (' . $code . ')' : '';
         $description = '' !== ($context['description'] ?? '') ? ' ' . self::text($context['description']) : '';
         switch ($state) {
             case PaymentState::INTENT_CREATED:
-                return __('Buckmerce: Plaid Transfer Intent created. Waiting for the customer to authorize the bank payment.', 'buckmerce-for-plaid');
+                return __('Buckmerce: Plaid Transfer Intent created. Waiting for the customer to authorize the bank payment.', 'buckmerce-plaid');
             case PaymentState::INTENT_PENDING:
-                return __('Buckmerce: bank payment authorization in progress.', 'buckmerce-for-plaid');
+                return __('Buckmerce: bank payment authorization in progress.', 'buckmerce-plaid');
             case PaymentState::INTENT_FAILED:
-                return __('Buckmerce: bank payment authorization failed or was declined', 'buckmerce-for-plaid') . $reason . '. ' . __('The customer can retry.', 'buckmerce-for-plaid');
+                return __('Buckmerce: bank payment authorization failed or was declined', 'buckmerce-plaid') . $reason . '. ' . __('The customer can retry.', 'buckmerce-plaid');
             case PaymentState::INTENT_UNCERTAIN:
-                return __('Buckmerce: the Transfer Intent request had an unknown outcome. No Link token was issued for it, so it cannot move money; a retry creates a new intent.', 'buckmerce-for-plaid');
+                return __('Buckmerce: the Transfer Intent request had an unknown outcome. No Link token was issued for it, so it cannot move money; a retry creates a new intent.', 'buckmerce-plaid');
             case PaymentState::TRANSFER_CREATED:
-                return __('Buckmerce: Plaid transfer created.', 'buckmerce-for-plaid') . $transfer;
+                return __('Buckmerce: Plaid transfer created.', 'buckmerce-plaid') . $transfer;
             case PaymentState::PENDING:
-                return __('Buckmerce: transfer pending.', 'buckmerce-for-plaid') . $transfer;
+                return __('Buckmerce: transfer pending.', 'buckmerce-plaid') . $transfer;
             case PaymentState::POSTED:
-                return __('Buckmerce: transfer posted to the ACH network.', 'buckmerce-for-plaid') . $transfer;
+                return __('Buckmerce: transfer posted to the ACH network.', 'buckmerce-plaid') . $transfer;
             case PaymentState::SETTLED:
-                return __('Buckmerce: transfer settled.', 'buckmerce-for-plaid') . $transfer;
+                return __('Buckmerce: transfer settled.', 'buckmerce-plaid') . $transfer;
             case PaymentState::FUNDS_AVAILABLE:
-                return __('Buckmerce: funds available. The customer\'s bank can still return the payment within the ACH return windows; Buckmerce keeps monitoring it.', 'buckmerce-for-plaid') . $transfer;
+                return __('Buckmerce: funds available. The customer\'s bank can still return the payment within the ACH return windows; Buckmerce keeps monitoring it.', 'buckmerce-plaid') . $transfer;
             case PaymentState::FAILED:
-                return __('Buckmerce: transfer failed; no funds were moved', 'buckmerce-for-plaid') . $reason . '.' . $description . $transfer;
+                return __('Buckmerce: transfer failed; no funds were moved', 'buckmerce-plaid') . $reason . '.' . $description . $transfer;
             case PaymentState::CANCELLED:
-                return __('Buckmerce: transfer cancelled.', 'buckmerce-for-plaid') . $transfer;
+                return __('Buckmerce: transfer cancelled.', 'buckmerce-plaid') . $transfer;
             case PaymentState::RETURNED:
-                return __('Buckmerce: ACH RETURN — the bank payment was returned and the funds reversed', 'buckmerce-for-plaid') . $reason . '.' . $description . $transfer;
+                return __('Buckmerce: ACH RETURN — the bank payment was returned and the funds reversed', 'buckmerce-plaid') . $reason . '.' . $description . $transfer;
             case PaymentState::MANUAL_REVIEW:
-                return __('Buckmerce: payment requires manual review', 'buckmerce-for-plaid') . ' (' . self::code($context['reason'] ?? 'manual_review') . ').' . $transfer;
+                return __('Buckmerce: payment requires manual review', 'buckmerce-plaid') . ' (' . self::code($context['reason'] ?? 'manual_review') . ').' . $transfer;
         }
-        return sprintf(/* translators: %s: payment state */ __('Buckmerce: payment state changed to %s.', 'buckmerce-for-plaid'), $state);
+        return sprintf(/* translators: %s: payment state */ __('Buckmerce: payment state changed to %s.', 'buckmerce-plaid'), $state);
     }
 
     public static function code(string $code): string

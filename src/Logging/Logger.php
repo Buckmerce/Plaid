@@ -9,7 +9,7 @@ use Buckmerce\Plaid\Settings\Settings;
 /** Structured WooCommerce logger with mandatory recursive redaction. */
 final class Logger
 {
-    public const SOURCE = 'buckmerce-for-plaid';
+    public const SOURCE = 'buckmerce-plaid';
 
     /** @param array<string, mixed> $context */
     public function log(string $level, string $event, array $context = array()): void

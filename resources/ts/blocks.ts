@@ -47,7 +47,7 @@ declare global {
 		return;
 	}
 	const decode = ( value: string ): string => ( entities ? entities.decodeEntities( value ) : value );
-	const translate = ( text: string ): string => ( i18n ? i18n.__( text, 'buckmerce-for-plaid' ) : text );
+	const translate = ( text: string ): string => ( i18n ? i18n.__( text, 'buckmerce-plaid' ) : text );
 	const data = settings.getSetting< BuckmerceBlockData >( 'buckmerce_plaid_data', {} );
 	const title = decode( data.title || translate( 'Pay by Bank' ) );
 	const description = decode( data.description || translate( 'Securely pay directly from your bank account.' ) );

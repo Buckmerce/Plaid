@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # Regenerates the translation template and every bundled translation with WP-CLI (wp i18n):
-#   1. languages/buckmerce-for-plaid.pot from the PHP sources (left untouched when only its
+#   1. languages/buckmerce-plaid.pot from the PHP sources (left untouched when only its
 #      creation date would change);
-#   2. merges added and removed strings into every languages/buckmerce-for-plaid-<locale>.po
+#   2. merges added and removed strings into every languages/buckmerce-plaid-<locale>.po
 #      (wp i18n update-po) — new strings arrive untranslated;
 #   3. compiles .mo and .l10n.php files (wp i18n make-mo / make-php) and script translation
 #      JSON files when a .po contains JavaScript strings (wp i18n make-json).
 # After translating new strings run this script again; scripts/check-translations.sh must pass.
-# A new locale starts as a copy of the .pot named buckmerce-for-plaid-<locale>.po with the
+# A new locale starts as a copy of the .pot named buckmerce-plaid-<locale>.po with the
 # "Language" and "Plural-Forms" headers of that locale.
 set -euo pipefail
 

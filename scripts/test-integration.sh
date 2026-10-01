@@ -8,8 +8,8 @@ base_dir=$(cd "$(dirname "$0")/.." && pwd)
 bmfp_base_dir=$base_dir
 # shellcheck source=lib/test-env.sh
 . "$base_dir/scripts/lib/test-env.sh"
-plugin_version=$(grep -m1 '^ \* Version:' "$base_dir/buckmerce-for-plaid.php" | sed -E 's/^ \* Version:[[:space:]]*//')
-plugin_zip=${BUCKMERCE_PLAID_TEST_PLUGIN_ZIP:-"$base_dir/dist/buckmerce-for-plaid-$plugin_version.zip"}
+plugin_version=$(grep -m1 '^ \* Version:' "$base_dir/buckmerce-plaid.php" | sed -E 's/^ \* Version:[[:space:]]*//')
+plugin_zip=${BUCKMERCE_PLAID_TEST_PLUGIN_ZIP:-"$base_dir/dist/buckmerce-plaid-$plugin_version.zip"}
 if [[ ! -f "$plugin_zip" ]]; then
     printf 'Build the release ZIP (npm run plugin-zip) before running integration tests.\n' >&2
     exit 1
@@ -99,6 +99,6 @@ if [[ -n "$php_problems" ]]; then
     exit 1
 fi
 
-"${wp_cli[@]}" plugin deactivate buckmerce-for-plaid
+"${wp_cli[@]}" plugin deactivate buckmerce-plaid
 "${wp_cli[@]}" eval-file "$base_dir/tests/Integration/wp-cli-uninstall-smoke.php" --use-include
 printf 'Buckmerce integration suite passed.\n'

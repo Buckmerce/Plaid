@@ -13,8 +13,8 @@ base_dir=$(cd "$(dirname "$0")/.." && pwd)
 bmfp_base_dir=$base_dir
 # shellcheck source=lib/test-env.sh
 . "$base_dir/scripts/lib/test-env.sh"
-plugin_version=$(grep -m1 '^ \* Version:' "$base_dir/buckmerce-for-plaid.php" | sed -E 's/^ \* Version:[[:space:]]*//')
-plugin_zip=${BUCKMERCE_PLAID_TEST_PLUGIN_ZIP:-"$base_dir/dist/buckmerce-for-plaid-$plugin_version.zip"}
+plugin_version=$(grep -m1 '^ \* Version:' "$base_dir/buckmerce-plaid.php" | sed -E 's/^ \* Version:[[:space:]]*//')
+plugin_zip=${BUCKMERCE_PLAID_TEST_PLUGIN_ZIP:-"$base_dir/dist/buckmerce-plaid-$plugin_version.zip"}
 [[ -f "$plugin_zip" ]] || { printf 'Build the release ZIP first.\n' >&2; exit 1; }
 if [[ -f "$plugin_zip.sha256" ]]; then
     (cd "$(dirname "$plugin_zip")" && sha256sum -c "$(basename "$plugin_zip").sha256" >/dev/null) || { printf 'ZIP does not match its recorded SHA-256.\n' >&2; exit 1; }
@@ -95,7 +95,7 @@ smoke_store() {
         if ((getenv("BMFP_HPOS") === "yes") !== Automattic\WooCommerce\Utilities\OrderUtil::custom_orders_table_usage_is_enabled()) { $fail("HPOS mode"); }
         foreach (array("custom_order_tables", "cart_checkout_blocks") as $feature) {
             $compatible = Automattic\WooCommerce\Utilities\FeaturesUtil::get_compatible_plugins_for_feature($feature);
-            if (! in_array("buckmerce-for-plaid/buckmerce-for-plaid.php", $compatible["compatible"] ?? array(), true)) { $fail("compatibility " . $feature); }
+            if (! in_array("buckmerce-plaid/buckmerce-plaid.php", $compatible["compatible"] ?? array(), true)) { $fail("compatibility " . $feature); }
         }
         WC()->payment_gateways()->init();
         $gateway = WC()->payment_gateways()->payment_gateways()["buckmerce_plaid"] ?? null;
@@ -106,7 +106,7 @@ smoke_store() {
         $html = $gateway->generate_settings_html($fields, false);
         if (! str_contains($html, "bmfp-status-panel") || ! str_contains($html, "Incomplete")) { $fail("settings screen and status"); }
         $routes = rest_get_server()->get_routes();
-        foreach (array("/buckmerce-for-plaid/v1/webhook", "/buckmerce-for-plaid/v1/link-token", "/buckmerce-for-plaid/v1/complete") as $route) { if (! isset($routes[$route])) { $fail("REST route " . $route); } }
+        foreach (array("/buckmerce-plaid/v1/webhook", "/buckmerce-plaid/v1/link-token", "/buckmerce-plaid/v1/complete") as $route) { if (! isset($routes[$route])) { $fail("REST route " . $route); } }
         $registry = Automattic\WooCommerce\Blocks\Package::container()->get(Automattic\WooCommerce\Blocks\Payments\PaymentMethodRegistry::class);
         if (! $registry->is_registered("buckmerce_plaid")) { do_action("woocommerce_blocks_payment_method_type_registration", $registry); }
         if (! $registry->is_registered("buckmerce_plaid")) { $fail("Checkout Blocks registration"); }
@@ -122,16 +122,35 @@ smoke_store() {
         ob_start();
         (new Buckmerce\Plaid\Admin\OrderMetaBox())->render(wc_get_order($order->get_id()));
         if (! str_contains((string) ob_get_clean(), "bmfp-order-panel")) { $fail("order panel"); }
+        // Everything the plugin runs is inside the installed ZIP: its main file, every loaded class
+        // (the prefixed library included), its assets and its bundled translations.
+        $root = wp_normalize_path(WP_PLUGIN_DIR . "/buckmerce-plaid/");
+        if ($root . "buckmerce-plaid.php" !== wp_normalize_path(BUCKMERCE_PLAID_FILE) || $root !== wp_normalize_path(BUCKMERCE_PLAID_DIR)) { $fail("the plugin does not run from " . $root); }
+        if (! str_ends_with(BUCKMERCE_PLAID_URL, "/wp-content/plugins/buckmerce-plaid/")) { $fail("asset URL base " . BUCKMERCE_PLAID_URL); }
+        $loaded = 0;
+        foreach (array_merge(get_declared_classes(), get_declared_interfaces(), get_declared_traits()) as $class) {
+            if (! str_starts_with($class, "Buckmerce\\Plaid\\")) { continue; }
+            ++$loaded;
+            if (! str_starts_with(wp_normalize_path((string) (new ReflectionClass($class))->getFileName()), $root)) { $fail("loaded from outside the installed ZIP: " . $class); }
+        }
+        if ($loaded < 20) { $fail("the plugin classes were not loaded"); }
+        if (! class_exists("Buckmerce\\Plaid\\Vendor\\Firebase\\JWT\\JWT") || class_exists("Firebase\\JWT\\JWT", false)) { $fail("the bundled JWT library must be the prefixed copy of the ZIP"); }
+        foreach (array("assets/admin-settings.css", "assets/payment-page.css", "assets/build/admin-settings.js", "assets/build/blocks.js", "assets/build/payment-page.js", "assets/images/buckmerce-mark.svg", "languages/buckmerce-plaid.pot", "composer.json") as $shipped) {
+            if (! is_readable(BUCKMERCE_PLAID_DIR . $shipped)) { $fail("missing shipped file " . $shipped); }
+        }
+        foreach (array("tests", "docs", "scripts", "resources", "vendor", "node_modules", ".github", ".env", "package.json", "README.md") as $development) {
+            if (file_exists(BUCKMERCE_PLAID_DIR . $development)) { $fail("development file installed: " . $development); }
+        }
         WP_CLI::success("Runtime checks passed for " . $version);
     '
     [[ -z "$(problems)" ]] || { printf 'PHP problems during runtime checks:\n%s\n' "$(problems)" >&2; return 1; }
 
     printf '== Deactivate and uninstall with default settings (financial data retained)\n'
     "${wp_cli[@]}" eval 'update_option("woocommerce_buckmerce_plaid_settings", array("enabled" => "no", "delete_data_on_uninstall" => "no"));'
-    "${wp_cli[@]}" plugin deactivate buckmerce-for-plaid >/dev/null
-    "${wp_cli[@]}" eval 'foreach (array("buckmerce_plaid_transfer_event_sync", "buckmerce_plaid_reconcile", "buckmerce_plaid_reconcile_continue") as $hook) { if (as_has_scheduled_action($hook, array(), "buckmerce-for-plaid")) { WP_CLI::error("Deactivation must unschedule " . $hook); } }'
-    "${wp_cli[@]}" plugin uninstall buckmerce-for-plaid >/dev/null
-    [[ ! -d "$site_dir/wp-content/plugins/buckmerce-for-plaid" ]] || { printf 'Plugin files were not removed.\n' >&2; return 1; }
+    "${wp_cli[@]}" plugin deactivate buckmerce-plaid >/dev/null
+    "${wp_cli[@]}" eval 'foreach (array("buckmerce_plaid_transfer_event_sync", "buckmerce_plaid_reconcile", "buckmerce_plaid_reconcile_continue") as $hook) { if (as_has_scheduled_action($hook, array(), "buckmerce-plaid")) { WP_CLI::error("Deactivation must unschedule " . $hook); } }'
+    "${wp_cli[@]}" plugin uninstall buckmerce-plaid >/dev/null
+    [[ ! -d "$site_dir/wp-content/plugins/buckmerce-plaid" ]] || { printf 'Plugin files were not removed.\n' >&2; return 1; }
     "${wp_cli[@]}" eval 'global $wpdb; if ($wpdb->prefix . "buckmerce_plaid_refunds" !== $wpdb->get_var("SHOW TABLES LIKE \"{$wpdb->prefix}buckmerce_plaid_refunds\"") || false === get_option("woocommerce_buckmerce_plaid_settings")) { WP_CLI::error("Default uninstall must keep Buckmerce data."); } WP_CLI::success("Default uninstall kept settings and payment history.");'
     [[ -z "$(problems)" ]] || { printf 'PHP problems during uninstall:\n%s\n' "$(problems)" >&2; return 1; }
     printf 'Pristine store passed (HPOS=%s): %s on WordPress %s + WooCommerce %s.\n' "$hpos" "$(basename "$plugin_zip")" "$("${wp_cli[@]}" core version)" "$("${wp_cli[@]}" eval 'echo WC_VERSION;' 2>/dev/null || echo 'n/a')"

@@ -27,13 +27,13 @@ final class MerchantNotifier
         }
         $subject = sprintf(
             /* translators: 1: site name, 2: alert subject */
-            __('[%1$s] %2$s', 'buckmerce-for-plaid'),
+            __('[%1$s] %2$s', 'buckmerce-plaid'),
             wp_specialchars_decode((string) get_bloginfo('name'), ENT_QUOTES),
             $subject
         );
         $body .= "\n\n" . sprintf(
             /* translators: %s: order admin URL */
-            __('Review the order: %s', 'buckmerce-for-plaid'),
+            __('Review the order: %s', 'buckmerce-plaid'),
             $order->get_edit_order_url()
         );
         wp_mail($valid, $subject, $body);

@@ -67,7 +67,7 @@ final class Command
             return;
         }
         \WP_CLI::line((string) wp_json_encode($result));
-        'failed' === $result['status'] ? \WP_CLI::error('Event sync failed; see the buckmerce-for-plaid logs.') : \WP_CLI::success('Event sync finished.');
+        'failed' === $result['status'] ? \WP_CLI::error('Event sync failed; see the buckmerce-plaid logs.') : \WP_CLI::success('Event sync finished.');
     }
 
     /**
@@ -89,12 +89,12 @@ final class Command
         }
         \WP_CLI::line((string) wp_json_encode($result));
         if ('failed' === $result['status']) {
-            \WP_CLI::error('Reconciliation failed; see the buckmerce-for-plaid logs.');
+            \WP_CLI::error('Reconciliation failed; see the buckmerce-plaid logs.');
         }
         // A pass keeps going when its first step, the Plaid event sync, fails (payments and refunds
         // are still re-read), and reports "ok". An operator must not read that as "Plaid answered".
         if (EventSyncService::failures($scope) > $sync_failures) {
-            \WP_CLI::error('Reconciliation ran, but its Plaid event sync failed; see the buckmerce-for-plaid logs.');
+            \WP_CLI::error('Reconciliation ran, but its Plaid event sync failed; see the buckmerce-plaid logs.');
         }
         \WP_CLI::success('Reconciliation finished.');
     }

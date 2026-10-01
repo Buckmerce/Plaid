@@ -7,8 +7,8 @@ base_dir=$(cd "$(dirname "$0")/.." && pwd)
 bmfp_base_dir=$base_dir
 # shellcheck source=lib/test-env.sh
 . "$base_dir/scripts/lib/test-env.sh"
-plugin_version=$(grep -m1 '^ \* Version:' "$base_dir/buckmerce-for-plaid.php" | sed -E 's/^ \* Version:[[:space:]]*//')
-plugin_zip=${BUCKMERCE_PLAID_TEST_PLUGIN_ZIP:-"$base_dir/dist/buckmerce-for-plaid-$plugin_version.zip"}
+plugin_version=$(grep -m1 '^ \* Version:' "$base_dir/buckmerce-plaid.php" | sed -E 's/^ \* Version:[[:space:]]*//')
+plugin_zip=${BUCKMERCE_PLAID_TEST_PLUGIN_ZIP:-"$base_dir/dist/buckmerce-plaid-$plugin_version.zip"}
 if [[ ! -f "$plugin_zip" ]]; then
     printf 'Build the release ZIP (npm run plugin-zip) before running Plugin Check.\n' >&2
     exit 1
@@ -49,7 +49,7 @@ fi
 "${wp_cli[@]}" plugin install plugin-check --version="${BUCKMERCE_PLAID_PLUGIN_CHECK_VERSION:-2.1.0}" --activate --quiet
 "${wp_cli[@]}" plugin install "$plugin_zip" --activate >/dev/null
 
-report=$("${wp_cli[@]}" plugin check buckmerce-for-plaid --format=csv --include-experimental 2>&1 || true)
+report=$("${wp_cli[@]}" plugin check buckmerce-plaid --format=csv --include-experimental 2>&1 || true)
 printf '%s\n' "$report"
 
 # No allowlist: the plugin name ("Buckmerce – Bank Payments via Plaid for WooCommerce") follows the

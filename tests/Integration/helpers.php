@@ -142,7 +142,7 @@ function bmfp_note_count(WC_Order $order, string $needle): int
 /** @return array{status:int, data:mixed} */
 function bmfp_rest(string $route, array $body = array(), array $headers = array(), ?string $raw_body = null): array
 {
-    $request = new WP_REST_Request('POST', '/buckmerce-for-plaid/v1' . $route);
+    $request = new WP_REST_Request('POST', '/buckmerce-plaid/v1' . $route);
     if (null !== $raw_body) {
         $request->set_body($raw_body);
         $request->set_header('content-type', 'application/json');
@@ -158,7 +158,7 @@ function bmfp_rest(string $route, array $body = array(), array $headers = array(
 
 function bmfp_run_scheduled(string $hook): int
 {
-    $ids = as_get_scheduled_actions(array('hook' => $hook, 'group' => 'buckmerce-for-plaid', 'status' => ActionScheduler_Store::STATUS_PENDING), 'ids');
+    $ids = as_get_scheduled_actions(array('hook' => $hook, 'group' => 'buckmerce-plaid', 'status' => ActionScheduler_Store::STATUS_PENDING), 'ids');
     foreach ($ids as $id) {
         ActionScheduler::runner()->process_action($id, 'bmfp-test');
     }
@@ -167,13 +167,13 @@ function bmfp_run_scheduled(string $hook): int
 
 function bmfp_pending_actions(string $hook): int
 {
-    return count(as_get_scheduled_actions(array('hook' => $hook, 'group' => 'buckmerce-for-plaid', 'status' => ActionScheduler_Store::STATUS_PENDING), 'ids'));
+    return count(as_get_scheduled_actions(array('hook' => $hook, 'group' => 'buckmerce-plaid', 'status' => ActionScheduler_Store::STATUS_PENDING), 'ids'));
 }
 
 function bmfp_reset_world(): void
 {
     Buckmerce_Test_Plaid_Mock::reset();
-    as_unschedule_all_actions('buckmerce_plaid_transfer_event_sync', array(), 'buckmerce-for-plaid');
+    as_unschedule_all_actions('buckmerce_plaid_transfer_event_sync', array(), 'buckmerce-plaid');
     delete_option('buckmerce_plaid_payment_alerts');
     global $wpdb;
     // Event cursors and event-sync health of every Plaid account scope.

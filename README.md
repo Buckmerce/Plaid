@@ -7,7 +7,7 @@ window closes, and refunds it natively through Plaid.
 
 | | |
 |---|---|
-| Plugin slug | `buckmerce-for-plaid` |
+| Plugin slug | `buckmerce-plaid` |
 | Gateway ID | `buckmerce_plaid` |
 | PHP namespace | `Buckmerce\Plaid` |
 | Version | 1.0.0 |
@@ -84,7 +84,7 @@ Key design points (details in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and
 
 ## Installation
 
-1. Download `buckmerce-for-plaid-<version>.zip` from the GitHub release (or build it, see
+1. Download `buckmerce-plaid-<version>.zip` from the GitHub release (or build it, see
    [Development](#development)).
 2. WordPress admin → **Plugins → Add New → Upload Plugin**, upload the ZIP and activate.
    Activation creates the three Buckmerce tables (events, payment index, refunds) and verifies
@@ -112,7 +112,7 @@ customization, schema, webhook route, last connection test, background jobs, WP-
 | Payment network | Same Day ACH | `same-day-ach` or `ach`. |
 | Mark order paid when | Funds available | `funds_available` (recommended) or `settled`. |
 | **Advanced and logging** | | |
-| Debug logging | off | Redacted logs in WooCommerce → Status → Logs (source `buckmerce-for-plaid`). |
+| Debug logging | off | Redacted logs in WooCommerce → Status → Logs (source `buckmerce-plaid`). |
 | Uninstall cleanup | off | When on, deleting the plugin removes Buckmerce settings, event/refund history and tables. Order payment data is always kept. |
 
 The ACH class is always **WEB** (Transfer UI is a Nacha WEB authorization, [ADR-0013](docs/adr/0013-transfer-ui-configuration.md)).
@@ -128,7 +128,7 @@ funding-account advice).
 
 - Enable **Transfer** for the environment you use.
 - Register the webhook in Plaid Dashboard → **Team Settings → Webhooks → New Webhook**, event type
-  **Transfer event**, URL `https://<your-store>/wp-json/buckmerce-for-plaid/v1/webhook`
+  **Transfer event**, URL `https://<your-store>/wp-json/buckmerce-plaid/v1/webhook`
   (shown with a copy button on the settings screen). Plaid allows one Transfer webhook URL
   per environment.
 - Without a registered webhook (for example before Production access is granted) payments
@@ -197,14 +197,14 @@ Transitions, ranks and conflict rules: [`docs/STATE_MACHINE.md`](docs/STATE_MACH
 
 ## Webhooks, event sync and reconciliation
 
-- `POST /wp-json/buckmerce-for-plaid/v1/webhook` accepts only bodies signed by Plaid:
+- `POST /wp-json/buckmerce-plaid/v1/webhook` accepts only bodies signed by Plaid:
   ES256 JWT in `Plaid-Verification`, key fetched by `kid` from
   `/webhook_verification_key/get` (cached, rate-limited, negative-cached), `iat` at most
   5 minutes old, constant-time SHA-256 body hash comparison. Invalid webhooks return an
   error and never touch orders; key-lookup failures and Plaid rate limiting return 503 so
   Plaid retries.
 - A valid `TRANSFER_EVENTS_UPDATE` schedules `/transfer/event/sync` through Action Scheduler
-  (group `buckmerce-for-plaid`, hook `buckmerce_plaid_transfer_event_sync`). The cursor
+  (group `buckmerce-plaid`, hook `buckmerce_plaid_transfer_event_sync`). The cursor
   (`after_id`) advances only after events are durably stored.
 - Transfers that do not belong to this store (another integration or store on the same
   Plaid account, another environment, an unknown attempt) are recorded as `ignored`
@@ -286,7 +286,7 @@ Prerequisites: PHP 8.1+ with `mysqli`, Composer 2, Node.js 22, WP-CLI 2.x, MySQL
 composer install     # dev tools; also regenerates vendor-prefixed/ via Strauss
 npm ci
 npm run build        # Parcel: TypeScript + SCSS → assets/
-npm run plugin-zip   # build + dist/buckmerce-for-plaid-<version>.zip
+npm run plugin-zip   # build + dist/buckmerce-plaid-<version>.zip
 ```
 
 `vendor-prefixed/` (the prefixed runtime dependency) is committed so releases do not need
@@ -357,7 +357,7 @@ ZIP that pipeline built and tested (same SHA-256). See
 ## Project layout
 
 ```
-buckmerce-for-plaid.php   bootstrap: header, constants, autoloaders, activation hooks
+buckmerce-plaid.php   bootstrap: header, constants, autoloaders, activation hooks
 uninstall.php             conservative, opt-in cleanup of Buckmerce-owned data only
 src/
   Admin/                  configuration status, connection test, order panel, orders-list column, diagnostics, Site Health, notices

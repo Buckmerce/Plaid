@@ -20,9 +20,9 @@ use Buckmerce\Plaid\Payment\PaymentState;
 use Buckmerce\Plaid\Payment\ReturnRetryPolicy;
 use Buckmerce\Plaid\Settings\Settings;
 
-$domain = 'buckmerce-for-plaid';
+$domain = 'buckmerce-plaid';
 $locale = 'ru_RU';
-$languages = WP_PLUGIN_DIR . '/buckmerce-for-plaid/languages';
+$languages = WP_PLUGIN_DIR . '/buckmerce-plaid/languages';
 
 WP_CLI::log('The release ZIP ships the template and the compiled translation');
 bmfp_assert_same($locale, get_locale(), 'The site locale is ' . $locale . '.');
