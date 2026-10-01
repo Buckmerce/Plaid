@@ -97,8 +97,15 @@ async page => {
 	};
 	const accessibilityScans = [];
 	const activeIsPayButton = () => page.evaluate( () => document.activeElement === document.querySelector( '[data-pbfp-pay]' ) );
+	// The phase reached is reported with any failure, so a CI log says where the run stopped.
+	let currentPhase = 'start';
+	const phase = ( name ) => {
+		currentPhase = name;
+	};
+	try {
 
 	// ---------------------------------------------------------------- admin
+	phase( 'admin' );
 	await page.goto( baseUrl + '/wp-login.php', { waitUntil: 'domcontentloaded' } );
 	await page.fill( '#user_login', 'pbfp_admin' );
 	await page.fill( '#user_pass', 'local-test-password' );
@@ -131,6 +138,7 @@ async page => {
 	await page.context().clearCookies();
 
 	// ------------------------------------------------------ classic checkout
+	phase( 'classic checkout' );
 	const classicCheckout = async () => {
 		await page.goto( baseUrl + '/?add-to-cart=' + productId, { waitUntil: 'domcontentloaded' } );
 		await page.goto( baseUrl + '/classic-checkout/', { waitUntil: 'networkidle' } );
@@ -178,6 +186,7 @@ async page => {
 	assert( state.paid && state.payment_state === 'funds_available', 'Plaid events mark the order paid only at funds_available.' );
 
 	// ----------------------------------------------- failure / exit / retry UX
+	phase( 'failure / exit / retry UX' );
 	await classicCheckout();
 	orderId = orderIdFromUrl();
 	await payButton.waitFor();
@@ -210,6 +219,7 @@ async page => {
 	const returningOrder = orderId;
 
 	// -------------------------------------------- access control (new session)
+	phase( 'access control (new session)' );
 	await classicCheckout();
 	const protectedUrl = page.url();
 	const unpaidOrder = orderIdFromUrl();
@@ -219,6 +229,7 @@ async page => {
 	assert( ( await page.content() ).includes( 'This payment session has expired' ), 'Access denial message is shown.' );
 
 	// ------------------------------------------------ Plaid Link unavailable
+	phase( 'Plaid Link unavailable' );
 	await classicCheckout();
 	plaidAvailable = false;
 	await page.reload( { waitUntil: 'domcontentloaded' } );
@@ -227,6 +238,7 @@ async page => {
 	plaidAvailable = true;
 
 	// --------------------------------------------------------- Checkout Blocks
+	phase( 'Checkout Blocks' );
 	await json( '/?pbfp_e2e_checkout=blocks' );
 	await page.goto( baseUrl + '/?add-to-cart=' + productId, { waitUntil: 'domcontentloaded' } );
 	await page.goto( baseUrl + '/blocks-checkout/', { waitUntil: 'networkidle' } );
@@ -251,6 +263,7 @@ async page => {
 	await json( '/?pbfp_e2e_checkout=classic' );
 
 	// ------------------------------------ misconfiguration and unsupported currency
+	phase( 'misconfiguration and unsupported currency' );
 	await json( '/?pbfp_e2e_config=secretless' );
 	let offered = await methodOffered();
 	assert( offered.classic === 0 && offered.blocks === 0, 'A misconfigured gateway is offered in neither checkout: ' + JSON.stringify( offered ) );
@@ -262,6 +275,7 @@ async page => {
 	assert( offered.classic === 1 && offered.blocks === 1, 'Restored configuration is offered in both checkouts: ' + JSON.stringify( offered ) );
 
 	// ------------------------------------------- already-paid and cancelled orders
+	phase( 'already-paid and cancelled orders' );
 	state = await json( '/?pbfp_e2e_order=' + firstPaidOrder );
 	await page.goto( state.pay_url, { waitUntil: 'domcontentloaded' } );
 	assert( ( await page.locator( '[data-pbfp-pay]' ).count() ) === 0 && ( await page.content() ).includes( 'cannot be paid' ), 'An already-paid order cannot be paid again.' );
@@ -271,6 +285,7 @@ async page => {
 	assert( ( await page.locator( '[data-pbfp-pay]' ).count() ) === 0 && ( await page.content() ).includes( 'cannot be paid' ), 'A cancelled order cannot be paid.' );
 
 	// --------------------------------------- logged-in customer: Classic and Blocks
+	phase( 'logged-in customer: Classic and Blocks' );
 	const customer = await json( '/?pbfp_e2e_customer=1' );
 	await page.context().clearCookies();
 	await page.goto( baseUrl + '/wp-login.php', { waitUntil: 'domcontentloaded' } );
@@ -304,6 +319,7 @@ async page => {
 	await page.context().clearCookies();
 
 	// ---------------------------------------------- admin: native refunds and returns
+	phase( 'admin: native refunds and returns' );
 	await page.goto( baseUrl + '/wp-login.php', { waitUntil: 'domcontentloaded' } );
 	await page.fill( '#user_login', 'pbfp_admin' );
 	await page.fill( '#user_pass', 'local-test-password' );
@@ -316,7 +332,16 @@ async page => {
 	await page.locator( '#refund_amount' ).fill( '5.00' );
 	const refundButton = page.locator( 'button.do-api-refund' );
 	assert( ( await refundButton.textContent() ).includes( 'via PayBridge for Plaid' ), 'WooCommerce offers an automatic refund through the gateway.' );
-	page.once( 'dialog', ( dialog ) => dialog.accept() );
+	// WooCommerce asks "Are you sure…?" with window.confirm(). A native dialog would end the
+	// playwright-cli run (it reports a "Modal state" instead of continuing), so the merchant's
+	// confirmation is given in the page itself.
+	await page.evaluate( () => {
+		window.__pbfpConfirmed = [];
+		window.confirm = ( message ) => {
+			window.__pbfpConfirmed.push( String( message ) );
+			return true;
+		};
+	} );
 	await Promise.all( [ page.waitForNavigation( { timeout: 30000 } ), refundButton.click() ] );
 	state = await json( '/?pbfp_e2e_order=' + firstPaidOrder );
 	assert( state.refund_creates === 1, 'Exactly one Plaid refund from the WooCommerce admin refund.' );
@@ -342,19 +367,27 @@ async page => {
 	await axe( '.pbfp-order-panel', 'order payment panel (returned)' );
 	await page.context().clearCookies();
 
-	// ------------------------ repayment after a return through the WooCommerce pay link
+	// ------------------------ no same-order bank debit after a return (ADR-0019)
+	phase( 'blocked repayment after a return' );
 	const beforeRepay = await json( '/?pbfp_e2e_order=' + returningOrder );
-	assert( beforeRepay.needs_payment, 'A returned order can be paid again.' );
+	assert( beforeRepay.needs_payment && beforeRepay.payment_state === 'returned', 'Precondition: a returned, unpaid order.' );
 	await page.goto( beforeRepay.pay_url, { waitUntil: 'networkidle' } );
-	await page.locator( '#payment_method_paybridge_plaid' ).check();
-	await Promise.all( [ page.waitForURL( /order-pay\/\d+\/\?key=/, { timeout: 30000 } ), page.locator( '#place_order' ).click() ] );
-	await page.locator( '[data-pbfp-pay]' ).waitFor();
-	await page.evaluate( () => { window.__pbfpOutcome = 'success'; } );
-	await page.locator( '[data-pbfp-pay]' ).click();
-	await page.waitForURL( /order-received\/\d+/, { timeout: 30000 } );
+	assert( ( await page.locator( '#payment_method_paybridge_plaid' ).count() ) === 0, 'Pay by Bank is not offered to pay a returned order again.' );
+	const returnedNotice = page.locator( '.pbfp-returned-notice' );
+	assert( await returnedNotice.isVisible(), 'The customer is told why Pay by Bank is unavailable.' );
+	assert( ! ( await returnedNotice.textContent() ).match( /R0\d|R1\d/ ), 'The customer message carries no return codes.' );
+	await axe( '.pbfp-returned-notice', 'returned payment notice (order-pay)' );
+	const blockedRequests = linkTokenRequests;
+	await page.goto( beforeRepay.receipt_url, { waitUntil: 'networkidle' } );
+	assert( ( await page.locator( '[data-pbfp-pay]' ).count() ) === 0, 'The PayBridge payment page offers no pay button for a returned order.' );
 	const afterRepay = await json( '/?pbfp_e2e_order=' + returningOrder );
-	assert( afterRepay.transfer_id && afterRepay.transfer_id !== beforeRepay.transfer_id && afterRepay.intent_id !== beforeRepay.intent_id && afterRepay.status === 'on-hold', 'Repayment is a new attempt with a new intent and transfer.' );
+	assert( afterRepay.creates === beforeRepay.creates && afterRepay.link_tokens === beforeRepay.link_tokens && linkTokenRequests === blockedRequests, 'No Transfer Intent or Link token was created for the returned order.' );
+	assert( afterRepay.transfer_id === beforeRepay.transfer_id && afterRepay.payment_state === 'returned', 'The returned transfer stays the order\'s auditable attempt.' );
 
 	assert( consoleErrors.length === 0, 'No browser console errors: ' + consoleErrors.join( ' | ' ) );
 	return 'PayBridge browser smoke passed; accessibility scans: ' + accessibilityScans.join( ', ' ) + '.';
+	} catch ( error ) {
+		error.message = '[E2E phase: ' + currentPhase + ' | ' + page.url() + '] ' + error.message;
+		throw error;
+	}
 }

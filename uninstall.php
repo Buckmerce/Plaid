@@ -28,20 +28,21 @@ foreach (
     array(
         'woocommerce_paybridge_plaid_settings',
         'paybridge_plaid_schema_version',
-        'paybridge_plaid_event_cursor_sandbox',
-        'paybridge_plaid_event_cursor_production',
-        'paybridge_plaid_last_event_sync',
-        'paybridge_plaid_last_event_sync_error',
         'paybridge_plaid_last_reconciliation',
         'paybridge_plaid_last_reconciliation_error',
         'paybridge_plaid_last_connection_test',
         'paybridge_plaid_payment_alerts',
         'paybridge_plaid_last_webhook',
         'paybridge_plaid_last_webhook_rejection',
+        'paybridge_plaid_last_link_token_error',
+        // Schema-2 options kept after the upgrade to schema 3 for auditing.
+        'paybridge_plaid_event_cursor_sandbox',
+        'paybridge_plaid_event_cursor_production',
         'paybridge_plaid_first_intent_at_sandbox',
         'paybridge_plaid_first_intent_at_production',
+        'paybridge_plaid_last_event_sync',
+        'paybridge_plaid_last_event_sync_error',
         'paybridge_plaid_event_sync_failures',
-        'paybridge_plaid_last_link_token_error',
     ) as $pbfp_option
 ) {
     delete_option($pbfp_option);
@@ -50,6 +51,23 @@ foreach (
 global $wpdb;
 
 // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Opt-in uninstall cleanup of plugin-owned data only.
+
+// Per Plaid account options (event cursor, payment epoch, event-sync health):
+// paybridge_plaid_{kind}_{environment}_{16-hex account fingerprint}. Matched exactly, never by prefix guessing.
+foreach (array('paybridge_plaid_event_cursor_', 'paybridge_plaid_first_intent_at_', 'paybridge_plaid_event_sync_') as $pbfp_prefix) {
+    $pbfp_names = $wpdb->get_col(
+        $wpdb->prepare(
+            'SELECT option_name FROM %i WHERE option_name LIKE %s',
+            $wpdb->options,
+            $wpdb->esc_like($pbfp_prefix) . '%'
+        )
+    );
+    foreach (is_array($pbfp_names) ? $pbfp_names : array() as $pbfp_name) {
+        if (is_string($pbfp_name) && 1 === preg_match('/^paybridge_plaid_(event_cursor|first_intent_at|event_sync)_(sandbox|production)_[a-f0-9]{16}$/', $pbfp_name)) {
+            delete_option($pbfp_name);
+        }
+    }
+}
 
 // Transients created by PayBridge use the plugin-owned "pbfp_" prefix. Resolve exact
 // names first so delete_transient() also clears any persistent object cache.

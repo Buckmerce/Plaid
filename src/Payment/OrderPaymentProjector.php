@@ -192,6 +192,11 @@ final class OrderPaymentProjector
             return;
         }
         $code = (string) $order->get_meta(OrderMeta::RETURN_CODE, true);
+        $retry = ReturnRetryPolicy::for_order($order);
+        if ($retry->is_blocked()) {
+            // Plaid restricts reprocessing returned debits; PayBridge never re-debits this order (ADR-0019).
+            $order->add_order_note(__('PayBridge: this order will not be debited again by bank.', 'paybridge-for-plaid') . ' ' . ReturnRetryPolicy::merchant_explanation($retry));
+        }
         $exposure = null === $this->return_listener ? array('count' => 0, 'amount' => '0.00') : $this->return_listener->on_payment_returned($order, $transfer_id);
         if ($exposure['count'] > 0) {
             $this->alerts->add($order, PaymentAlerts::RETURNED_AFTER_REFUND, $code, '', $exposure['amount']);
@@ -224,7 +229,7 @@ final class OrderPaymentProjector
                     __('The bank payment for order #%1$s was returned (%2$s). The funds were reversed. The order is now Failed; its original payment details are kept.', 'paybridge-for-plaid'),
                     $order->get_order_number(),
                     '' === $code ? __('no return code', 'paybridge-for-plaid') : $code
-                )
+                ) . ' ' . ReturnRetryPolicy::merchant_explanation($retry)
             );
         }
         $order->update_meta_data(OrderMeta::RETURN_ALERTED, 'yes');

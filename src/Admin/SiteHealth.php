@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace PayBridge\Plaid\Admin;
 
 use PayBridge\Plaid\Background\Scheduler;
-use PayBridge\Plaid\Persistence\PaymentEpoch;
+use PayBridge\Plaid\Persistence\Installer;
+use PayBridge\Plaid\Persistence\PaymentLockStore;
+use PayBridge\Plaid\Persistence\RefundStore;
 use PayBridge\Plaid\Settings\Settings;
 
 /** Site Health tests. Messages never include credential values. */
@@ -34,8 +36,8 @@ final class SiteHealth
         $status = ConfigurationStatus::evaluate($settings);
         $problems = array_values(array_filter($status['checks'], static fn (array $check): bool => in_array($check['result'], array(ConfigurationStatus::FAIL, ConfigurationStatus::WARN), true)));
         $details = implode(' ', array_map(static fn (array $check): string => $check['label'] . ('' !== $check['help'] ? ': ' . $check['help'] : '') . '.', $problems));
-        if (! $settings->enabled() && null === PaymentEpoch::get($settings->environment_name())) {
-            return $this->result('good', __('PayBridge for Plaid is not in use', 'paybridge-for-plaid'), __('The gateway is disabled and no bank payments exist in the configured environment.', 'paybridge-for-plaid'));
+        if (! $settings->enabled() && ! self::has_open_payments($settings) && ! Scheduler::has_work(Scheduler::pending_work($settings->account_scope()))) {
+            return $this->result('good', __('PayBridge for Plaid is not in use', 'paybridge-for-plaid'), __('The gateway is disabled and no bank payment or refund of the configured Plaid account needs monitoring.', 'paybridge-for-plaid'));
         }
         return match ($status['level']) {
             ConfigurationStatus::INCOMPLETE => $this->result('critical', __('PayBridge for Plaid configuration is incomplete', 'paybridge-for-plaid'), $details),
@@ -63,6 +65,16 @@ final class SiteHealth
             return $this->result('good', __('PayBridge background processing is idle', 'paybridge-for-plaid'), __('No bank payments need monitoring.', 'paybridge-for-plaid'));
         }
         return $this->result('good', __('PayBridge background processing is healthy', 'paybridge-for-plaid'), __('Transfer event sync and reconciliation are running.', 'paybridge-for-plaid'));
+    }
+
+    /** Payments or refunds of ANY Plaid account in the environment that can still change (credentials or not). */
+    private static function has_open_payments(Settings $settings): bool
+    {
+        if (! Installer::schema_is_current()) {
+            return false;
+        }
+        return ( new PaymentLockStore() )->monitored($settings->environment_name())['count'] > 0
+            || ( new RefundStore() )->open_count($settings->environment_name()) > 0;
     }
 
     /** @return array<string, mixed> */

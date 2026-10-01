@@ -14,12 +14,19 @@ final class GatewayAvailabilityTest extends TestCase
     /** @param array<string, string> $overrides */
     private function settings(array $overrides = array()): Settings
     {
-        return Settings::from_array($overrides + array('enabled' => 'yes', 'environment' => 'sandbox', 'client_id' => 'abc123', 'secret' => 's3cr3t'));
+        return Settings::from_array($overrides + array('enabled' => 'yes', 'environment' => 'sandbox', 'client_id' => 'abc123', 'secret' => 's3cr3t', 'link_customization_name' => 'one_account'));
     }
 
-    public function test_configured_sandbox_usd_is_available_without_funding_account_or_customization(): void
+    public function test_configured_sandbox_usd_is_available_without_funding_account(): void
     {
         self::assertSame(array(), GatewayAvailability::problems($this->settings(), 'USD', false));
+    }
+
+    public function test_sandbox_also_requires_a_link_customization(): void
+    {
+        $missing = $this->settings(array('link_customization_name' => ''));
+        self::assertSame(array(GatewayAvailability::MISSING_LINK_CUSTOMIZATION), GatewayAvailability::problems($missing, 'USD', false), 'Sandbox uses the same Transfer UI shape as Production: no unspecified default customization.');
+        self::assertTrue($missing->link_customization_required());
     }
 
     public function test_every_requirement_is_enforced(): void
@@ -37,10 +44,9 @@ final class GatewayAvailabilityTest extends TestCase
         self::assertSame(array(GatewayAvailability::PRODUCTION_REQUIRES_HTTPS), GatewayAvailability::problems($configured, 'USD', false));
         self::assertSame(array(), GatewayAvailability::problems($configured, 'USD', true));
 
-        $missing = $this->settings(array('environment' => 'production'));
+        $missing = $this->settings(array('environment' => 'production', 'link_customization_name' => ''));
         self::assertSame(array(GatewayAvailability::MISSING_LINK_CUSTOMIZATION), GatewayAvailability::problems($missing, 'USD', true), 'Transfer UI needs Account Select “Enabled for one account”: Production fails closed without it.');
         self::assertTrue($missing->link_customization_required());
-        self::assertFalse($this->settings()->link_customization_required(), 'Sandbox may use Plaid\'s default customization.');
     }
 
     public function test_disabled_gateway_blocks_new_payments_but_never_maintenance(): void

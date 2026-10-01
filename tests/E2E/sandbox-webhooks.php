@@ -120,7 +120,7 @@ switch ($step) {
         as_unschedule_all_actions(Scheduler::EVENT_SYNC_HOOK, array(), Scheduler::GROUP);
         $check(0 === $pending_syncs(), 'No event sync is queued before the webhook');
         $captures = $fresh('pbfp_test_webhook_captures');
-        $state(array('captures_before' => is_array($captures) ? count($captures) : 0, 'fired_at' => time(), 'cursor_before' => (string) $fresh('paybridge_plaid_event_cursor_sandbox')));
+        $state(array('captures_before' => is_array($captures) ? count($captures) : 0, 'fired_at' => time(), 'cursor_before' => (string) $fresh(\PayBridge\Plaid\Persistence\EventCursor::option_name(\PayBridge\Plaid\Settings\Settings::load()->account_scope()))));
         break;
 
     case 'rearm':
@@ -179,8 +179,10 @@ switch ($step) {
                 $check($want['return'] === $order->get_meta('_pbfp_return_code', true) && 'yes' === $order->get_meta('_pbfp_return_alerted', true), '$' . $amount . ': ACH return ' . $want['return'] . ' recorded and alerted');
             }
         }
-        $check(strtotime((string) $fresh(EventSyncService::LAST_SYNC_OPTION)) >= (int) ($state()['fired_at'] ?? PHP_INT_MAX), 'Event sync ran after the webhook');
-        $check((string) $fresh('paybridge_plaid_event_cursor_sandbox') !== (string) ($state()['cursor_before'] ?? ''), 'The event cursor advanced');
+        $scope = \PayBridge\Plaid\Settings\Settings::load()->account_scope();
+        wp_cache_delete(EventSyncService::HEALTH_OPTION_PREFIX . $scope->key(), 'options');
+        $check(strtotime(EventSyncService::health($scope)['last_sync']) >= (int) ($state()['fired_at'] ?? PHP_INT_MAX), 'Event sync ran after the webhook');
+        $check((string) $fresh(\PayBridge\Plaid\Persistence\EventCursor::option_name($scope)) !== (string) ($state()['cursor_before'] ?? ''), 'The account event cursor advanced');
         break;
 
     case 'attacks':

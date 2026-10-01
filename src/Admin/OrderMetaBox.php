@@ -15,6 +15,7 @@ use PayBridge\Plaid\Payment\PaymentAlerts;
 use PayBridge\Plaid\Payment\PaymentMonitor;
 use PayBridge\Plaid\Payment\PaymentSnapshot;
 use PayBridge\Plaid\Payment\PaymentState;
+use PayBridge\Plaid\Payment\ReturnRetryPolicy;
 use PayBridge\Plaid\Refund\RefundState;
 use PayBridge\Plaid\Settings\Settings;
 
@@ -88,8 +89,13 @@ final class OrderMetaBox
             $critical = in_array($alert['type'], PaymentAlerts::CRITICAL, true);
             echo '<div class="notice inline ' . esc_attr($critical ? 'notice-error' : 'notice-warning') . '"><p><strong>' . esc_html(PaymentAlerts::message($alert)) . '</strong></p></div>';
         }
+        $retry = ReturnRetryPolicy::for_order($order);
         if (PaymentState::RETURNED === $state) {
-            echo '<div class="notice notice-error inline"><p><strong>' . esc_html__('Bank payment returned: the customer\'s bank reversed this payment. The original payment details are kept below; the order stays Failed until a new payment succeeds.', 'paybridge-for-plaid') . '</strong></p></div>';
+            echo '<div class="notice notice-error inline"><p><strong>' . esc_html__('Bank payment returned: the customer\'s bank reversed this payment. The original payment details are kept below.', 'paybridge-for-plaid') . '</strong></p>';
+            if ($retry->is_blocked()) {
+                echo '<p class="pbfp-retry-policy">' . esc_html(ReturnRetryPolicy::merchant_explanation($retry)) . '</p>';
+            }
+            echo '</div>';
         }
         echo '<table class="widefat striped"><tbody>';
         foreach ($rows as $label => $value) {
@@ -160,7 +166,7 @@ final class OrderMetaBox
             foreach (array('fulfil' => __('Reviewed: fulfil manually', 'paybridge-for-plaid'), 'refunded' => __('Reviewed: refunded', 'paybridge-for-plaid'), 'contacted_customer' => __('Reviewed: customer contacted', 'paybridge-for-plaid')) as $decision => $label) {
                 $links[] = '<a class="button" href="' . esc_url(self::action_url(self::REVIEW_ACTION, $order, array('decision' => $decision))) . '">' . esc_html($label) . '</a>';
             }
-            if ('' === $meta(OrderMeta::TRANSFER_ID)) {
+            if ('' === $meta(OrderMeta::TRANSFER_ID) && ReturnRetryPolicy::for_order($order)->allows_new_debit()) {
                 $links[] = '<a class="button" href="' . esc_url(self::action_url(self::REVIEW_ACTION, $order, array('decision' => 'other', 'release' => '1'))) . '">' . esc_html__('Let the customer pay again', 'paybridge-for-plaid') . '</a>';
             }
         }

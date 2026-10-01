@@ -17,13 +17,16 @@ use PayBridge\Plaid\Plaid\Exception\PlaidApiException;
 use PayBridge\Plaid\Plaid\Exception\PlaidException;
 use PayBridge\Plaid\Plaid\Refund\TransferRefundService;
 use PayBridge\Plaid\Plaid\Transfer\TransferService;
+use PayBridge\Plaid\Settings\AccountScope;
 use PayBridge\Plaid\Support\Money;
 use PayBridge\Plaid\Support\SiteMarker;
 
 /**
  * Applies one durable refund event (event_type "refund.*", non-null refund_id) fetched by
  * /transfer/event/sync after a verified TRANSFER_EVENTS_UPDATE webhook or reconciliation.
- * The same pipeline as payment events: idempotent, retry-safe, out-of-order safe.
+ * The same pipeline as payment events: idempotent, retry-safe, out-of-order safe. Refund
+ * identity and ownership are limited to the Plaid account whose stream delivered the event
+ * (ADR-0018): another account's refund with the same ID is never matched or adopted.
  */
 final class RefundEventHandler
 {
@@ -42,17 +45,17 @@ final class RefundEventHandler
     }
 
     /** @return array{status:string, order_id:int, error_code:string} */
-    public function process(TransferEvent $event, string $environment): array
+    public function process(TransferEvent $event, AccountScope $scope): array
     {
         $status = $event->refund_status();
-        $record = $this->store->find_by_refund_id($environment, $event->refund_id);
+        $record = $this->store->find_by_refund_id($scope, $event->refund_id);
         if (null !== $record) {
             $decision = $this->refunds->apply_status($record, $status, array('source' => 'event', 'failure_code' => $event->return_code(), 'event_id' => $event->event_id));
             return array('status' => TransferEventStore::PROCESSED, 'order_id' => $record->order_id, 'error_code' => 'conflict' === $decision ? 'refund_state_conflict' : '');
         }
 
         // A refund PayBridge reserved but has not linked yet (create response lost or still in flight).
-        foreach ($this->store->for_transfer($environment, $event->transfer_id) as $candidate) {
+        foreach ($this->store->for_transfer($scope, $event->transfer_id) as $candidate) {
             if ('' !== $candidate->refund_id || ! in_array($candidate->status, array(RefundState::CREATING, RefundState::UNCERTAIN), true)) {
                 continue;
             }
@@ -79,11 +82,11 @@ final class RefundEventHandler
         }
 
         // A refund created outside PayBridge. Record it when the transfer is one of this store's payments.
-        if (PaymentEpoch::predates($environment, $event->timestamp)) {
+        if (PaymentEpoch::predates($scope, $event->timestamp)) {
             return array('status' => TransferEventStore::IGNORED, 'order_id' => 0, 'error_code' => 'before_first_payment');
         }
         try {
-            $owner = $this->owner($event, $environment);
+            $owner = $this->owner($event, $scope);
         } catch (PlaidApiException $exception) {
             return $exception->is_transient()
                 ? array('status' => TransferEventStore::UNMATCHED, 'order_id' => 0, 'error_code' => $exception->safe_code())
@@ -102,7 +105,7 @@ final class RefundEventHandler
         if ($refund->transfer_id !== $event->transfer_id) {
             return array('status' => TransferEventStore::IGNORED, 'order_id' => $owner['order']->get_id(), 'error_code' => 'refund_transfer_mismatch');
         }
-        $this->refunds->record_external($owner['order'], $refund, $owner['attempt_id']);
+        $this->refunds->record_external($owner['order'], $refund, $owner['attempt_id'], $scope);
         return array('status' => TransferEventStore::PROCESSED, 'order_id' => $owner['order']->get_id(), 'error_code' => 'external_refund');
     }
 
@@ -113,10 +116,10 @@ final class RefundEventHandler
      * @return array{order:\WC_Order, attempt_id:string}|null
      * @throws PlaidException
      */
-    private function owner(TransferEvent $event, string $environment): ?array
+    private function owner(TransferEvent $event, AccountScope $scope): ?array
     {
-        $match = $this->locator->by_transfer_id($event->transfer_id);
-        if (null !== $match && $environment === (string) $match['order']->get_meta(OrderMeta::ENVIRONMENT, true)) {
+        $match = $this->locator->by_transfer_id($event->transfer_id, $scope);
+        if (null !== $match && OrderLocator::order_in_scope($match['order'], $scope)) {
             $snapshot = PaymentSnapshot::from_json((string) $match['order']->get_meta(OrderMeta::PAYMENT_SNAPSHOT, true));
             return array('order' => $match['order'], 'attempt_id' => null === $snapshot ? '' : $snapshot->attempt_id);
         }
@@ -130,11 +133,11 @@ final class RefundEventHandler
         if (isset($metadata['pbfp_site']) && ! hash_equals(SiteMarker::current(), (string) $metadata['pbfp_site'])) {
             return null;
         }
-        if (isset($metadata['pbfp_environment']) && $environment !== $metadata['pbfp_environment']) {
+        if (isset($metadata['pbfp_environment']) && $scope->environment !== $metadata['pbfp_environment']) {
             return null;
         }
         $order = $this->locator->paybridge_order($order_id);
-        if (null === $order || ! AttemptHistory::belongs_to($order, $attempt_id)) {
+        if (null === $order || ! AttemptHistory::belongs_to($order, $attempt_id) || ! AttemptHistory::attempt_in_scope($order, $attempt_id, $scope)) {
             // Order numbers repeat across stores; only an attempt this order really made counts.
             $this->logger->log('warning', 'refund_event_order_missing', array('order_id' => $order_id, 'transfer_id' => $event->transfer_id, 'event_id' => $event->event_id));
             return null;

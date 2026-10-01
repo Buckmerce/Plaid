@@ -5,7 +5,11 @@ declare(strict_types=1);
 namespace PayBridge\Plaid\Background;
 
 use PayBridge\Plaid\Container;
-use PayBridge\Plaid\Persistence\PaymentEpoch;
+use PayBridge\Plaid\Persistence\Installer;
+use PayBridge\Plaid\Persistence\PaymentLockStore;
+use PayBridge\Plaid\Persistence\RefundStore;
+use PayBridge\Plaid\Persistence\TransferEventStore;
+use PayBridge\Plaid\Settings\AccountScope;
 use PayBridge\Plaid\Settings\Settings;
 
 /**
@@ -13,9 +17,10 @@ use PayBridge\Plaid\Settings\Settings;
  * paybridge-for-plaid.
  *
  * Accepting new payments and maintaining existing ones are separate (ADR-0014): disabling
- * the gateway only hides Pay by Bank at checkout. Event sync and reconciliation keep running
- * while PayBridge can read Plaid and payments exist in the configured environment. They stop
- * only on deactivation, without credentials, or when this store never created a payment.
+ * the gateway only hides Pay by Bank at checkout. The recurring reconciliation keeps running
+ * while PayBridge can read Plaid and there is real work for the configured Plaid account:
+ * monitored payments, open refunds, unprocessed events or a failed event sync (ADR-0021).
+ * When none remains it stops; a verified webhook still triggers event sync at any time.
  */
 final class Scheduler
 {
@@ -44,15 +49,42 @@ final class Scheduler
     }
 
     /**
-     * Whether background maintenance must run: PayBridge can read Plaid, and it either accepts
-     * payments or has created payments in this environment that may still change.
+     * Whether the recurring reconciliation must run: PayBridge can read Plaid, and it either
+     * accepts payments or has operational work for the configured account. "A payment once
+     * existed" is not work: payments whose return windows closed need nothing more.
      */
     public static function maintenance_active(Settings $settings): bool
     {
         if (! $settings->can_reach_plaid()) {
             return false;
         }
-        return $settings->enabled() || null !== PaymentEpoch::get($settings->environment_name());
+        return $settings->enabled() || self::has_work(self::pending_work($settings->account_scope()));
+    }
+
+    /**
+     * Operational work that exists independently of the enabled switch. Indexed queries only.
+     *
+     * @return array{payments:int, refunds:int, events:bool, sync_failures:int}
+     */
+    public static function pending_work(AccountScope $scope): array
+    {
+        if (! $scope->is_valid() || ! Installer::schema_is_current()) {
+            return array('payments' => 0, 'refunds' => 0, 'events' => false, 'sync_failures' => 0);
+        }
+        return array(
+            'payments' => ( new PaymentLockStore() )->monitored($scope->environment, $scope->account_fp)['count'],
+            'refunds' => ( new RefundStore() )->open_count($scope->environment, $scope->account_fp),
+            // Includes events deferred for a retry: the next reconciliation claims them when due.
+            'events' => ( new TransferEventStore() )->has_backlog($scope),
+            // A failed sync may have left events unread at Plaid: keep retrying until one succeeds.
+            'sync_failures' => EventSyncService::failures($scope),
+        );
+    }
+
+    /** @param array{payments:int, refunds:int, events:bool, sync_failures:int} $work */
+    public static function has_work(array $work): bool
+    {
+        return $work['payments'] > 0 || $work['refunds'] > 0 || $work['events'] || $work['sync_failures'] > 0;
     }
 
     public function run_event_sync(): void
@@ -61,9 +93,10 @@ final class Scheduler
         if (! $settings->can_reach_plaid()) {
             return;
         }
-        $result = $this->container->event_sync()->run();
+        $sync = $this->container->event_sync();
+        $result = $sync->run();
         if ($result['more']) {
-            self::enqueue_event_sync(EventSyncService::retry_delay());
+            self::enqueue_event_sync(EventSyncService::retry_delay($sync->scope()));
         }
     }
 

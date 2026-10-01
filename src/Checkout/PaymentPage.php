@@ -7,6 +7,7 @@ namespace PayBridge\Plaid\Checkout;
 use PayBridge\Plaid\Payment\OrderMeta;
 use PayBridge\Plaid\Payment\PaymentAttemptService;
 use PayBridge\Plaid\Payment\PaymentState;
+use PayBridge\Plaid\Payment\ReturnRetryPolicy;
 use PayBridge\Plaid\Plaid\TransferIntent\TransferIntentRequest;
 use PayBridge\Plaid\REST\RestRoutes;
 use PayBridge\Plaid\Settings\Settings;
@@ -27,7 +28,22 @@ final class PaymentPage
     public function register(): void
     {
         add_action('woocommerce_receipt_' . Settings::GATEWAY_ID, array($this, 'render'));
+        add_action('before_woocommerce_pay_form', array($this, 'returned_payment_notice'), 10, 1);
         add_filter('woocommerce_cancel_unpaid_order', array($this, 'keep_order_during_authorization'), 10, 2);
+    }
+
+    /**
+     * WooCommerce order-pay form: Pay by Bank is not offered for an order whose bank payment was
+     * returned (ADR-0019), so tell the customer why instead of leaving them guessing.
+     *
+     * @param mixed $order
+     */
+    public function returned_payment_notice($order): void
+    {
+        if (! $order instanceof \WC_Order || ! ReturnRetryPolicy::for_order($order)->is_blocked()) {
+            return;
+        }
+        echo '<div class="woocommerce-info pbfp-returned-notice" role="status">' . esc_html(ReturnRetryPolicy::customer_message()) . '</div>';
     }
 
     public function render(int $order_id): void
@@ -41,7 +57,8 @@ final class PaymentPage
 
         $settings = Settings::load();
         $name_missing = '' === TransferIntentRequest::legal_name((string) $order->get_billing_first_name(), (string) $order->get_billing_last_name());
-        if (! $name_missing) {
+        $returned = ReturnRetryPolicy::for_order($order)->is_blocked();
+        if (! $name_missing && ! $returned) {
             $this->enqueue($order, $order_key);
         }
         ?>
@@ -63,7 +80,9 @@ final class PaymentPage
                 <li><?php esc_html_e('Select the account to pay from and confirm the amount.', 'paybridge-for-plaid'); ?></li>
                 <li><?php esc_html_e('We confirm the payment and show your order. Bank payments usually take 1–3 business days to complete; we update your order when they do.', 'paybridge-for-plaid'); ?></li>
             </ol>
-            <?php if ($name_missing) : ?>
+            <?php if ($returned) : ?>
+                <p class="woocommerce-error pbfp-payment__blocked" role="alert"><?php echo esc_html(ReturnRetryPolicy::customer_message()); ?></p>
+            <?php elseif ($name_missing) : ?>
                 <p class="woocommerce-error pbfp-payment__blocked" role="alert"><?php esc_html_e('This order has no account holder name, which is required to pay by bank. Please contact the store or place a new order with your legal first and last name.', 'paybridge-for-plaid'); ?></p>
             <?php else : ?>
                 <button type="button" class="button alt pbfp-payment__button" data-pbfp-pay aria-describedby="pbfp-payment-status" disabled><?php esc_html_e('Connect bank and pay', 'paybridge-for-plaid'); ?></button>
@@ -105,6 +124,7 @@ final class PaymentPage
                 'unavailable' => __('The secure bank connection could not be loaded. Check your connection and try again.', 'paybridge-for-plaid'),
                 'notPayable' => __('Pay by Bank is not available for this order right now. Please contact the store or choose another payment method.', 'paybridge-for-plaid'),
                 'missingName' => __('This order has no account holder name. Please contact the store.', 'paybridge-for-plaid'),
+                'returned' => ReturnRetryPolicy::customer_message(),
                 'rateLimited' => __('Too many attempts. Please wait a few minutes and try again.', 'paybridge-for-plaid'),
                 'retry' => __('Try again', 'paybridge-for-plaid'),
             ),

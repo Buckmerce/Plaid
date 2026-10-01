@@ -35,7 +35,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-"${wp_cli[@]}" core download --version="${PAYBRIDGE_PLAID_TEST_WP_VERSION:-7.1}" --locale=en_US --quiet
+"${wp_cli[@]}" core download --version="${PAYBRIDGE_PLAID_TEST_WP_VERSION:-7.1.2}" --locale=en_US --quiet
 printf '%s\n' "${PAYBRIDGE_PLAID_TEST_DB_PASSWORD:-}" | "${wp_cli[@]}" config create \
     --dbname="$database" \
     --dbuser="${PAYBRIDGE_PLAID_TEST_DB_USER:-root}" \
@@ -51,7 +51,7 @@ database_created=true
 "${wp_cli[@]}" core install --url=http://paybridge.test --title='PayBridge integration' \
     --admin_user=pbfp_admin --admin_password=local-test-password \
     --admin_email=admin@example.invalid --skip-email
-"${wp_cli[@]}" plugin install woocommerce --version="${PAYBRIDGE_PLAID_TEST_WC_VERSION:-11.1.0}" --quiet
+"${wp_cli[@]}" plugin install woocommerce --version="${PAYBRIDGE_PLAID_TEST_WC_VERSION:-11.1.2}" --quiet
 if ! "${wp_cli[@]}" plugin activate woocommerce; then
     # Some local PHP builds abort the first activation while probing image support; activation is idempotent.
     "${wp_cli[@]}" plugin activate woocommerce
@@ -80,7 +80,7 @@ fi
 for hpos in no yes; do
     "${wp_cli[@]}" wc hpos sync >/dev/null 2>&1 || true
     "${wp_cli[@]}" option update woocommerce_custom_orders_table_enabled "$hpos" >/dev/null
-    for suite in wp-cli-smoke wp-cli-payment-flow wp-cli-webhook-rest wp-cli-refunds wp-cli-lifecycle; do
+    for suite in wp-cli-smoke wp-cli-payment-flow wp-cli-webhook-rest wp-cli-refunds wp-cli-lifecycle wp-cli-accounts wp-cli-maintenance wp-cli-migration; do
         PAYBRIDGE_PLAID_EXPECT_HPOS="$hpos" "${wp_cli[@]}" eval-file "$base_dir/tests/Integration/$suite.php" --use-include
     done
     PAYBRIDGE_PLAID_EXPECT_HPOS="$hpos" PAYBRIDGE_PLAID_SITE="$site_dir" php "$base_dir/tests/Integration/concurrency.php"

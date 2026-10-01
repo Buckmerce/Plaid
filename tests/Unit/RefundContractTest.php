@@ -133,8 +133,19 @@ final class RefundContractTest extends TestCase
         self::assertSame($now + 300, RefundMonitoringPolicy::plan(RefundState::UNCERTAIN, $now)['next']);
         self::assertSame($now + 6 * HOUR_IN_SECONDS, RefundMonitoringPolicy::plan(RefundState::PENDING, $now)['next']);
         $settled = RefundMonitoringPolicy::plan(RefundState::SETTLED, $now);
-        self::assertSame($now + 10 * DAY_IN_SECONDS, $settled['until'], 'A settled refund (ACH credit) can still be returned for a few days.');
+        self::assertSame($now + 14 * DAY_IN_SECONDS, $settled['until'], 'Without any facts a settled refund is watched daily for two weeks.');
         self::assertSame(array('next' => null, 'until' => null), RefundMonitoringPolicy::plan(RefundState::SETTLED, $now, $now - 1));
+
+        // Plaid documents no refund return window: a settled refund is watched as long as the refunded debit.
+        $debit_horizon = $now + 60 * DAY_IN_SECONDS;
+        $fresh = RefundMonitoringPolicy::plan(RefundState::SETTLED, $now, null, null, $now - DAY_IN_SECONDS, $debit_horizon);
+        self::assertSame(array('next' => $now + DAY_IN_SECONDS, 'until' => $debit_horizon), $fresh, 'Daily while young, until the debit\'s unauthorized return window closes.');
+        $older = RefundMonitoringPolicy::plan(RefundState::SETTLED, $now, $debit_horizon, null, $now - 20 * DAY_IN_SECONDS, $debit_horizon);
+        self::assertSame(array('next' => $now + 7 * DAY_IN_SECONDS, 'until' => $debit_horizon), $older, 'Weekly afterwards.');
+        $late = RefundMonitoringPolicy::plan(RefundState::SETTLED, $now, null, null, $now - 2 * DAY_IN_SECONDS, $now - DAY_IN_SECONDS);
+        self::assertSame($now + 12 * DAY_IN_SECONDS, $late['until'], 'A refund issued after the debit window closed is still watched for two weeks.');
+        self::assertSame($debit_horizon, RefundMonitoringPolicy::plan(RefundState::SETTLED, $now, $debit_horizon, null, $now - DAY_IN_SECONDS, $now)['until'], 'The horizon is never shortened.');
+        self::assertSame(array('next' => null, 'until' => null), RefundMonitoringPolicy::plan(RefundState::SETTLED, $debit_horizon + 1, $debit_horizon, null, $now - DAY_IN_SECONDS, $debit_horizon), 'Monitoring ends at the horizon.');
         foreach (array(RefundState::FAILED, RefundState::RETURNED, RefundState::CANCELLED, RefundState::REJECTED, RefundState::VOID) as $terminal) {
             self::assertSame(array('next' => null, 'until' => null), RefundMonitoringPolicy::plan($terminal, $now), $terminal);
         }

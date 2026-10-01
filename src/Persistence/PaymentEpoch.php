@@ -4,45 +4,72 @@ declare(strict_types=1);
 
 namespace PayBridge\Plaid\Persistence;
 
+use PayBridge\Plaid\Settings\AccountScope;
+
 /**
- * The moment this store created its first Transfer Intent in an environment.
+ * The moment this store created its first Transfer Intent with one Plaid account in one
+ * environment (ADR-0011, account-scoped by ADR-0018).
  *
- * /transfer/event/sync returns the whole history of the Plaid account, which can
- * belong to other stores and integrations. An event older than the epoch cannot
- * belong to a PayBridge transfer of this store, so it is classified without an
- * extra /transfer/get call (ADR-0011). The epoch is written before the first
- * remote intent creation; if it cannot be written, no intent is created.
+ * /transfer/event/sync returns the whole history of the Plaid account, which can belong to
+ * other stores and integrations. An event older than the epoch cannot belong to a PayBridge
+ * transfer of this store, so it is classified without an extra /transfer/get call. The epoch
+ * is written before the first remote intent creation; if it cannot be written, no intent is
+ * created. Another account (even in the same environment) has its own epoch: a new account's
+ * history is never mistaken for, or hidden by, the previous account's.
  */
 final class PaymentEpoch
 {
+    /** Schema-2 per-environment options (kept for auditing) use this prefix + environment. */
     public const OPTION_PREFIX = 'paybridge_plaid_first_intent_at_';
     /** Allowance for the difference between Plaid event timestamps and the local clock. */
     public const CLOCK_TOLERANCE_SECONDS = 3600;
 
-    /** @return bool False only when the epoch could not be stored (callers fail closed). */
-    public static function mark(string $environment): bool
+    public static function option_name(AccountScope $scope): string
     {
-        if (null !== self::get($environment)) {
+        return self::OPTION_PREFIX . $scope->key();
+    }
+
+    /** @return bool False only when the epoch could not be stored (callers fail closed). */
+    public static function mark(AccountScope $scope): bool
+    {
+        if (! $scope->is_valid()) {
+            return false;
+        }
+        if (null !== self::get($scope)) {
             return true;
         }
         // add_option() never overwrites: concurrent first payments keep the earliest value.
-        add_option(self::OPTION_PREFIX . $environment, (string) time(), '', false);
-        return null !== self::get($environment);
+        add_option(self::option_name($scope), (string) time(), '', false);
+        return null !== self::get($scope);
+    }
+
+    /**
+     * Records a known earlier epoch (schema migration). Never overwrites an existing value, so it
+     * can only make the epoch earlier-or-equal, which is always safe (fewer events are skipped).
+     */
+    public static function adopt(AccountScope $scope, int $timestamp): void
+    {
+        if ($scope->is_valid() && $timestamp > 0 && null === self::get($scope)) {
+            add_option(self::option_name($scope), (string) $timestamp, '', false);
+        }
     }
 
     /** @phpstan-impure Reads a stored option that another process may have written. */
-    public static function get(string $environment): ?int
+    public static function get(AccountScope $scope): ?int
     {
-        $value = get_option(self::OPTION_PREFIX . $environment, false);
+        if (! $scope->is_valid()) {
+            return null;
+        }
+        $value = get_option(self::option_name($scope), false);
         return is_numeric($value) && (int) $value > 0 ? (int) $value : null;
     }
 
-    /** True only when the event certainly happened before this store's first intent. */
-    public static function predates(string $environment, string $event_timestamp): bool
+    /** True only when the event certainly happened before this store's first intent with this account. */
+    public static function predates(AccountScope $scope, string $event_timestamp): bool
     {
-        $epoch = self::get($environment);
+        $epoch = self::get($scope);
         if (null === $epoch) {
-            // No intent was ever created here, so no transfer can be ours.
+            // No intent was ever created with this account, so no transfer can be ours.
             return true;
         }
         $at = '' === $event_timestamp ? false : strtotime($event_timestamp);

@@ -128,7 +128,7 @@ final class ConnectionTester
         $issues = is_array($result['issues'] ?? null) ? $result['issues'] : array();
         foreach ($issues as $issue) {
             $message .= ' ' . match ((string) $issue) {
-                'missing_link_customization' => __('Link customization missing: Production requires one with Account Select “Enabled for one account”.', 'paybridge-for-plaid'),
+                'missing_link_customization' => __('Link customization missing: Plaid Transfer UI requires one with Account Select “Enabled for one account” in this environment.', 'paybridge-for-plaid'),
                 'funding_account_conflict' => __('Plaid Ledger is enabled, so remove the Funding Account ID (Plaid rejects it).', 'paybridge-for-plaid'),
                 'funding_account_required' => __('No Plaid Ledger was found: enter your Funding Account ID from the Plaid Dashboard.', 'paybridge-for-plaid'),
                 default => '',

@@ -10,7 +10,9 @@ use PayBridge\Plaid\Background\ReconciliationService;
 use PayBridge\Plaid\Background\Scheduler;
 use PayBridge\Plaid\Gateway\GatewayAvailability;
 use PayBridge\Plaid\Payment\PaymentAttemptService;
+use PayBridge\Plaid\Persistence\EventCursor;
 use PayBridge\Plaid\Persistence\Installer;
+use PayBridge\Plaid\Persistence\PaymentEpoch;
 use PayBridge\Plaid\Persistence\PaymentLockStatus;
 use PayBridge\Plaid\Persistence\PaymentLockStore;
 use PayBridge\Plaid\Persistence\RefundStore;
@@ -52,7 +54,10 @@ final class DiagnosticsPage
         $never = __('Never', 'paybridge-for-plaid');
         $connection = get_option(ConnectionTester::LAST_RESULT_OPTION, array());
         $reconcile_error = get_option(ReconciliationService::LAST_ERROR_OPTION, array());
-        $sync_error = get_option(EventSyncService::LAST_ERROR_OPTION, array());
+        $scope = $settings->account_scope();
+        $sync = EventSyncService::health($scope);
+        $sync_error = $sync['last_error'];
+        $epoch = PaymentEpoch::get($scope);
         $link_error = get_option(PaymentAttemptService::LAST_LINK_ERROR_OPTION, array());
         $schema_ok = Installer::schema_is_valid();
         $webhook = get_option(WebhookController::LAST_WEBHOOK_OPTION, array());
@@ -83,7 +88,7 @@ final class DiagnosticsPage
             __('Secret configured', 'paybridge-for-plaid') => '' !== $settings->secret() ? $yes : $no,
             __('Plaid account fingerprint', 'paybridge-for-plaid') => '' === $settings->account_fingerprint() ? '-' : $settings->account_fingerprint(),
             __('Funding Account configured', 'paybridge-for-plaid') => '' !== $settings->funding_account_id() ? $yes : __('No (Plaid Ledger)', 'paybridge-for-plaid'),
-            __('Link customization configured', 'paybridge-for-plaid') => '' !== $settings->link_customization_name() ? __('PASS', 'paybridge-for-plaid') : ($settings->link_customization_required() ? __('FAIL (required for Production)', 'paybridge-for-plaid') : __('Not set (Sandbox default)', 'paybridge-for-plaid')),
+            __('Link customization configured', 'paybridge-for-plaid') => '' !== $settings->link_customization_name() ? __('PASS', 'paybridge-for-plaid') : __('FAIL (required by Transfer UI in Sandbox and Production)', 'paybridge-for-plaid'),
             __('Last Link session error', 'paybridge-for-plaid') => is_array($link_error) && isset($link_error['at']) ? sprintf('%s %s', (string) $link_error['at'], (string) ($link_error['code'] ?? '')) : $never,
             __('Bank statement description', 'paybridge-for-plaid') => $settings->statement_descriptor(),
             __('ACH class', 'paybridge-for-plaid') => strtoupper($settings->ach_class()),
@@ -91,9 +96,12 @@ final class DiagnosticsPage
             __('Webhook URL', 'paybridge-for-plaid') => rest_url(RestRoutes::NAMESPACE . '/webhook'),
             __('Last verified webhook', 'paybridge-for-plaid') => is_array($webhook) && isset($webhook['at']) ? sprintf('%s %s (%s)', (string) $webhook['at'], (string) ($webhook['code'] ?? ''), (string) ($webhook['outcome'] ?? '')) : $never,
             __('Last rejected webhook', 'paybridge-for-plaid') => is_array($rejection) && isset($rejection['at']) ? sprintf('%s %s (HTTP %d)', (string) $rejection['at'], (string) ($rejection['reason'] ?? ''), (int) ($rejection['status'] ?? 0)) : $never,
-            __('Last successful event sync', 'paybridge-for-plaid') => (string) get_option(EventSyncService::LAST_SYNC_OPTION, $never),
-            __('Last event sync error', 'paybridge-for-plaid') => is_array($sync_error) && isset($sync_error['at']) ? sprintf('%s %s (%s)', (string) $sync_error['at'], (string) ($sync_error['code'] ?? ''), (string) ($sync_error['category'] ?? '')) : $never,
-            __('Consecutive event sync failures', 'paybridge-for-plaid') => (string) EventSyncService::failures(),
+            __('Event stream (environment/account)', 'paybridge-for-plaid') => $scope->is_valid() ? $scope->environment . ' / ' . $scope->account_fp : '-',
+            __('Event stream cursor (last stored event ID)', 'paybridge-for-plaid') => $scope->is_valid() ? ( new EventCursor() )->get($scope) : '-',
+            __('First payment with this account (epoch)', 'paybridge-for-plaid') => null === $epoch ? $never : gmdate('c', $epoch),
+            __('Last successful event sync', 'paybridge-for-plaid') => '' === $sync['last_sync'] ? $never : $sync['last_sync'],
+            __('Last event sync error', 'paybridge-for-plaid') => isset($sync_error['at']) ? sprintf('%s %s (%s)', $sync_error['at'], $sync_error['code'] ?? '', $sync_error['category'] ?? '') : $never,
+            __('Consecutive event sync failures', 'paybridge-for-plaid') => (string) $sync['failures'],
             __('Last reconciliation', 'paybridge-for-plaid') => (string) get_option(ReconciliationService::LAST_RUN_OPTION, $never),
             __('Last reconciliation error', 'paybridge-for-plaid') => is_array($reconcile_error) && isset($reconcile_error['at']) ? sprintf('%s (%s)', (string) $reconcile_error['at'], (string) ($reconcile_error['category'] ?? '')) : $never,
         );
@@ -102,7 +110,8 @@ final class DiagnosticsPage
         }
         $locks = new PaymentLockStore();
         $events = new TransferEventStore();
-        $refund_counts = ( new RefundStore() )->counts($environment);
+        $refund_counts = ( new RefundStore() )->counts($scope);
+        $event_counts = $events->counts($scope);
         $states = $locks->count_by_state($environment);
         $monitored = $locks->monitored($environment, $settings->account_fingerprint());
         $sum = static fn (array $counts, array $keys): int => array_sum(array_intersect_key($counts, array_flip($keys)));
@@ -118,9 +127,10 @@ final class DiagnosticsPage
             __('Refunds pending (in flight/unconfirmed)', 'paybridge-for-plaid') => (string) $sum($refund_counts, array('creating', 'uncertain', 'pending', 'posted')),
             __('Refunds settled', 'paybridge-for-plaid') => (string) ($refund_counts['settled'] ?? 0),
             __('Refunds failed or returned', 'paybridge-for-plaid') => (string) $sum($refund_counts, array('failed', 'returned')),
-            __('Event backlog (waiting to be processed)', 'paybridge-for-plaid') => (string) ($events->count_by_status(TransferEventStore::RECEIVED) + $events->count_by_status(TransferEventStore::RETRY) + $events->count_by_status(TransferEventStore::PROCESSING)),
-            __('Events waiting for an order match', 'paybridge-for-plaid') => (string) $events->count_by_status(TransferEventStore::UNMATCHED),
-            __('Events abandoned after retries', 'paybridge-for-plaid') => (string) $events->count_by_status(TransferEventStore::ABANDONED),
+            __('Event backlog (waiting to be processed)', 'paybridge-for-plaid') => (string) $sum($event_counts, array(TransferEventStore::RECEIVED, TransferEventStore::RETRY, TransferEventStore::PROCESSING)),
+            __('Events waiting for an order match', 'paybridge-for-plaid') => (string) ($event_counts[TransferEventStore::UNMATCHED] ?? 0),
+            __('Events abandoned after retries', 'paybridge-for-plaid') => (string) ($event_counts[TransferEventStore::ABANDONED] ?? 0),
+            __('Events of previous accounts or schema 2 (audit only)', 'paybridge-for-plaid') => (string) $events->count_outside($scope),
         );
     }
 

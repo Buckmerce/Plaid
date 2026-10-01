@@ -11,7 +11,7 @@
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: paybridge-for-plaid
  * Domain Path: /languages
- * WC requires at least: 8.5
+ * WC requires at least: 8.7
  * WC tested up to: 11.1
  *
  * @package PayBridge\Plaid

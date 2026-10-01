@@ -11,7 +11,7 @@ window closes, and refunds it natively through Plaid.
 | Gateway ID | `paybridge_plaid` |
 | PHP namespace | `PayBridge\Plaid` |
 | Version | 1.0.0 |
-| Requires | WordPress 6.6+, WooCommerce 8.5+, PHP 8.1–8.4, MySQL 8.0+ / MariaDB 10.11+ (tested up to WordPress 7.1 / WooCommerce 11.1) |
+| Requires | WordPress 6.6+, WooCommerce 8.7+, PHP 8.1–8.4, MySQL 8.0+ / MariaDB 10.11+ (tested up to WordPress 7.1 / WooCommerce 11.1) |
 | License | GPL-2.0-or-later |
 
 PayBridge is an independent project. It is not affiliated with, endorsed or sponsored by
@@ -76,7 +76,7 @@ Key design points (details in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and
 
 ## Requirements
 
-- WordPress 6.6 or later, WooCommerce 8.5 or later, PHP 8.1–8.4, MySQL 8.0+ or MariaDB 10.11+.
+- WordPress 6.6 or later, WooCommerce 8.7 or later (8.5/8.6 do not record HPOS refunds as refunded through the gateway, [ADR-0022](docs/adr/0022-minimum-woocommerce-8-7.md)), PHP 8.1–8.4, MySQL 8.0+ or MariaDB 10.11+.
 - Store currency **USD** (Plaid Transfer debits US bank accounts).
 - HTTPS for Production (the gateway is unavailable in Production over plain HTTP).
 - A Plaid account with **Transfer** enabled and API keys for the selected environment.
@@ -107,7 +107,7 @@ customization, schema, webhook route, last connection test, background jobs, WP-
 | Client ID / Secret | — | From Plaid Dashboard → Developers → Keys. The secret is write-only (never rendered back; blank keeps it; **Remove stored secret** clears it). Changing the Client ID or environment is refused while Production payments are monitored ([ADR-0015](docs/adr/0015-plaid-account-change-guard.md)); rotating the secret is always allowed. |
 | Funding Account ID | empty | Leave empty with **Plaid Ledger** (the default; Plaid rejects `funding_account_id` then). |
 | **Pay by Bank** | | |
-| Link customization name | empty | **Required in Production.** Create a Plaid Link customization with Account Select = "Enabled for one account" (language matching the store), publish it and enter its name. Sandbox may use Plaid's default. |
+| Link customization name | empty | **Required in Sandbox and Production** ([ADR-0020](docs/adr/0020-link-customization-in-every-environment.md)). Create a Plaid Link customization in the selected environment with Account Select = "Enabled for one account" (language matching the store), publish it and enter its name. |
 | Bank statement description | `PAYMENT` | Shown on the customer's bank statement after your Plaid company name; upper-case letters, digits and spaces, ≤ 10 characters (ACH limit). |
 | Payment network | Same Day ACH | `same-day-ach` or `ach`. |
 | Mark order paid when | Funds available | `funds_available` (recommended) or `settled`. |
@@ -159,9 +159,20 @@ test user `user_good` / `pass_good` in Link. The payment page shows a small "San
 
 PayBridge keeps following every payment until Plaid's **unauthorized return window** (about
 three months after settlement) has closed — whether or not the gateway is still enabled
-([ADR-0014](docs/adr/0014-maintenance-and-return-windows.md)). A returned or failed order can be
-paid again through WooCommerce's pay link; that is always a new attempt, and every earlier
-attempt stays in the order's payment history ([ADR-0017](docs/adr/0017-payment-attempt-history.md)).
+([ADR-0014](docs/adr/0014-maintenance-and-return-windows.md)); when no payment, refund or event
+needs monitoring anymore, the background jobs stop by themselves
+([ADR-0021](docs/adr/0021-maintenance-follows-operational-work.md)). A **failed** order can be paid
+again through WooCommerce's pay link; that is always a new attempt, and every earlier attempt
+stays in the order's payment history ([ADR-0017](docs/adr/0017-payment-attempt-history.md)).
+A **returned** order is never debited again by bank: Plaid allows reprocessing returned transfers
+only for R01/R09 (at most twice, within 180 days, marked "Retry 1/2" on `/transfer/create`), Plaid
+Transfer UI cannot mark such a retry, and unauthorized returns such as R10 may never be resubmitted
+([ADR-0019](docs/adr/0019-returned-transfer-retry-policy.md)). The order panel explains the
+reason; collect the payment another way.
+
+Plaid transfer events, the sync cursor, the payment epoch and refund identities are kept per
+environment **and Plaid account**, so switching to another Plaid account can never skip, mix or
+deduplicate away another account's events ([ADR-0018](docs/adr/0018-account-scoped-event-streams.md)).
 
 ### Refunds
 
@@ -290,11 +301,12 @@ Composer; CI fails if it is out of date. Front-end sources live in `resources/ts
 | `composer test` | PHPUnit: money (cents), snapshot, payment/refund state machines and ordering matrices, monitoring policy, refund policy and idempotency keys, Plaid client/DTOs/services/refund contract, webhook verification, settings, redaction |
 | `npm test` | Build, TypeScript typecheck, behavioural tests of the payment-page script |
 | `bash scripts/verify-package.sh` | ZIP contents, source/package parity, fresh-asset byte parity, no dev files/source maps/secrets, SHA-256 |
-| `bash scripts/test-package-smoke.sh` | Pristine WordPress + WooCommerce + only the ZIP: activation, schema, HPOS on/off, Blocks, diagnostics, Site Health, default uninstall |
-| `bash scripts/test-integration.sh` | Fresh WordPress + WooCommerce from the release ZIP; HPOS off and on; payments, refunds, lifecycle (disabled gateway, return windows, account guard, returns, repayment, cancel, manual review), webhook REST matrix, multi-process concurrency, schema migration, uninstall |
-| `bash scripts/test-browser-e2e.sh` | Playwright: Classic and Blocks checkout (guest and logged-in), Link success/failure/exit/retry, double submit, admin refunds, return badge, repayment, misconfiguration, axe-core accessibility |
+| `bash scripts/test-package-smoke.sh` | Pristine WordPress + WooCommerce + only the ZIP, on a fresh HPOS store and a fresh legacy-storage store: activation, schema, Blocks, diagnostics, Site Health, order panel, default uninstall |
+| `bash scripts/test-integration.sh` | Fresh WordPress + WooCommerce from the release ZIP; HPOS off and on; payments, refunds, lifecycle (disabled gateway, return windows, account guard, returns and no re-debit, retry after failure, cancel, manual review), Plaid account switch and account-scoped streams, maintenance scheduling, schema 2 → 3 migration, webhook REST matrix, multi-process concurrency, uninstall |
+| `bash scripts/test-browser-e2e.sh` | Playwright: Classic and Blocks checkout (guest and logged-in), Link success/failure/exit/retry, double submit, admin refunds, return badge, blocked re-debit of a returned order, misconfiguration, axe-core accessibility |
+| `bash scripts/check-docs.sh`, `bash scripts/audit-source.sh` | Engineering docs tracked and linked; no credentials, `.env`, traces or caches in the source archive |
 | `bash scripts/test-plugin-check.sh` | WordPress Plugin Check on the release ZIP |
-| `npm run test:sandbox` | Real Plaid Sandbox: genuine Transfer UI from both checkouts, $11.11/$22.22/$33.33 lifecycles, a genuine Link exit, full and partial refunds, refund failure and return, a lost Plaid response recovered by idempotency (needs `PAYBRIDGE_PLAID_SANDBOX_*`; exits 78 when absent) |
+| `npm run test:sandbox` | Real Plaid Sandbox: genuine Transfer UI from both checkouts, $11.11/$22.22/$33.33 lifecycles, a genuine Link exit, full and partial refunds, refund failure and return, a lost Plaid response recovered by idempotency (needs `PAYBRIDGE_PLAID_SANDBOX_CLIENT_ID`, `_SECRET`, `_USERNAME`, `_PASSWORD` and `_LINK_CUSTOMIZATION`; exits 78 when one is absent) |
 | `npm run test:sandbox:ngrok` | The same run with the store on a public HTTPS URL through ngrok (`PAYBRIDGE_PLAID_NGROK_DOMAIN`): lifecycles driven by genuine Plaid-signed webhooks, then forged, tampered, replayed and stale webhooks sent through the tunnel |
 
 All scripts create a throwaway site and database (`paybridge_test_*`, `paybridge_browser_*`,
@@ -328,11 +340,11 @@ be online in only one ngrok agent at a time.
 ## CI and releases
 
 `.github/workflows/quality.yml` runs on pushes and pull requests to `master` (and is called by
-the release workflow): Composer validation, PHP syntax, shellcheck, PHPCS, PHPStan, PHPUnit on
+the release workflow): Composer validation (pinned Composer, prefixed runtime must match the lock), documentation integrity and source audit, PHP syntax, shellcheck, PHPCS, PHPStan, PHPUnit on
 PHP 8.1–8.4 (8.5 early-warning), dependency audits and review, front-end build/typecheck/tests,
 one reproducible package build with SHA-256, pristine-install smoke, source/package parity (a
 rebuild of the commit must be byte-identical), integration on MySQL 8.0/8.4
-and MariaDB 10.11/11.4 across WordPress 6.6–7.1 and WooCommerce 8.5.2–11.1.2, Plugin Check,
+and MariaDB 10.11/11.4 across WordPress 6.6–7.1 and WooCommerce 8.7.0–11.1.2, Plugin Check,
 browser E2E with accessibility, the real Sandbox gate, and a **Quality Gate** job.
 
 `.github/workflows/release.yml` runs for tags `vX.Y.Z` (or `-rc.N`): it verifies version metadata,

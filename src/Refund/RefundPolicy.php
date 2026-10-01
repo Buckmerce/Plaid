@@ -16,7 +16,7 @@ use PayBridge\Plaid\Support\Money;
  * Uses only local, authoritative-derived data: order meta written from Plaid responses
  * and the refund store. It never calls Plaid, so it can run on every admin page view.
  *
- * Plaid rules (docs/api/transfer/refunds.md): refunds of a debit transfer only, at most
+ * Plaid rules (https://plaid.com/docs/transfer/refunds/): refunds of a debit transfer only, at most
  * 10 per transfer, their total at most the transfer amount, within 180 days of the
  * transfer, never for cancelled/failed/returned transfers. PayBridge additionally refunds
  * only settled payments: before settlement the debit is still likely to fail or return,

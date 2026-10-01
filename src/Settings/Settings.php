@@ -20,7 +20,7 @@ final class Settings
 
     /**
      * Plaid Transfer UI captures a consumer's authorization over the Internet, which is the
-     * Nacha WEB entry class (docs/api/transfer/using-transfer-ui.md). No other class is a
+     * Nacha WEB entry class (https://plaid.com/docs/transfer/using-transfer-ui/). No other class is a
      * valid description of a WooCommerce web checkout, so it is not configurable (ADR-0013).
      */
     public const ACH_CLASS = 'web';
@@ -102,6 +102,12 @@ final class Settings
         return AccountIdentity::fingerprint($this->client_id());
     }
 
+    /** The Plaid event stream PayBridge reads with the configured credentials (ADR-0018). */
+    public function account_scope(): AccountScope
+    {
+        return AccountScope::from_settings($this);
+    }
+
     /** Optional: only for Plaid Transfer accounts without Plaid Ledger (see ADR-0007). */
     public function funding_account_id(): string
     {
@@ -114,12 +120,14 @@ final class Settings
     }
 
     /**
-     * Transfer UI requires a Link customization with Account Select "Enabled for one
-     * account". Production fails closed without one; Sandbox may use Plaid's default.
+     * Transfer UI integration step 1 (docs/api/PLAID_TRANSFER.md §2.3): a Link customization with
+     * Account Select "Enabled for one account", passed as link_customization_name. Both
+     * environments fail closed without one, so Sandbox exercises the same Transfer UI shape as
+     * Production (ADR-0020); Plaid's unspecified default customization is never used.
      */
     public function link_customization_required(): bool
     {
-        return $this->is_production();
+        return true;
     }
 
     public function network(): string
@@ -142,7 +150,7 @@ final class Settings
 
     /**
      * Banks show ACH descriptions as upper-case ASCII without punctuation, 10 characters at
-     * most (docs/api/transfer/creating-transfers.md). Returns '' when nothing usable remains.
+     * most (https://plaid.com/docs/transfer/creating-transfers/). Returns '' when nothing usable remains.
      */
     public static function normalize_statement_descriptor(string $value): string
     {

@@ -43,7 +43,16 @@ pbfp_assert($wpdb->prefix . 'paybridge_plaid_refunds' === $wpdb->get_var("SHOW T
 // Explicit cleanup: only PayBridge-owned data is removed.
 pbfp_configure(array('delete_data_on_uninstall' => 'yes'));
 update_option('paybridge_plaid_last_reconciliation', gmdate('c'), false);
+$scoped = array('paybridge_plaid_event_cursor_production_0123456789abcdef', 'paybridge_plaid_first_intent_at_sandbox_fedcba9876543210', 'paybridge_plaid_event_sync_production_0123456789abcdef', 'paybridge_plaid_event_cursor_sandbox');
+foreach ($scoped as $name) {
+    update_option($name, '42', false);
+}
+update_option('paybridge_plaid_event_cursor_unrelated_by_other_plugin', 'keep', false);
 $run_uninstall();
+foreach ($scoped as $name) {
+    pbfp_assert(false === get_option($name), 'Per-account and schema-2 options removed on cleanup: ' . $name);
+}
+pbfp_assert('keep' === get_option('paybridge_plaid_event_cursor_unrelated_by_other_plugin'), 'Per-account cleanup matches the exact option pattern only.');
 pbfp_assert(false === get_option('woocommerce_paybridge_plaid_settings'), 'Settings removed on cleanup.');
 pbfp_assert(false === get_option('paybridge_plaid_schema_version'), 'Schema version removed on cleanup.');
 pbfp_assert(false === get_option('paybridge_plaid_last_reconciliation'), 'Operational options removed on cleanup.');

@@ -52,9 +52,9 @@ final class ConfigurationStatus
         $customization = '' !== $settings->link_customization_name();
         $add(
             'link_customization',
-            $customization ? self::PASS : ($settings->link_customization_required() ? self::FAIL : self::WARN),
+            $customization ? self::PASS : self::FAIL,
             __('Link customization configured', 'paybridge-for-plaid'),
-            $customization ? '' : __('Create a Plaid Link customization with Account Select = “Enabled for one account”, then enter its name. Required for Production.', 'paybridge-for-plaid')
+            $customization ? '' : __('Create a Plaid Link customization with Account Select = “Enabled for one account” in the selected environment, then enter its name. Plaid Transfer UI requires it in Sandbox and Production.', 'paybridge-for-plaid')
         );
         $link_error = get_option(PaymentAttemptService::LAST_LINK_ERROR_OPTION, array());
         if (is_array($link_error) && isset($link_error['code'])) {
@@ -119,8 +119,8 @@ final class ConfigurationStatus
                     : ($cron_disabled ? __('WP-Cron is disabled; a server cron job must run the scheduled actions.', 'paybridge-for-plaid') : ''),
             );
         }
-        $error = get_option(EventSyncService::LAST_ERROR_OPTION, array());
-        if (is_array($error) && isset($error['at'])) {
+        $error = EventSyncService::health($settings->account_scope())['last_error'];
+        if (isset($error['at'])) {
             $permanent = 'permanent' === ($error['category'] ?? '');
             $checks[] = array('id' => 'event_sync', 'result' => self::WARN, 'label' => __('Last Plaid event sync failed', 'paybridge-for-plaid'), 'help' => $permanent ? __('Plaid rejected the request: check the credentials with “Test connection”.', 'paybridge-for-plaid') : __('PayBridge retries automatically with backoff.', 'paybridge-for-plaid'));
         }

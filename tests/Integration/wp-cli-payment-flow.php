@@ -136,7 +136,8 @@ pbfp_assert_same(PaymentState::FUNDS_AVAILABLE, $paid->get_meta(OrderMeta::PAYME
 pbfp_assert($paid->is_paid() && 'processing' === $paid->get_status(), 'Funds available → paid (processing).');
 pbfp_assert_same('4', $paid->get_meta(OrderMeta::LAST_EVENT_ID, true), 'Last event ID recorded.');
 $paid_at = $paid->get_date_paid()?->getTimestamp();
-pbfp_assert_same('4', get_option('paybridge_plaid_event_cursor_sandbox'), 'Cursor advanced to highest event.');
+pbfp_assert_same('4', ( new \PayBridge\Plaid\Persistence\EventCursor() )->get(pbfp_scope()), 'Cursor advanced to highest event.');
+pbfp_assert(false === get_option('paybridge_plaid_event_cursor_sandbox'), 'No per-environment cursor exists: the cursor belongs to the Plaid account.');
 
 // Same events again: harmless.
 $wpdb->query($wpdb->prepare("UPDATE {$wpdb->prefix}paybridge_plaid_events SET status = 'received', attempts = 0 WHERE transfer_id = %s", $transfer_id));
@@ -188,7 +189,9 @@ pbfp_assert_same('R01', $returned->get_meta(OrderMeta::RETURN_CODE, true), 'Retu
 pbfp_assert_same('failed', $returned->get_status(), 'Returned ACH → order failed.');
 pbfp_assert(! $returned->is_paid(), 'Returned payment is no longer paid.');
 pbfp_assert(null !== $returned->get_date_paid(), 'Original payment history is preserved.');
-pbfp_assert(1 === pbfp_note_count($returned, 'ACH RETURN') && 1 === pbfp_note_count($returned, 'R01'), 'Private return note with reason.');
+$return_notes = array_values(array_filter(pbfp_notes($returned), static fn (string $note): bool => str_contains($note, 'ACH RETURN')));
+pbfp_assert(1 === count($return_notes) && str_contains($return_notes[0], 'R01'), 'Private return note with reason.');
+pbfp_assert(1 === pbfp_note_count($returned, 'will not be debited again by bank'), 'The merchant is told the order is not debited again (ADR-0019).');
 $alerts = get_option('paybridge_plaid_payment_alerts');
 pbfp_assert(is_array($alerts) && isset($alerts[$returned->get_id() . ':returned']), 'Admin alert recorded.');
 $mails = get_option('pbfp_test_mails');
@@ -326,7 +329,10 @@ $guest = pbfp_order('19.00');
 pbfp_assert(! $access->can_access($guest, $guest->get_order_key()), 'Guest order without a session grant is denied.');
 $access->grant($guest);
 pbfp_assert($access->can_access($guest, $guest->get_order_key()), 'Guest with a session grant may pay.');
-pbfp_assert(! $access->can_access($guest, substr($guest->get_order_key(), 0, -1) . 'x'), 'Guest with the wrong key is denied.');
+$real_key = $guest->get_order_key();
+// Always a different key (replacing the last character with a fixed one would equal the real key when it already ends with it).
+$wrong_key = substr($real_key, 0, -1) . ('x' === substr($real_key, -1) ? 'y' : 'x');
+pbfp_assert(! $access->can_access($guest, $wrong_key), 'Guest with the wrong key is denied.');
 
 wp_set_current_user((int) $customer);
 pbfp_checkout($owned);
@@ -416,9 +422,9 @@ foreach ($foreign as $code => $foreign_transfer) {
 }
 pbfp_assert_same(PaymentState::INTENT_CREATED, pbfp_meta($shared, OrderMeta::PAYMENT_STATE), 'Foreign transfers never touch a local order with the same number.');
 // History of the shared Plaid account from before this store's first intent is ignored without API calls.
-pbfp_assert(null !== \PayBridge\Plaid\Persistence\PaymentEpoch::get('sandbox'), 'The first Transfer Intent recorded the payment epoch.');
+pbfp_assert(null !== \PayBridge\Plaid\Persistence\PaymentEpoch::get(pbfp_scope()), 'The first Transfer Intent recorded the payment epoch.');
 $history_gets = count($mock::calls('/transfer/get'));
-$history_transfer = $mock::foreign_transfer(array('pbfp_order_id' => (string) $shared->get_id(), 'pbfp_attempt_id' => str_repeat('c', 32), 'pbfp_environment' => 'sandbox'), '5.00', \PayBridge\Plaid\Persistence\PaymentEpoch::get('sandbox') - 2 * HOUR_IN_SECONDS);
+$history_transfer = $mock::foreign_transfer(array('pbfp_order_id' => (string) $shared->get_id(), 'pbfp_attempt_id' => str_repeat('c', 32), 'pbfp_environment' => 'sandbox'), '5.00', \PayBridge\Plaid\Persistence\PaymentEpoch::get(pbfp_scope()) - 2 * HOUR_IN_SECONDS);
 pbfp_sync_events();
 $history_row = $wpdb->get_row($wpdb->prepare("SELECT status, error_code FROM {$wpdb->prefix}paybridge_plaid_events WHERE transfer_id = %s", $history_transfer), ARRAY_A);
 pbfp_assert('ignored' === $history_row['status'] && 'before_first_payment' === $history_row['error_code'], 'Pre-epoch history is ignored (got ' . wp_json_encode($history_row) . ').');

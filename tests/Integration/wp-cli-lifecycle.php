@@ -3,8 +3,9 @@
 /**
  * v1 lifecycle guarantees against real WordPress/WooCommerce and the Plaid double:
  * maintenance independent of the enabled switch (ADR-0014), return-window monitoring,
- * Plaid account/environment guard (ADR-0015), legal name, repayment after a return with
- * attempt history (ADR-0017), merchant cancel and manual-review actions, Link customization.
+ * Plaid account/environment guard (ADR-0015), legal name, no re-debit after a return
+ * (ADR-0019) with attempt history (ADR-0017), merchant cancel and manual-review actions,
+ * Link customization in both environments (ADR-0020).
  */
 
 declare(strict_types=1);
@@ -22,6 +23,9 @@ use PayBridge\Plaid\Payment\AttemptHistory;
 use PayBridge\Plaid\Payment\OrderMeta;
 use PayBridge\Plaid\Payment\PaymentAttemptService;
 use PayBridge\Plaid\Payment\PaymentState;
+use PayBridge\Plaid\Payment\ReturnRetryDecision;
+use PayBridge\Plaid\Payment\ReturnRetryPolicy;
+use PayBridge\Plaid\Exception\ReturnedPaymentRetryException;
 use PayBridge\Plaid\Persistence\PaymentEpoch;
 use PayBridge\Plaid\Settings\Settings;
 
@@ -236,7 +240,13 @@ pbfp_assert_same('sandboxclient2', Settings::load()->client_id(), 'Sandbox moves
 pbfp_configure();
 
 // ---------------------------------------------------------------------------------
-WP_CLI::log('Production requires a valid Link customization');
+WP_CLI::log('Transfer UI requires a valid Link customization in Sandbox and Production');
+pbfp_configure(array('link_customization_name' => ''));
+pbfp_assert(! pbfp_gateway()->is_available(), 'Sandbox without a Link customization is not offered (no unspecified default customization).');
+pbfp_assert_same('failure', pbfp_gateway()->process_payment(pbfp_order('12.00')->get_id())['result'], 'Sandbox without a Link customization fails closed.');
+pbfp_assert_same(ConfigurationStatus::INCOMPLETE, ConfigurationStatus::evaluate(Settings::load())['level'], 'Sandbox configuration status: Incomplete.');
+pbfp_configure();
+pbfp_assert(array() !== $mock::calls('/link/token/create') && array() === array_filter($mock::calls('/link/token/create'), static fn (array $call): bool => '' === (string) ($call['body']['link_customization_name'] ?? '')), 'Every Link token request carried the Link customization.');
 add_filter('option_home', $https);
 pbfp_configure(array('environment' => 'production', 'link_customization_name' => ''));
 $uncustomized = pbfp_order('12.00');
@@ -265,7 +275,7 @@ pbfp_configure();
 pbfp_assert_same('sandbox', Settings::load()->environment_name(), 'Switching is allowed once nothing is monitored.');
 
 // ---------------------------------------------------------------------------------
-WP_CLI::log('Returned payment: explicit semantics, history kept, safe repayment');
+WP_CLI::log('Returned payment: explicit semantics, history kept, no same-order re-debit (ADR-0019)');
 pbfp_reset_world();
 delete_option('pbfp_test_mails');
 $returned = pbfp_order('33.33');
@@ -278,32 +288,77 @@ pbfp_assert(PaymentState::RETURNED === $returned->get_meta(OrderMeta::PAYMENT_ST
 pbfp_assert(null !== $first_paid && $first_transfer === $returned->get_transaction_id(), 'Paid date and transaction ID are kept.');
 pbfp_assert('' !== (string) $returned->get_meta(OrderMeta::RETURNED_AT, true) && '' !== (string) $returned->get_meta(OrderMeta::FUNDS_AVAILABLE_AT, true), 'Return and funds-available timestamps recorded.');
 pbfp_assert(str_contains((string) $returned->get_meta(OrderMeta::FAILURE_DESCRIPTION, true), 'Insufficient'), 'Return reason recorded.');
-pbfp_assert($returned->needs_payment(), 'The customer can pay the order again.');
 pbfp_assert(1 === count(array_filter((array) get_option('pbfp_test_mails'), static fn ($mail): bool => str_contains((string) $mail['subject'], 'ACH return'))), 'Merchant emailed.');
 $badge = PayBridge\Plaid\Admin\OrderListColumn::badge(PaymentState::RETURNED, 'R01');
 pbfp_assert_same('Bank payment returned (R01)', $badge[0], 'Order list shows the return explicitly.');
-// The customer pays again: a new attempt with a new intent; the returned attempt stays auditable.
+$decision = ReturnRetryPolicy::for_order($returned);
+pbfp_assert_same(ReturnRetryDecision::BLOCK_UNSUPPORTED_FLOW, $decision->outcome, 'R01 would be retryable only as a marked /transfer/create retry, which Transfer UI cannot send.');
+pbfp_assert_same($first_transfer, $decision->original_transfer_id, 'The decision names the original returned transfer.');
+pbfp_assert(1 === pbfp_note_count($returned, 'will not be debited again by bank'), 'The merchant is told why in a private note.');
+// The WooCommerce pay link must not start another bank debit for this order.
 $creates = count($mock::calls('/transfer/intent/create'));
-$second_transfer = pbfp_lc_transfer(pbfp_reload($returned));
-pbfp_assert_same($creates + 1, count($mock::calls('/transfer/intent/create')), 'Repayment creates exactly one new intent.');
-pbfp_assert($second_transfer !== $first_transfer, 'A new transfer.');
-$history = AttemptHistory::all(pbfp_reload($returned));
-$returned_attempt = array_values(array_filter($history, static fn (array $entry): bool => $first_transfer === ($entry['transfer_id'] ?? '')));
-pbfp_assert(1 === count($returned_attempt), 'The returned attempt is in the history.');
-$returned_attempt = $returned_attempt[0];
-pbfp_assert(PaymentState::RETURNED === $returned_attempt['payment_state'] && 'R01' === $returned_attempt['return_code'] && '' !== $returned_attempt['paid_at'] && '' !== $returned_attempt['returned_at'] && '33.33' === $returned_attempt['amount'] && '' !== $returned_attempt['attempt_id'], 'History keeps IDs, amount, outcome and timestamps.');
-foreach (array('posted', 'settled', 'funds_available') as $type) {
-    $mock::add_event($second_transfer, $type);
+$tokens = count($mock::calls('/link/token/create'));
+wc_clear_notices();
+pbfp_assert_same('failure', pbfp_gateway()->process_payment($returned->get_id())['result'], 'process_payment refuses a same-order debit after a return.');
+pbfp_assert(str_contains(implode(' ', array_column(wc_get_notices('error'), 'notice')), 'cannot be used to pay it again'), 'The customer sees why, without codes.');
+wc_clear_notices();
+try {
+    pbfp_lc()->attempts()->issue_link_token(pbfp_reload($returned));
+    pbfp_assert(false, 'No Link session for a returned order.');
+} catch (ReturnedPaymentRetryException $exception) {
+    pbfp_assert_same(ReturnRetryDecision::BLOCK_UNSUPPORTED_FLOW, $exception->decision->outcome, 'Refused by the return retry policy.');
 }
-sleep(1);
-pbfp_lc()->event_sync()->run();
-$repaid = pbfp_reload($returned);
-pbfp_assert($repaid->is_paid() && PaymentState::FUNDS_AVAILABLE === $repaid->get_meta(OrderMeta::PAYMENT_STATE, true), 'Repayment completed the order.');
-pbfp_assert_same($second_transfer, $repaid->get_transaction_id(), 'Transaction ID is the paying transfer.');
-pbfp_assert($repaid->get_date_paid()->getTimestamp() > $first_paid, 'Paid date is the repayment (the first one stays in the history).');
+pbfp_assert_same($creates, count($mock::calls('/transfer/intent/create')), 'No Transfer Intent was created.');
+pbfp_assert_same($tokens, count($mock::calls('/link/token/create')), 'No Link token was created.');
+set_query_var('order-pay', $returned->get_id());
+pbfp_assert(! pbfp_gateway()->is_available(), 'Pay by Bank is not offered on the order-pay page of a returned order.');
+ob_start();
+( new PayBridge\Plaid\Checkout\PaymentPage() )->returned_payment_notice(pbfp_reload($returned));
+pbfp_assert(str_contains((string) ob_get_clean(), 'pbfp-returned-notice'), 'The order-pay form explains why Pay by Bank is missing.');
+// The customer tried another payment method in between: the order names that method now, but its
+// returned bank payment still rules out Pay by Bank (hidden, explained and refused at the choke point).
+$switched = pbfp_reload($returned);
+$switched->set_payment_method('cod');
+$switched->save();
+pbfp_assert(! pbfp_gateway()->is_available(), 'Pay by Bank stays hidden after the order was switched to another payment method.');
+ob_start();
+( new PayBridge\Plaid\Checkout\PaymentPage() )->returned_payment_notice(pbfp_reload($returned));
+pbfp_assert(str_contains((string) ob_get_clean(), 'pbfp-returned-notice'), 'The explanation is still shown.');
+$switched = pbfp_reload($returned);
+$switched->set_payment_method(Settings::GATEWAY_ID);
+$switched->save();
+wc_clear_notices();
+pbfp_assert_same('failure', pbfp_gateway()->process_payment($returned->get_id())['result'], 'Selecting Pay by Bank again is still refused.');
+wc_clear_notices();
+pbfp_assert_same($creates, count($mock::calls('/transfer/intent/create')), 'Still no Transfer Intent.');
+set_query_var('order-pay', 0);
+pbfp_assert(pbfp_gateway()->is_available(), 'Pay by Bank stays available for other checkouts.');
+$history = AttemptHistory::all(pbfp_reload($returned));
+pbfp_assert(array() === $history, 'Nothing was archived or replaced: the returned attempt stays the current, auditable attempt.');
+pbfp_assert_same($first_transfer, pbfp_lc_meta($returned, OrderMeta::TRANSFER_ID), 'The original transfer is never lost.');
+// Late or replayed events of the returned transfer stay harmless.
 $mock::add_event($first_transfer, 'returned');
 pbfp_lc()->event_sync()->run();
-pbfp_assert_same(PaymentState::FUNDS_AVAILABLE, pbfp_lc_meta($repaid, OrderMeta::PAYMENT_STATE), 'Late events of the returned attempt never touch the new attempt.');
+pbfp_assert_same(PaymentState::RETURNED, pbfp_lc_meta($returned, OrderMeta::PAYMENT_STATE), 'A replayed return is a no-op.');
+pbfp_assert(1 === pbfp_note_count(pbfp_reload($returned), 'will not be debited again by bank'), 'No duplicate note.');
+// Unauthorized returns are blocked by their code (R10: never resubmit).
+$unauthorized = ReturnRetryPolicy::for_order(pbfp_reload($kept));
+pbfp_assert_same(ReturnRetryDecision::BLOCK_RETURN_CODE, $unauthorized->outcome, 'R10 may never be debited again.');
+pbfp_assert_same('R10', $unauthorized->return_code, 'The blocking code is reported.');
+// A failure before money moved is not a return: the customer may pay again.
+$declined = pbfp_order('22.22');
+$declined_transfer = pbfp_lc_transfer($declined);
+$mock::advance($declined_transfer);
+pbfp_lc()->event_sync()->run();
+pbfp_assert_same(PaymentState::FAILED, pbfp_lc_meta($declined, OrderMeta::PAYMENT_STATE), 'Precondition: failed ($22.22).');
+pbfp_assert(ReturnRetryPolicy::for_order(pbfp_reload($declined))->allows_new_debit(), 'A failed transfer is not a returned transfer.');
+$retry_transfer = pbfp_lc_transfer(pbfp_reload($declined));
+pbfp_assert($retry_transfer !== $declined_transfer, 'A failed payment can be paid again with a new attempt.');
+$failed_attempt = array_values(array_filter(AttemptHistory::all(pbfp_reload($declined)), static fn (array $entry): bool => $declined_transfer === ($entry['transfer_id'] ?? '')));
+pbfp_assert(1 === count($failed_attempt) && PaymentState::FAILED === $failed_attempt[0]['payment_state'], 'The failed attempt stays in the history.');
+$mock::add_event($declined_transfer, 'failed');
+pbfp_lc()->event_sync()->run();
+pbfp_assert_same($retry_transfer, pbfp_lc_meta($declined, OrderMeta::TRANSFER_ID), 'Late events of a retired attempt never touch the new attempt.');
 
 // ---------------------------------------------------------------------------------
 WP_CLI::log('Merchant cancellation of a still-cancellable transfer');
@@ -356,6 +411,6 @@ pbfp_assert((int) $report['Monitored bank payments'] >= 1, 'Monitored payments c
 pbfp_assert_same('Yes', $report['WP-Cron disabled (DISABLE_WP_CRON)'], 'WP-Cron disabled is reported.');
 pbfp_assert(! str_contains((string) wp_json_encode($report), 'test-sandbox-secret'), 'No secret in diagnostics.');
 as_unschedule_all_actions(Scheduler::RECONCILE_CONTINUE_HOOK, array(), Scheduler::GROUP);
-pbfp_assert(null !== PaymentEpoch::get('sandbox'), 'Epoch recorded.');
+pbfp_assert(null !== PaymentEpoch::get(pbfp_scope()), 'Epoch recorded.');
 
 WP_CLI::success('PayBridge lifecycle suite passed (HPOS=' . (getenv('PAYBRIDGE_PLAID_EXPECT_HPOS') ?: '?') . ').');

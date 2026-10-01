@@ -9,7 +9,7 @@ use PayBridge\Plaid\Support\Decimal;
 
 /**
  * Normalized refund object of /transfer/refund/create, /transfer/refund/get and
- * /transfer/get transfer.refunds[] (docs/api/api/products/transfer/refunds.md).
+ * /transfer/get transfer.refunds[] (https://plaid.com/docs/api/products/transfer/refunds/).
  */
 final class TransferRefund
 {

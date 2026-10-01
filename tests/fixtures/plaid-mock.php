@@ -6,8 +6,10 @@
  * WordPress' pre_http_request filter, validates request bodies against the
  * documented contracts (docs/api) and mirrors Plaid Sandbox behavior, including
  * the Plaid Ledger rejection of funding_account_id and the $11.11 / $22.22 /
- * $33.33 transfer scenarios. State lives in a WordPress option so separate PHP
- * processes share it. It is inert unless PAYBRIDGE_PLAID_TEST_DATABASE is true.
+ * $33.33 transfer scenarios. Like real Plaid clients, every client_id has its own
+ * intents, transfers, refunds and transfer-event stream (event IDs start at 1 per
+ * client), so account switches can be tested. State lives in a WordPress option so
+ * separate PHP processes share it. It is inert unless PAYBRIDGE_PLAID_TEST_DATABASE is true.
  */
 
 declare(strict_types=1);
@@ -30,6 +32,10 @@ final class PayBridge_Test_Plaid_Mock
     public const STATE = 'pbfp_test_plaid_state';
     public const KEY = 'pbfp_test_plaid_key';
     public const KID = 'pbfp-test-kid-1';
+    /** Client of the integration suites (tests/Integration/helpers.php pbfp_configure()). */
+    public const DEFAULT_CLIENT = 'test-client-id';
+    /** Client of the request being handled (set by handle()). */
+    private static string $client = self::DEFAULT_CLIENT;
 
     /** @return array<string, mixed> */
     public static function state(): array
@@ -42,7 +48,7 @@ final class PayBridge_Test_Plaid_Mock
     /** @return array<string, mixed> */
     private static function empty_state(): array
     {
-        return array('intents' => array(), 'transfers' => array(), 'tokens' => array(), 'events' => array(), 'refunds' => array(), 'refund_keys' => array(), 'next_event_id' => 1, 'calls' => array(), 'fail' => array());
+        return array('intents' => array(), 'transfers' => array(), 'tokens' => array(), 'events' => array(), 'refunds' => array(), 'refund_keys' => array(), 'next_event_ids' => array(), 'calls' => array(), 'fail' => array());
     }
 
     /** @param array<string, mixed> $state */
@@ -97,8 +103,9 @@ final class PayBridge_Test_Plaid_Mock
             }
         }
 
+        self::$client = (string) $headers['PLAID-CLIENT-ID'];
         $state = self::state();
-        $state['calls'][] = array('path' => $path, 'body' => $body, 'environment' => $environment);
+        $state['calls'][] = array('path' => $path, 'body' => $body, 'environment' => $environment, 'client_id' => self::$client);
         $failure = '';
         if (! empty($state['fail'][$path])) {
             $failure = (string) array_shift($state['fail'][$path]);
@@ -145,8 +152,8 @@ final class PayBridge_Test_Plaid_Mock
                 $response = self::refund_create($body);
                 return 'timeout_after_create' === $failure ? new WP_Error('http_request_failed', 'cURL error 28: response lost after refund create') : $response;
             case '/transfer/refund/get':
-                $refund = self::state()['refunds'][(string) ($body['refund_id'] ?? '')] ?? null;
-                return null === $refund ? self::error(400, 'INVALID_INPUT', 'INVALID_FIELD', 'refund not found') : self::ok(array('refund' => $refund));
+                $refund = self::owned(self::state()['refunds'][(string) ($body['refund_id'] ?? '')] ?? null);
+                return null === $refund ? self::error(400, 'INVALID_INPUT', 'INVALID_FIELD', 'refund not found') : self::ok(array('refund' => self::public_record($refund)));
             case '/transfer/refund/cancel':
                 return self::refund_cancel($body);
             case '/sandbox/transfer/refund/simulate':
@@ -161,7 +168,7 @@ final class PayBridge_Test_Plaid_Mock
                 return self::verification_key($body);
             case '/sandbox/transfer/simulate':
                 $transfer_id = (string) ($body['transfer_id'] ?? '');
-                if (! isset(self::state()['transfers'][$transfer_id])) {
+                if (null === self::owned(self::state()['transfers'][$transfer_id] ?? null)) {
                     return self::error(400, 'INVALID_INPUT', 'INVALID_TRANSFER_ID', 'unknown transfer');
                 }
                 self::add_event($transfer_id, (string) ($body['event_type'] ?? ''), (string) ($body['failure_reason']['failure_code'] ?? ''));
@@ -203,19 +210,20 @@ final class PayBridge_Test_Plaid_Mock
             'metadata' => $body['metadata'] ?? null, 'created' => gmdate('Y-m-d\TH:i:s\Z'), 'transfer_id' => null, 'failure_reason' => null,
             'authorization_decision' => null, 'authorization_decision_rationale' => null, 'funding_account_id' => '', 'environment' => $environment,
             'user' => array('legal_name' => $body['user']['legal_name'], 'email_address' => $body['user']['email_address'] ?? null, 'phone_number' => null, 'address' => null),
+            'client_id' => self::$client,
         );
         if (str_starts_with($failure, 'amount:')) {
             $state['intents'][$id]['amount'] = substr($failure, 7);
         }
         self::save($state);
-        return self::ok(array('transfer_intent' => $state['intents'][$id]));
+        return self::ok(array('transfer_intent' => self::public_record($state['intents'][$id])));
     }
 
     /** @param array<string, mixed> $body */
     private static function intent_get(array $body): array
     {
-        $intent = self::state()['intents'][(string) ($body['transfer_intent_id'] ?? '')] ?? null;
-        return null === $intent ? self::error(400, 'INVALID_INPUT', 'INVALID_FIELD', 'transfer intent not found') : self::ok(array('transfer_intent' => $intent));
+        $intent = self::owned(self::state()['intents'][(string) ($body['transfer_intent_id'] ?? '')] ?? null);
+        return null === $intent ? self::error(400, 'INVALID_INPUT', 'INVALID_FIELD', 'transfer intent not found') : self::ok(array('transfer_intent' => self::public_record($intent)));
     }
 
     /** @param array<string, mixed> $body */
@@ -224,12 +232,16 @@ final class PayBridge_Test_Plaid_Mock
         if (array('transfer') !== ($body['products'] ?? null) || array('US') !== ($body['country_codes'] ?? null) || '' === (string) ($body['user']['client_user_id'] ?? '')) {
             return self::error(400, 'INVALID_REQUEST', 'INVALID_FIELD', 'invalid link token request');
         }
+        if ('' === (string) ($body['link_customization_name'] ?? '')) {
+            // Plaid itself would fall back to its default customization; PayBridge must never rely on that (ADR-0020).
+            return self::error(400, 'INVALID_REQUEST', 'MISSING_FIELDS', 'test double: PayBridge must always send link_customization_name');
+        }
         if ('invalid_customization' === ($body['link_customization_name'] ?? '')) {
             return self::error(400, 'INVALID_INPUT', 'INVALID_LINK_CUSTOMIZATION', 'the link customization is not valid for the request');
         }
         $intent_id = (string) ($body['transfer']['intent_id'] ?? '');
         $state = self::state();
-        if (! isset($state['intents'][$intent_id]) || 'PENDING' !== $state['intents'][$intent_id]['status']) {
+        if (null === self::owned($state['intents'][$intent_id] ?? null) || 'PENDING' !== $state['intents'][$intent_id]['status']) {
             return self::error(400, 'INVALID_REQUEST', 'INVALID_FIELD', 'transfer intent is not pending');
         }
         $token = 'link-sandbox-' . wp_generate_uuid4();
@@ -266,7 +278,7 @@ final class PayBridge_Test_Plaid_Mock
         $state['transfers'][$transfer_id] = array(
             'id' => $transfer_id, 'type' => 'debit', 'amount' => $transfer_amount ?? $intent['amount'], 'iso_currency_code' => 'USD',
             'status' => 'pending', 'failure_reason' => null, 'metadata' => $intent['metadata'], 'network' => $intent['network'], 'ach_class' => $intent['ach_class'],
-            'created' => gmdate('Y-m-d\TH:i:s\Z'),
+            'created' => gmdate('Y-m-d\TH:i:s\Z'), 'client_id' => $intent['client_id'] ?? self::DEFAULT_CLIENT,
         );
         self::save($state);
         self::add_event($transfer_id, 'pending');
@@ -278,11 +290,11 @@ final class PayBridge_Test_Plaid_Mock
      *
      * @param array<string, string>|null $metadata
      */
-    public static function foreign_transfer(?array $metadata, string $amount = '5.00', ?int $timestamp = null): string
+    public static function foreign_transfer(?array $metadata, string $amount = '5.00', ?int $timestamp = null, string $client_id = self::DEFAULT_CLIENT): string
     {
         $state = self::state();
         $transfer_id = wp_generate_uuid4();
-        $state['transfers'][$transfer_id] = array('id' => $transfer_id, 'type' => 'debit', 'amount' => $amount, 'iso_currency_code' => 'USD', 'status' => 'pending', 'failure_reason' => null, 'metadata' => $metadata, 'network' => 'ach', 'ach_class' => 'web');
+        $state['transfers'][$transfer_id] = array('id' => $transfer_id, 'type' => 'debit', 'amount' => $amount, 'iso_currency_code' => 'USD', 'status' => 'pending', 'failure_reason' => null, 'metadata' => $metadata, 'network' => 'ach', 'ach_class' => 'web', 'client_id' => $client_id);
         self::save($state);
         self::add_event($transfer_id, 'pending', '', $timestamp);
         return $transfer_id;
@@ -312,13 +324,13 @@ final class PayBridge_Test_Plaid_Mock
         } elseif ('failed' === $type) {
             $failure = array('failure_code' => null, 'ach_return_code' => null, 'description' => 'The transfer failed');
         }
-        $event_id = (int) $state['next_event_id'];
+        $client = (string) ($transfer['client_id'] ?? self::DEFAULT_CLIENT);
+        $event_id = self::next_event_id($state, $client);
         $state['events'][] = array(
             'event_id' => $event_id, 'event_type' => $type, 'timestamp' => gmdate('Y-m-d\TH:i:s\Z', $timestamp ?? time()), 'transfer_id' => $transfer_id, 'transfer_type' => 'debit',
             'transfer_amount' => $transfer['amount'], 'intent_id' => null, 'failure_reason' => $failure, 'account_id' => 'acc', 'funding_account_id' => '', 'ledger_id' => 'ledger-test',
-            'originator_client_id' => null, 'refund_id' => null, 'sweep_amount' => null, 'sweep_id' => null, 'event_amount' => $transfer['amount'],
+            'originator_client_id' => null, 'refund_id' => null, 'sweep_amount' => null, 'sweep_id' => null, 'event_amount' => $transfer['amount'], 'client_id' => $client,
         );
-        $state['next_event_id'] = $event_id + 1;
         if (isset(PayBridge_Test_Plaid_Mock_Status::RANK[$type])) {
             $current = $state['transfers'][$transfer_id]['status'];
             if (PayBridge_Test_Plaid_Mock_Status::RANK[$type] >= (PayBridge_Test_Plaid_Mock_Status::RANK[$current] ?? 0)) {
@@ -340,21 +352,21 @@ final class PayBridge_Test_Plaid_Mock
     private static function transfer_get(array $body): array
     {
         $state = self::state();
-        $transfer = $state['transfers'][(string) ($body['transfer_id'] ?? '')] ?? null;
+        $transfer = self::owned($state['transfers'][(string) ($body['transfer_id'] ?? '')] ?? null);
         if (null === $transfer) {
             return self::error(400, 'INVALID_INPUT', 'INVALID_TRANSFER_ID', 'transfer not found');
         }
         $transfer['cancellable'] = 'pending' === $transfer['status'];
-        $transfer['refunds'] = array_values(array_filter($state['refunds'], static fn (array $refund): bool => $refund['transfer_id'] === $transfer['id']));
+        $transfer['refunds'] = array_map(array(self::class, 'public_record'), array_values(array_filter($state['refunds'], static fn (array $refund): bool => $refund['transfer_id'] === $transfer['id'])));
         $transfer += array('created' => gmdate('Y-m-d\TH:i:s\Z'), 'standard_return_window' => null, 'unauthorized_return_window' => null, 'expected_funds_available_date' => null);
-        return self::ok(array('transfer' => $transfer));
+        return self::ok(array('transfer' => self::public_record($transfer)));
     }
 
     /** @param array<string, mixed> $body */
     private static function transfer_cancel(array $body): array
     {
         $transfer_id = (string) ($body['transfer_id'] ?? '');
-        $transfer = self::state()['transfers'][$transfer_id] ?? null;
+        $transfer = self::owned(self::state()['transfers'][$transfer_id] ?? null);
         if (null === $transfer) {
             return self::error(400, 'INVALID_INPUT', 'INVALID_TRANSFER_ID', 'transfer not found');
         }
@@ -366,7 +378,7 @@ final class PayBridge_Test_Plaid_Mock
     }
 
     /**
-     * /transfer/refund/create per docs/api/api/products/transfer/refunds.md: idempotency_key
+     * /transfer/refund/create per https://plaid.com/docs/api/products/transfer/refunds/: idempotency_key
      * (≤ 50) dedupes, at most 10 refunds, total ≤ transfer amount, no refunds of cancelled,
      * failed or returned transfers; Sandbox $1.11 → returned and $2.22 → failed immediately.
      *
@@ -384,14 +396,15 @@ final class PayBridge_Test_Plaid_Mock
             return self::error(400, 'INVALID_REQUEST', 'INVALID_FIELD', 'amount must be a positive decimal string with two digits');
         }
         $state = self::state();
+        $key = self::$client . '|' . $key; // Plaid idempotency keys are per client.
         if (isset($state['refund_keys'][$key])) {
             $existing = $state['refunds'][$state['refund_keys'][$key]];
             if ($existing['amount'] !== $amount || $existing['transfer_id'] !== $transfer_id) {
                 return self::error(400, 'INVALID_REQUEST', 'INVALID_FIELD', 'idempotency key reused with different parameters');
             }
-            return self::ok(array('refund' => $existing));
+            return self::ok(array('refund' => self::public_record($existing)));
         }
-        $transfer = $state['transfers'][$transfer_id] ?? null;
+        $transfer = self::owned($state['transfers'][$transfer_id] ?? null);
         if (null === $transfer) {
             return self::error(400, 'INVALID_INPUT', 'INVALID_TRANSFER_ID', 'transfer not found');
         }
@@ -413,7 +426,7 @@ final class PayBridge_Test_Plaid_Mock
             return self::error(400, 'INVALID_REQUEST', 'INVALID_FIELD', 'refund amount exceeds the refundable amount of the transfer');
         }
         $id = wp_generate_uuid4();
-        $state['refunds'][$id] = array('id' => $id, 'transfer_id' => $transfer_id, 'amount' => $amount, 'status' => 'pending', 'failure_reason' => null, 'ledger_id' => 'ledger-test', 'created' => gmdate('Y-m-d\TH:i:s\Z'), 'network_trace_id' => null);
+        $state['refunds'][$id] = array('id' => $id, 'transfer_id' => $transfer_id, 'amount' => $amount, 'status' => 'pending', 'failure_reason' => null, 'ledger_id' => 'ledger-test', 'created' => gmdate('Y-m-d\TH:i:s\Z'), 'network_trace_id' => null, 'client_id' => self::$client);
         $state['refund_keys'][$key] = $id;
         self::save($state);
         self::add_refund_event($id, 'refund.pending');
@@ -421,14 +434,14 @@ final class PayBridge_Test_Plaid_Mock
         foreach ($plan as $type) {
             self::add_refund_event($id, $type, 'refund.returned' === $type ? 'R01' : '');
         }
-        return self::ok(array('refund' => self::state()['refunds'][$id]));
+        return self::ok(array('refund' => self::public_record(self::state()['refunds'][$id])));
     }
 
     /** @param array<string, mixed> $body */
     private static function refund_cancel(array $body): array
     {
         $refund_id = (string) ($body['refund_id'] ?? '');
-        $refund = self::state()['refunds'][$refund_id] ?? null;
+        $refund = self::owned(self::state()['refunds'][$refund_id] ?? null);
         if (null === $refund) {
             return self::error(400, 'INVALID_INPUT', 'INVALID_FIELD', 'refund not found');
         }
@@ -444,7 +457,7 @@ final class PayBridge_Test_Plaid_Mock
     {
         $refund_id = (string) ($body['refund_id'] ?? '');
         $type = (string) ($body['event_type'] ?? '');
-        $refund = self::state()['refunds'][$refund_id] ?? null;
+        $refund = self::owned(self::state()['refunds'][$refund_id] ?? null);
         $allowed = array('pending' => array('refund.failed', 'refund.posted'), 'posted' => array('refund.returned', 'refund.settled'));
         if (null === $refund || ! in_array($type, $allowed[$refund['status']] ?? array(), true)) {
             return self::error(400, 'INVALID_REQUEST', 'INVALID_FIELD', 'event type is incompatible with the refund status');
@@ -465,13 +478,13 @@ final class PayBridge_Test_Plaid_Mock
         } elseif ('failed' === $status) {
             $failure = array('failure_code' => null, 'ach_return_code' => null, 'description' => 'The refund failed');
         }
-        $event_id = (int) $state['next_event_id'];
+        $client = (string) ($refund['client_id'] ?? self::DEFAULT_CLIENT);
+        $event_id = self::next_event_id($state, $client);
         $state['events'][] = array(
             'event_id' => $event_id, 'event_type' => $type, 'timestamp' => gmdate('Y-m-d\TH:i:s\Z'), 'transfer_id' => $refund['transfer_id'], 'transfer_type' => $transfer['type'],
             'transfer_amount' => $refund['amount'], 'intent_id' => null, 'failure_reason' => $failure, 'account_id' => 'acc', 'funding_account_id' => '', 'ledger_id' => 'ledger-test',
-            'originator_client_id' => null, 'refund_id' => $refund_id, 'sweep_amount' => null, 'sweep_id' => null, 'event_amount' => $refund['amount'],
+            'originator_client_id' => null, 'refund_id' => $refund_id, 'sweep_amount' => null, 'sweep_id' => null, 'event_amount' => $refund['amount'], 'client_id' => $client,
         );
-        $state['next_event_id'] = $event_id + 1;
         $state['refunds'][$refund_id]['status'] = $status;
         $state['refunds'][$refund_id]['failure_reason'] = $failure;
         self::save($state);
@@ -484,9 +497,84 @@ final class PayBridge_Test_Plaid_Mock
             return self::error(400, 'INVALID_REQUEST', 'INVALID_FIELD', 'after_id must be a non-negative integer');
         }
         $count = max(1, min(500, (int) ($body['count'] ?? 100)));
-        $events = array_values(array_filter(self::state()['events'], static fn (array $event): bool => $event['event_id'] > $body['after_id']));
+        $client = self::$client;
+        $events = array_values(array_filter(self::state()['events'], static fn (array $event): bool => ($event['client_id'] ?? self::DEFAULT_CLIENT) === $client && $event['event_id'] > $body['after_id']));
         usort($events, static fn (array $a, array $b): int => $a['event_id'] <=> $b['event_id']);
-        return self::ok(array('transfer_events' => array_slice($events, 0, $count), 'has_more' => count($events) > $count));
+        return self::ok(array('transfer_events' => array_map(array(self::class, 'public_record'), array_slice($events, 0, $count)), 'has_more' => count($events) > $count));
+    }
+
+    /** Next event ID of one client's stream: every Plaid client's stream starts at 1. */
+    private static function next_event_id(array &$state, string $client): int
+    {
+        $next = (int) ($state['next_event_ids'][$client] ?? 1);
+        $state['next_event_ids'][$client] = $next + 1;
+        return $next;
+    }
+
+    /**
+     * Test helper: an event with an explicit ID in one client's stream (account-switch and
+     * collision tests: two accounts can both have event 5, refund X, transfer Y).
+     *
+     * @param array<string, mixed> $fields
+     */
+    public static function add_raw_event(string $client_id, array $fields): void
+    {
+        $state = self::state();
+        $event_id = (int) ($fields['event_id'] ?? self::next_event_id($state, $client_id));
+        $state['next_event_ids'][$client_id] = max((int) ($state['next_event_ids'][$client_id] ?? 1), $event_id + 1);
+        $state['events'][] = $fields + array(
+            'event_id' => $event_id, 'event_type' => 'pending', 'timestamp' => gmdate('Y-m-d\TH:i:s\Z'), 'transfer_id' => wp_generate_uuid4(), 'transfer_type' => 'debit',
+            'transfer_amount' => '5.00', 'intent_id' => null, 'failure_reason' => null, 'account_id' => 'acc', 'funding_account_id' => '', 'ledger_id' => 'ledger-test',
+            'originator_client_id' => null, 'refund_id' => null, 'sweep_amount' => null, 'sweep_id' => null, 'event_amount' => '5.00', 'client_id' => $client_id,
+        );
+        $state['events'][count($state['events']) - 1]['client_id'] = $client_id;
+        self::save($state);
+    }
+
+    /**
+     * Test helper: appends many historical events of other integrations to one client's stream
+     * in a single state write (IDs continue the client's stream; transfers are unknown here).
+     */
+    public static function add_history(string $client_id, int $count, int $timestamp): void
+    {
+        $state = self::state();
+        for ($i = 0; $i < $count; ++$i) {
+            $event_id = self::next_event_id($state, $client_id);
+            $state['events'][] = array(
+                'event_id' => $event_id, 'event_type' => 0 === $i % 3 ? 'pending' : (1 === $i % 3 ? 'posted' : 'settled'), 'timestamp' => gmdate('Y-m-d\TH:i:s\Z', $timestamp),
+                'transfer_id' => 'hist-' . $client_id . '-' . intdiv($i, 3), 'transfer_type' => 'debit', 'transfer_amount' => '9.99', 'intent_id' => null, 'failure_reason' => null,
+                'account_id' => 'acc', 'funding_account_id' => '', 'ledger_id' => 'ledger-test', 'originator_client_id' => null, 'refund_id' => null, 'sweep_amount' => null,
+                'sweep_id' => null, 'event_amount' => '9.99', 'client_id' => $client_id,
+            );
+        }
+        self::save($state);
+    }
+
+    /** Highest event ID of one client's stream (0 when empty). */
+    public static function last_event_id(string $client_id): int
+    {
+        return (int) (self::state()['next_event_ids'][$client_id] ?? 1) - 1;
+    }
+
+    /** Test helper: a transfer owned by a client (to test identical IDs across accounts). */
+    public static function put_transfer(string $client_id, array $transfer): void
+    {
+        $state = self::state();
+        $state['transfers'][(string) $transfer['id']] = $transfer + array('type' => 'debit', 'iso_currency_code' => 'USD', 'status' => 'pending', 'failure_reason' => null, 'metadata' => null, 'network' => 'ach', 'ach_class' => 'web', 'client_id' => $client_id);
+        self::save($state);
+    }
+
+    /** @param array<string, mixed>|null $record Only records of the requesting client are visible (like Plaid). */
+    private static function owned(?array $record): ?array
+    {
+        return null !== $record && ($record['client_id'] ?? self::DEFAULT_CLIENT) === self::$client ? $record : null;
+    }
+
+    /** @param array<string, mixed> $record Plaid objects never carry the test double's client bookkeeping. */
+    public static function public_record(array $record): array
+    {
+        unset($record['client_id']);
+        return $record;
     }
 
     /** @param array<string, mixed> $body */

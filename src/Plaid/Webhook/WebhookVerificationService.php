@@ -11,7 +11,7 @@ use PayBridge\Plaid\Vendor\Firebase\JWT\Key;
 
 /**
  * Verifies the Plaid-Verification JWT exactly as documented in
- * docs/api/api/webhooks/webhook-verification.md:
+ * https://plaid.com/docs/api/webhooks/webhook-verification/:
  *
  * 1. header alg must be ES256 (never trusted dynamically);
  * 2. kid selects a key from /webhook_verification_key/get;

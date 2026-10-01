@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace PayBridge\Plaid\Refund;
 
+use PayBridge\Plaid\Settings\AccountScope;
+
 /** One row of {prefix}paybridge_plaid_refunds. */
 final class RefundRecord
 {
@@ -65,6 +67,12 @@ final class RefundRecord
             $string('created_at'),
             $string('updated_at')
         );
+    }
+
+    /** The Plaid account and environment that own this refund (ADR-0018). */
+    public function scope(): AccountScope
+    {
+        return new AccountScope($this->environment, $this->account_fp);
     }
 
     /** Seconds since the row was reserved (UTC). */

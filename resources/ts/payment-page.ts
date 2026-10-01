@@ -102,6 +102,8 @@ const VERIFY_DELAY_MS = 4000;
 		switch ( code ) {
 			case 'paybridge_unavailable':
 				return 'notPayable';
+			case 'paybridge_not_payable':
+				return 'returned';
 			case 'paybridge_rate_limited':
 				return 'rateLimited';
 			case 'paybridge_missing_name':
@@ -199,7 +201,7 @@ const VERIFY_DELAY_MS = 4000;
 			result = await post( config.linkTokenUrl );
 		} catch ( error ) {
 			const key = errorKey( error );
-			if ( 'missingName' === key ) {
+			if ( 'missingName' === key || 'returned' === key ) {
 				stop( key );
 				return;
 			}
