@@ -9,10 +9,12 @@ use PayBridge\Plaid\Container;
 use PayBridge\Plaid\Exception\ConfigurationException;
 use PayBridge\Plaid\Exception\MissingAccountHolderNameException;
 use PayBridge\Plaid\Exception\PaymentAttemptBusyException;
+use PayBridge\Plaid\Exception\ReturnedPaymentRetryException;
 use PayBridge\Plaid\Gateway\PayBridgeGateway;
 use PayBridge\Plaid\Exception\PayBridgeException;
 use PayBridge\Plaid\Logging\Logger;
 use PayBridge\Plaid\Payment\CompletionResult;
+use PayBridge\Plaid\Payment\ReturnRetryPolicy;
 
 /**
  * REST routes. Customer routes require order key + ownership + a payment nonce;
@@ -96,6 +98,8 @@ final class RestRoutes
             return new \WP_Error('paybridge_busy', __('Your bank payment is being prepared. Please try again in a few seconds.', 'paybridge-for-plaid'), array('status' => 409));
         } catch (MissingAccountHolderNameException $exception) {
             return new \WP_Error('paybridge_missing_name', PayBridgeGateway::legal_name_message() . ' ' . __('If you cannot change it, please contact the store.', 'paybridge-for-plaid'), array('status' => 400));
+        } catch (ReturnedPaymentRetryException $exception) {
+            return new \WP_Error('paybridge_not_payable', ReturnRetryPolicy::customer_message(), array('status' => 409));
         } catch (ConfigurationException $exception) {
             ( new Logger() )->log('warning', 'link_token_unavailable', array('order_id' => $order->get_id(), 'error_code' => Logger::fingerprint($exception->getMessage())));
             return new \WP_Error('paybridge_unavailable', __('Pay by Bank is not available for this order right now. Please contact the store or choose another payment method.', 'paybridge-for-plaid'), array('status' => 503));

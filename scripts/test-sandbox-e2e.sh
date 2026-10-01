@@ -3,9 +3,12 @@
 # on a disposable WordPress site that runs ONLY the release ZIP; never runs in Production.
 #
 # Requires PAYBRIDGE_PLAID_SANDBOX_CLIENT_ID, PAYBRIDGE_PLAID_SANDBOX_SECRET,
-# PAYBRIDGE_PLAID_SANDBOX_USERNAME, PAYBRIDGE_PLAID_SANDBOX_PASSWORD (Plaid Sandbox test user)
-# and a MySQL server for the disposable database (scripts/lib/test-env.sh reads .env and
-# ~/.my.cnf). Secrets are never printed. Exit code 78 = credentials missing.
+# PAYBRIDGE_PLAID_SANDBOX_USERNAME, PAYBRIDGE_PLAID_SANDBOX_PASSWORD (Plaid Sandbox test user),
+# PAYBRIDGE_PLAID_SANDBOX_LINK_CUSTOMIZATION (a Sandbox Link customization with Account Select
+# "Enabled for one account" — the same Transfer UI shape as Production; Plaid's unspecified
+# default customization is never used) and a MySQL server for the disposable database
+# (scripts/lib/test-env.sh reads .env and ~/.my.cnf). Secrets are never printed.
+# Exit code 78 = a required input is missing (a release treats that as a failure).
 #
 # Modes:
 #   (no argument)           site on http://127.0.0.1:<port>; lifecycle pulled with /transfer/event/sync.
@@ -24,12 +27,13 @@ pbfp_base_dir=$base_dir
 # shellcheck source=lib/ngrok.sh
 . "$base_dir/scripts/lib/ngrok.sh"
 
-for required in PAYBRIDGE_PLAID_SANDBOX_CLIENT_ID PAYBRIDGE_PLAID_SANDBOX_SECRET PAYBRIDGE_PLAID_SANDBOX_USERNAME PAYBRIDGE_PLAID_SANDBOX_PASSWORD; do
+for required in PAYBRIDGE_PLAID_SANDBOX_CLIENT_ID PAYBRIDGE_PLAID_SANDBOX_SECRET PAYBRIDGE_PLAID_SANDBOX_USERNAME PAYBRIDGE_PLAID_SANDBOX_PASSWORD PAYBRIDGE_PLAID_SANDBOX_LINK_CUSTOMIZATION; do
     if [[ -z "${!required:-}" ]]; then
-        printf 'Real Plaid Sandbox E2E blocked only by missing credentials (%s).\n' "$required" >&2
+        printf 'Real Plaid Sandbox E2E blocked by a missing input (%s).\n' "$required" >&2
         exit 78
     fi
 done
+[[ "$PAYBRIDGE_PLAID_SANDBOX_LINK_CUSTOMIZATION" =~ ^[A-Za-z0-9\ _-]{1,100}$ ]] || { printf 'PAYBRIDGE_PLAID_SANDBOX_LINK_CUSTOMIZATION must be a Plaid Link customization name.\n' >&2; exit 64; }
 plugin_version=$(grep -m1 '^ \* Version:' "$base_dir/paybridge-for-plaid.php" | sed -E 's/^ \* Version:[[:space:]]*//')
 plugin_zip=${PAYBRIDGE_PLAID_TEST_PLUGIN_ZIP:-"$base_dir/dist/paybridge-for-plaid-$plugin_version.zip"}
 port=${PAYBRIDGE_PLAID_SANDBOX_PORT:-8895}
@@ -55,9 +59,30 @@ wp_cli=(wp --path="$site_dir" --no-color)
 playwright_cli=(npx --yes --package @playwright/cli playwright-cli --session "$session")
 artifacts="$base_dir/output/playwright"
 
+# What a CI log needs to explain a failed run: the web server's state and logs. The server log holds
+# request lines of the disposable site only; credentials are never written to either log.
+report_failure() {
+    printf '\n== Sandbox gate failure diagnostics\n' >&2
+    if [[ -n "$server_pid" ]]; then
+        if kill -0 "$server_pid" 2>/dev/null; then
+            printf 'PHP built-in server (PID %s): running\n' "$server_pid" >&2
+        else
+            wait "$server_pid" 2>/dev/null
+            printf 'PHP built-in server (PID %s): EXITED with status %s\n' "$server_pid" "$?" >&2
+        fi
+    fi
+    printf -- '-- sandbox-server.log (last 40 lines)\n' >&2
+    tail -n 40 "$artifacts/sandbox-server.log" 2>/dev/null >&2 || true
+    printf -- '-- wp-content/debug.log (last 40 lines)\n' >&2
+    tail -n 40 "$site_dir/wp-content/debug.log" 2>/dev/null >&2 || true
+}
+
 cleanup() {
     local result=$?
     trap - EXIT
+    if [[ "$result" -ne 0 ]]; then
+        report_failure || true
+    fi
     "${playwright_cli[@]}" close >/dev/null 2>&1 || true
     pbfp_ngrok_stop
     if [[ -n "$server_pid" ]]; then
@@ -74,7 +99,7 @@ cleanup() {
 trap cleanup EXIT
 
 [[ -f "$plugin_zip" ]] || { printf 'Build the release ZIP first.\n' >&2; exit 1; }
-"${wp_cli[@]}" core download --version="${PAYBRIDGE_PLAID_TEST_WP_VERSION:-7.1}" --locale=en_US --quiet
+"${wp_cli[@]}" core download --version="${PAYBRIDGE_PLAID_TEST_WP_VERSION:-7.1.2}" --locale=en_US --quiet
 printf '%s\n' "${PAYBRIDGE_PLAID_TEST_DB_PASSWORD:-}" | "${wp_cli[@]}" config create --dbname="$database" \
     --dbuser="${PAYBRIDGE_PLAID_TEST_DB_USER:-root}" --dbhost="${PAYBRIDGE_PLAID_TEST_DB_HOST:-localhost}" \
     --dbprefix=pbfp_sb_ --skip-check --prompt=dbpass >/dev/null
@@ -92,7 +117,7 @@ if [[ -n "$ngrok_domain" ]]; then
     cp "$base_dir/tests/fixtures/webhook-capture.php" "$site_dir/wp-content/mu-plugins/pbfp-webhook-capture.php"
 fi
 "${wp_cli[@]}" theme activate pbfp-browser-test >/dev/null
-"${wp_cli[@]}" plugin install woocommerce --version="${PAYBRIDGE_PLAID_TEST_WC_VERSION:-11.1.0}" --quiet
+"${wp_cli[@]}" plugin install woocommerce --version="${PAYBRIDGE_PLAID_TEST_WC_VERSION:-11.1.2}" --quiet
 "${wp_cli[@]}" plugin activate woocommerce >/dev/null 2>&1 || "${wp_cli[@]}" plugin activate woocommerce >/dev/null
 "${wp_cli[@]}" option delete wc_installing >/dev/null 2>&1 || true
 # WooCommerce's own activation notices (e.g. its bundled Jetpack packages loading translations
@@ -115,7 +140,7 @@ for option in "woocommerce_currency USD" "woocommerce_default_country US:CA" "wo
     "${wp_cli[@]}" option update $option >/dev/null
 done
 "${wp_cli[@]}" rewrite structure '/%postname%/' --hard >/dev/null 2>&1 || true
-"${wp_cli[@]}" eval 'update_option("woocommerce_paybridge_plaid_settings", array("enabled"=>"yes","title"=>"Pay by Bank","description"=>"Securely pay directly from your bank account.","environment"=>"sandbox","client_id"=>getenv("PAYBRIDGE_PLAID_SANDBOX_CLIENT_ID"),"secret"=>getenv("PAYBRIDGE_PLAID_SANDBOX_SECRET"),"funding_account_id"=>"","link_customization_name"=>"","statement_descriptor"=>"PAYMENT","network"=>"same-day-ach","confirmation_state"=>"funds_available","debug"=>"yes","delete_data_on_uninstall"=>"no"));'
+"${wp_cli[@]}" eval 'update_option("woocommerce_paybridge_plaid_settings", array("enabled"=>"yes","title"=>"Pay by Bank","description"=>"Securely pay directly from your bank account.","environment"=>"sandbox","client_id"=>getenv("PAYBRIDGE_PLAID_SANDBOX_CLIENT_ID"),"secret"=>getenv("PAYBRIDGE_PLAID_SANDBOX_SECRET"),"funding_account_id"=>"","link_customization_name"=>getenv("PAYBRIDGE_PLAID_SANDBOX_LINK_CUSTOMIZATION"),"statement_descriptor"=>"PAYMENT","network"=>"same-day-ach","confirmation_state"=>"funds_available","debug"=>"yes","delete_data_on_uninstall"=>"no"));'
 connection=$("${wp_cli[@]}" eval 'echo (new PayBridge\Plaid\Admin\ConnectionTester())->test(PayBridge\Plaid\Settings\Settings::load())["status"];')
 [[ "$connection" == connected ]] || { printf 'Plaid Sandbox connection test failed: %s\n' "$connection" >&2; exit 1; }
 products='{'
@@ -129,7 +154,8 @@ products="${products%,}}"
 checkout_url=$("${wp_cli[@]}" post url "$checkout_id")
 
 mkdir -p "$artifacts"
-(cd "$site_dir" && PHP_CLI_SERVER_WORKERS=4 wp --path="$site_dir" --no-color server --host=127.0.0.1 --port="$port") >"$artifacts/sandbox-server.log" 2>&1 &
+# Same web-server PHP settings as the browser suite (JIT off: scripts/lib/test-env.sh).
+(cd "$site_dir" && PHP_INI_SCAN_DIR="$(pbfp_server_ini_scan)" PHP_CLI_SERVER_WORKERS=4 wp --path="$site_dir" --no-color server --host=127.0.0.1 --port="$port") >"$artifacts/sandbox-server.log" 2>&1 &
 server_pid=$!
 for _ in $(seq 1 30); do curl -sS -o /dev/null "http://127.0.0.1:${port}/" 2>/dev/null && break; sleep 1; done
 
@@ -210,6 +236,15 @@ foreach ($expect as $amount => $want) {
     $failed = $failed || ! $ok;
 }
 if ($failed) { throw new RuntimeException("Real Plaid Sandbox lifecycle assertions failed."); }
+// The returned R01 payment is never debited again through Transfer UI (ADR-0019).
+$returned = wc_get_order((int) $orders["33.33"]);
+$decision = PayBridge\Plaid\Payment\ReturnRetryPolicy::for_order($returned);
+$transfer = (string) $returned->get_meta("_pbfp_transfer_id", true);
+WC()->payment_gateways()->init();
+$result = WC()->payment_gateways()->payment_gateways()["paybridge_plaid"]->process_payment($returned->get_id());
+$unchanged = $transfer === (string) wc_get_order($returned->get_id())->get_meta("_pbfp_transfer_id", true);
+printf("%s  $33.33 returned R01: new bank debit %s (%s)\n", "block_unsupported_flow" === $decision->outcome && "failure" === $result["result"] && $unchanged ? "PASS" : "FAIL", "failure" === $result["result"] ? "refused" : "ALLOWED", $decision->outcome);
+if ("block_unsupported_flow" !== $decision->outcome || "failure" !== $result["result"] || ! $unchanged) { throw new RuntimeException("A returned payment must not be debited again."); }
 '
 
 printf '== Refunds through Plaid: partial ($1.11 returned, $2.22 failed, $5.00 settled), full ($11.11 settled)\n'

@@ -9,7 +9,7 @@ use PayBridge\Plaid\Plaid\Exception\PlaidMalformedResponseException;
 /**
  * One /transfer/event/sync transfer_events[] entry. event_id is kept as a digit string
  * (unsigned 64-bit). Refund events carry the ORIGINAL transfer_id plus a non-null
- * refund_id and a "refund." event_type prefix (docs/api/transfer/refunds.md#refund-events);
+ * refund_id and a "refund." event_type prefix (https://plaid.com/docs/transfer/refunds/#refund-events);
  * they must never be read as events of the payment itself.
  */
 final class TransferEvent

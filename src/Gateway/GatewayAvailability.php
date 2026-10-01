@@ -84,7 +84,7 @@ final class GatewayAvailability
             self::DISABLED => __('The gateway is disabled, so Pay by Bank is not offered to customers. Existing bank payments are still monitored.', 'paybridge-for-plaid'),
             self::INVALID_ENVIRONMENT => __('The Plaid environment setting is invalid.', 'paybridge-for-plaid'),
             self::MISSING_CREDENTIALS => __('Plaid Client ID and Secret are required.', 'paybridge-for-plaid'),
-            self::MISSING_LINK_CUSTOMIZATION => __('Production requires a Plaid Link customization: create one in the Plaid Dashboard with Account Select set to “Enabled for one account” and enter its name.', 'paybridge-for-plaid'),
+            self::MISSING_LINK_CUSTOMIZATION => __('Plaid Transfer UI requires a Link customization: create one in the Plaid Dashboard (in the selected environment) with Account Select set to “Enabled for one account” and enter its name.', 'paybridge-for-plaid'),
             self::UNSUPPORTED_CURRENCY => __('The store or order currency is not USD.', 'paybridge-for-plaid'),
             self::PRODUCTION_REQUIRES_HTTPS => __('Production requires the site to use HTTPS.', 'paybridge-for-plaid'),
             default => $problem,

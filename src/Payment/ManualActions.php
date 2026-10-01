@@ -142,6 +142,10 @@ final class ManualActions
         if ('' !== (string) $order->get_meta(OrderMeta::TRANSFER_ID, true) || PaymentAttemptService::authorization_window_open($order)) {
             return false;
         }
+        if (ReturnRetryPolicy::for_order($order)->is_blocked()) {
+            // An earlier transfer of this order was returned: no new bank debit (ADR-0019).
+            return false;
+        }
         if ('' === $intent_id) {
             return '' === (string) $order->get_meta(OrderMeta::LINK_TOKEN_EXPIRES_AT, true);
         }

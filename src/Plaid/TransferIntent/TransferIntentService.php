@@ -7,7 +7,7 @@ namespace PayBridge\Plaid\Plaid\TransferIntent;
 use PayBridge\Plaid\Plaid\Client\PlaidClientInterface;
 use PayBridge\Plaid\Plaid\DTO\TransferIntent;
 
-/** Plaid /transfer/intent/create and /transfer/intent/get (docs/api/api/products/transfer/account-linking.md). */
+/** Plaid /transfer/intent/create and /transfer/intent/get (https://plaid.com/docs/api/products/transfer/account-linking/). */
 final class TransferIntentService
 {
     public function __construct(private readonly PlaidClientInterface $client)

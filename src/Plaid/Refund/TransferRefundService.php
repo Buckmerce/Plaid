@@ -11,7 +11,7 @@ use PayBridge\Plaid\Support\Money;
 
 /**
  * Plaid /transfer/refund/create, /transfer/refund/get and /transfer/refund/cancel
- * (docs/api/api/products/transfer/refunds.md).
+ * (https://plaid.com/docs/api/products/transfer/refunds/).
  */
 final class TransferRefundService
 {

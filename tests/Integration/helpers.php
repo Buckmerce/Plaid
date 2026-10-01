@@ -34,7 +34,7 @@ function pbfp_configure(array $overrides = array()): void
         'client_id' => 'test-client-id',
         'secret' => 'test-sandbox-secret',
         'funding_account_id' => '',
-        'link_customization_name' => '',
+        'link_customization_name' => 'pbfp_one_account',
         'statement_descriptor' => 'PAYMENT',
         'network' => 'same-day-ach',
         'confirmation_state' => 'funds_available',
@@ -42,6 +42,12 @@ function pbfp_configure(array $overrides = array()): void
         'delete_data_on_uninstall' => 'no',
     ), false);
     update_option('woocommerce_currency', 'USD');
+}
+
+/** The Plaid event stream of the configured credentials (environment + account, ADR-0018). */
+function pbfp_scope(): \PayBridge\Plaid\Settings\AccountScope
+{
+    return \PayBridge\Plaid\Settings\Settings::load()->account_scope();
 }
 
 function pbfp_order(string $total, int $customer_id = 0, string $currency = 'USD'): WC_Order
@@ -169,10 +175,11 @@ function pbfp_reset_world(): void
     PayBridge_Test_Plaid_Mock::reset();
     as_unschedule_all_actions('paybridge_plaid_transfer_event_sync', array(), 'paybridge-for-plaid');
     delete_option('paybridge_plaid_payment_alerts');
-    delete_option('paybridge_plaid_event_cursor_sandbox');
-    delete_option('paybridge_plaid_event_cursor_production');
-    delete_option('paybridge_plaid_event_sync_failures');
     global $wpdb;
+    // Event cursors and event-sync health of every Plaid account scope.
+    foreach ($wpdb->get_col("SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE 'paybridge\\_plaid\\_event\\_%'") as $name) {
+        delete_option((string) $name);
+    }
     $wpdb->query('DELETE FROM ' . $wpdb->prefix . 'paybridge_plaid_events');
     $wpdb->query('DELETE FROM ' . $wpdb->prefix . 'paybridge_plaid_refunds');
     foreach ($wpdb->get_col("SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE '\\_transient\\_pbfp\\_%'") as $name) {

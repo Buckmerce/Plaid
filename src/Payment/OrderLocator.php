@@ -6,12 +6,14 @@ namespace PayBridge\Plaid\Payment;
 
 use PayBridge\Plaid\Persistence\PaymentLockStatus;
 use PayBridge\Plaid\Persistence\PaymentLockStore;
+use PayBridge\Plaid\Settings\AccountScope;
 use PayBridge\Plaid\Settings\Settings;
 
 /**
  * Finds the order of a Plaid identifier through PayBridge's own payment index
  * (the reservation table). This works identically with HPOS and legacy order
- * storage and never relies on WooCommerce order meta queries.
+ * storage and never relies on WooCommerce order meta queries. Lookups are limited to
+ * the Plaid account whose event stream is being processed (ADR-0018).
  */
 final class OrderLocator
 {
@@ -23,15 +25,29 @@ final class OrderLocator
     }
 
     /** @return array{order:\WC_Order, match:string}|null */
-    public function by_transfer_id(string $transfer_id): ?array
+    public function by_transfer_id(string $transfer_id, AccountScope $scope): ?array
     {
-        return $this->resolve($this->locks->find_by_transfer_id($transfer_id), OrderMeta::TRANSFER_ID, $transfer_id);
+        return $this->resolve($this->locks->find_by_transfer_id($transfer_id, $scope), OrderMeta::TRANSFER_ID, $transfer_id);
     }
 
     /** @return array{order:\WC_Order, match:string}|null */
-    public function by_intent_id(string $intent_id): ?array
+    public function by_intent_id(string $intent_id, AccountScope $scope): ?array
     {
-        return $this->resolve($this->locks->find_by_intent_id($intent_id), OrderMeta::TRANSFER_INTENT_ID, $intent_id);
+        return $this->resolve($this->locks->find_by_intent_id($intent_id, $scope), OrderMeta::TRANSFER_INTENT_ID, $intent_id);
+    }
+
+    /**
+     * Whether the order's payment attempt was made with the given Plaid account. Orders written
+     * before the account fingerprint existed carry none and are attributed to the configured
+     * account (ADR-0015); any other fingerprint belongs to another account's stream.
+     */
+    public static function order_in_scope(\WC_Order $order, AccountScope $scope): bool
+    {
+        if ($scope->environment !== (string) $order->get_meta(OrderMeta::ENVIRONMENT, true)) {
+            return false;
+        }
+        $account = (string) $order->get_meta(OrderMeta::ACCOUNT_FINGERPRINT, true);
+        return '' === $account || hash_equals($scope->account_fp, $account);
     }
 
     public function paybridge_order(int $order_id): ?\WC_Order

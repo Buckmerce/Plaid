@@ -51,7 +51,7 @@ final class TransferIntentRequest
     /**
      * Plaid requires 1–15 characters and recommends a stable, purpose-describing word that
      * fits the 10-character ACH limit; variable data such as order numbers belong in metadata
-     * (docs/api/transfer/creating-transfers.md#description-field-recommendations).
+     * (https://plaid.com/docs/transfer/creating-transfers/#description-field-recommendations).
      */
     public static function description(string $statement_descriptor): string
     {

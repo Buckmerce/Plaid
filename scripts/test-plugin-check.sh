@@ -30,7 +30,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-"${wp_cli[@]}" core download --version="${PAYBRIDGE_PLAID_TEST_WP_VERSION:-7.1}" --locale=en_US --quiet
+"${wp_cli[@]}" core download --version="${PAYBRIDGE_PLAID_TEST_WP_VERSION:-7.1.2}" --locale=en_US --quiet
 printf '%s\n' "${PAYBRIDGE_PLAID_TEST_DB_PASSWORD:-}" | "${wp_cli[@]}" config create \
     --dbname="$database" \
     --dbuser="${PAYBRIDGE_PLAID_TEST_DB_USER:-root}" \
@@ -41,7 +41,7 @@ database_created=true
 "${wp_cli[@]}" core install --url=http://paybridge.test --title='PayBridge Plugin Check' \
     --admin_user=pbfp_admin --admin_password=local-test-password \
     --admin_email=admin@example.invalid --skip-email >/dev/null
-"${wp_cli[@]}" plugin install woocommerce --version="${PAYBRIDGE_PLAID_TEST_WC_VERSION:-11.1.0}" --quiet
+"${wp_cli[@]}" plugin install woocommerce --version="${PAYBRIDGE_PLAID_TEST_WC_VERSION:-11.1.2}" --quiet
 if ! "${wp_cli[@]}" plugin activate woocommerce >/dev/null; then
     # Some local PHP builds abort the first activation while probing image support; activation is idempotent.
     "${wp_cli[@]}" plugin activate woocommerce >/dev/null

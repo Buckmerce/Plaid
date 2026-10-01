@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace PayBridge\Plaid\Payment;
 
+use PayBridge\Plaid\Settings\AccountScope;
+
 /**
  * Durable history of an order's payment attempts (ADR-0017).
  *
@@ -87,6 +89,33 @@ final class AttemptHistory
     {
         $current = PaymentSnapshot::from_json((string) $order->get_meta(OrderMeta::PAYMENT_SNAPSHOT, true));
         return (null !== $current && '' !== $attempt_id && hash_equals($current->attempt_id, $attempt_id)) || self::is_retired($order, $attempt_id);
+    }
+
+    /**
+     * Whether the order's attempt (current or archived) was made with the given Plaid account
+     * and environment. Attempts recorded before the account fingerprint existed have none and
+     * are attributed to the configured account (ADR-0015).
+     */
+    public static function attempt_in_scope(\WC_Order $order, string $attempt_id, AccountScope $scope): bool
+    {
+        $current = PaymentSnapshot::from_json((string) $order->get_meta(OrderMeta::PAYMENT_SNAPSHOT, true));
+        if (null !== $current && '' !== $attempt_id && hash_equals($current->attempt_id, $attempt_id)) {
+            $environment = $current->environment;
+            $account = (string) $order->get_meta(OrderMeta::ACCOUNT_FINGERPRINT, true);
+        } else {
+            $entry = null;
+            foreach (self::all($order) as $candidate) {
+                if ('' !== $attempt_id && hash_equals((string) ($candidate['attempt_id'] ?? ''), $attempt_id)) {
+                    $entry = $candidate;
+                }
+            }
+            if (null === $entry) {
+                return false;
+            }
+            $environment = (string) ($entry['environment'] ?? '');
+            $account = (string) ($entry['account_fp'] ?? '');
+        }
+        return $scope->environment === $environment && ('' === $account || hash_equals($scope->account_fp, $account));
     }
 
     public static function has_returned_attempt(\WC_Order $order): bool

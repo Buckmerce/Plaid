@@ -13,7 +13,7 @@ namespace PayBridge\Plaid\Refund;
  *  - uncertain: the create outcome is unknown (timeout, 5xx) — resolved from Plaid, never retried blindly;
  *  - rejected:  Plaid definitively refused the create request — no refund exists;
  *  - void:      an uncertain create was proven not to have created a refund.
- * The other states are Plaid's refund statuses (docs/api/api/products/transfer/refunds.md).
+ * The other states are Plaid's refund statuses (https://plaid.com/docs/api/products/transfer/refunds/).
  */
 final class RefundState
 {

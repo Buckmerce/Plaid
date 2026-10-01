@@ -203,7 +203,7 @@ final class Container
     public function event_sync(): EventSyncService
     {
         return $this->shared(EventSyncService::class, fn (): EventSyncService => new EventSyncService(
-            $this->settings()->environment_name(),
+            $this->settings()->account_scope(),
             new TransferEventService($this->client()),
             new TransferEventStore(),
             new EventCursor(),

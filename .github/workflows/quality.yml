@@ -37,8 +37,9 @@ env:
   PAYBRIDGE_PLAID_TEST_DB_USER: root
   # Throwaway password of the CI-only database service containers; not a secret.
   PAYBRIDGE_PLAID_TEST_DB_PASSWORD: paybridge-ci-only
-  LATEST_WP: '7.1'
-  LATEST_WC: '11.1.2'
+  # vendor-prefixed/composer/InstalledVersions.php is copied from Composer's own runtime, so the
+  # committed prefixed tree is reproducible only with this exact Composer version (docs/CI_CD_RELEASE.md).
+  COMPOSER_VERSION: '2.10.3'
 
 jobs:
   composer-validation:
@@ -49,13 +50,30 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
-          tools: composer:v2
+          tools: composer:2.10.3
           coverage: none
+      - name: The pinned Composer version generates vendor-prefixed/
+        run: composer --version | grep -F "Composer version $COMPOSER_VERSION "
       - run: composer validate --strict
       - run: composer install --no-interaction --prefer-dist
-      - name: Prefixed runtime dependencies are committed and current
+      - name: Prefixed runtime dependencies are committed and current (composer.lock + Strauss → vendor-prefixed/)
         # installed.php embeds the root commit hash, which changes with every commit.
-        run: git diff --exit-code -- vendor-prefixed ':!vendor-prefixed/composer/installed.php'
+        run: |
+          git diff --exit-code -- vendor-prefixed ':!vendor-prefixed/composer/installed.php'
+          untracked=$(git ls-files --others --exclude-standard -- vendor-prefixed)
+          [[ -z "$untracked" ]] || { echo "::error::Generated but uncommitted files in vendor-prefixed/:"; echo "$untracked"; exit 1; }
+
+  docs-integrity:
+    name: Documentation integrity and source audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Mandatory engineering documentation is tracked
+        run: bash scripts/check-docs.sh
+      - name: The source archive distributes no credentials, .env files, traces, IDE state or caches
+        run: bash scripts/audit-source.sh
 
   php-syntax:
     name: PHP syntax (PHP ${{ matrix.php }})
@@ -87,7 +105,7 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
-          tools: composer:v2
+          tools: composer:2.10.3
           coverage: none
       - run: composer install --no-interaction --prefer-dist
       - run: composer lint
@@ -100,7 +118,7 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
-          tools: composer:v2
+          tools: composer:2.10.3
           coverage: none
       - run: composer install --no-interaction --prefer-dist
       - run: composer stan
@@ -123,7 +141,7 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '${{ matrix.php }}'
-          tools: composer:v2
+          tools: composer:2.10.3
           coverage: none
       - run: composer install --no-interaction --prefer-dist
       - run: composer test
@@ -136,7 +154,7 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
-          tools: composer:v2
+          tools: composer:2.10.3
           coverage: none
       - uses: actions/setup-node@v4
         with:
@@ -243,8 +261,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { php: '8.1', wordpress: '6.6', woocommerce: '8.5.2' }
-          - { php: '8.4', wordpress: '7.1', woocommerce: '11.1.2' }
+          # Minimum supported stack (WooCommerce 8.7: ADR-0022) and the latest stable stack. Each
+          # runs a fresh HPOS store and a fresh legacy-storage store.
+          - { php: '8.1', wordpress: '6.6', woocommerce: '8.7.0' }
+          - { php: '8.4', wordpress: '7.1.2', woocommerce: '11.1.2' }
     services:
       mysql:
         image: mysql:8.4
@@ -310,11 +330,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Minimum supported, an intermediate combination and the latest stable stack.
-          - { php: '8.1', wordpress: '6.6', woocommerce: '8.5.2', mysql: '8.0' }
+          # Minimum supported (WooCommerce 8.7: ADR-0022), an intermediate combination and the latest stable stack.
+          - { php: '8.1', wordpress: '6.6', woocommerce: '8.7.0', mysql: '8.0' }
           - { php: '8.3', wordpress: '6.8', woocommerce: '9.9.5', mysql: '8.0' }
-          - { php: '8.2', wordpress: '7.1', woocommerce: '11.1.2', mysql: '8.4' }
-          - { php: '8.4', wordpress: '7.1', woocommerce: '11.1.2', mysql: '8.4' }
+          - { php: '8.2', wordpress: '7.1.2', woocommerce: '11.1.2', mysql: '8.4' }
+          - { php: '8.4', wordpress: '7.1.2', woocommerce: '11.1.2', mysql: '8.4' }
     services:
       mysql:
         image: mysql:${{ matrix.mysql }}
@@ -350,8 +370,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { php: '8.1', wordpress: '6.6', woocommerce: '8.5.2', mariadb: '10.11' }
-          - { php: '8.3', wordpress: '7.1', woocommerce: '11.1.2', mariadb: '11.4' }
+          - { php: '8.1', wordpress: '6.6', woocommerce: '8.7.0', mariadb: '10.11' }
+          - { php: '8.3', wordpress: '7.1.2', woocommerce: '11.1.2', mariadb: '11.4' }
     services:
       mariadb:
         image: mariadb:${{ matrix.mariadb }}
@@ -422,7 +442,7 @@ jobs:
         options: >-
           --health-cmd="mysqladmin ping --silent" --health-interval=10s --health-timeout=5s --health-retries=10
     env:
-      PAYBRIDGE_PLAID_TEST_WP_VERSION: '7.1'
+      PAYBRIDGE_PLAID_TEST_WP_VERSION: '7.1.2'
       PAYBRIDGE_PLAID_TEST_WC_VERSION: '11.1.2'
     steps:
       - uses: actions/checkout@v4
@@ -442,6 +462,10 @@ jobs:
           name: paybridge-for-plaid-zip
           path: dist
       - run: npx --yes --package @playwright/cli playwright-cli install-browser chromium
+      - name: Allow core dumps of the PHP server (a crash is reported with a backtrace)
+        run: |
+          sudo apt-get install -y -qq gdb >/dev/null
+          echo '/tmp/core.%e.%p' | sudo tee /proc/sys/kernel/core_pattern >/dev/null
       - run: bash scripts/test-browser-e2e.sh
       - if: failure()
         uses: actions/upload-artifact@v4
@@ -457,6 +481,10 @@ jobs:
     # Secrets are never exposed to forked pull requests.
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
+    outputs:
+      # 'true' only when the gate really ran against Plaid Sandbox and passed; a green job that
+      # skipped the gate (no secrets on a push/PR) reports 'false' and is never counted as executed.
+      executed: ${{ steps.gate.outputs.executed }}
     services:
       mysql:
         image: mysql:8.4
@@ -471,10 +499,14 @@ jobs:
       PAYBRIDGE_PLAID_SANDBOX_SECRET: ${{ secrets.PAYBRIDGE_PLAID_SANDBOX_SECRET }}
       PAYBRIDGE_PLAID_SANDBOX_USERNAME: ${{ secrets.PAYBRIDGE_PLAID_SANDBOX_USERNAME }}
       PAYBRIDGE_PLAID_SANDBOX_PASSWORD: ${{ secrets.PAYBRIDGE_PLAID_SANDBOX_PASSWORD }}
+      # Name of the Sandbox Link customization (Account Select "Enabled for one account"). Not a
+      # secret: a repository variable, or a secret of the same name.
+      PAYBRIDGE_PLAID_SANDBOX_LINK_CUSTOMIZATION: ${{ vars.PAYBRIDGE_PLAID_SANDBOX_LINK_CUSTOMIZATION || secrets.PAYBRIDGE_PLAID_SANDBOX_LINK_CUSTOMIZATION }}
       # Optional public-HTTPS webhook gate (genuine Plaid-signed webhooks through ngrok).
       NGROK_AUTHTOKEN: ${{ secrets.NGROK_AUTHTOKEN }}
       PAYBRIDGE_PLAID_NGROK_DOMAIN: ${{ vars.PAYBRIDGE_PLAID_NGROK_DOMAIN }}
       REQUIRE_SANDBOX: ${{ inputs.require_sandbox && 'true' || 'false' }}
+      PAYBRIDGE_PLAID_TEST_WP_VERSION: '7.1.2'
       PAYBRIDGE_PLAID_TEST_WC_VERSION: '11.1.2'
     steps:
       - uses: actions/checkout@v4
@@ -498,10 +530,12 @@ jobs:
           curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
           echo "deb https://ngrok-agent.s3.amazonaws.com bookworm main" | sudo tee /etc/apt/sources.list.d/ngrok.list >/dev/null
           sudo apt-get update -qq && sudo apt-get install -y -qq ngrok
-      - name: Real Plaid Sandbox E2E (payments, returns, refunds)
+      - id: gate
+        name: Real Plaid Sandbox E2E (payments, returns, refunds)
         shell: bash
         run: |
           set +e
+          echo "executed=false" >> "$GITHUB_OUTPUT"
           mode=''
           if [[ -n "$NGROK_AUTHTOKEN" && -n "$PAYBRIDGE_PLAID_NGROK_DOMAIN" ]]; then
             mode='--ngrok'
@@ -513,15 +547,30 @@ jobs:
               echo "::error::The real Plaid Sandbox gate is required for a release but its secrets are not configured."
               exit 1
             fi
-            echo "::notice::Plaid Sandbox secrets are not configured; the real Sandbox gate was skipped."
+            echo "::notice::Plaid Sandbox secrets are not configured; the real Sandbox gate was NOT EXECUTED."
+            echo "### Real Plaid Sandbox: NOT EXECUTED (inputs not configured)" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
+          if [[ "$status" -eq 0 ]]; then
+            echo "executed=true" >> "$GITHUB_OUTPUT"
+            echo "### Real Plaid Sandbox: EXECUTED${mode:+ (genuine signed webhooks through a public HTTPS tunnel)}" >> "$GITHUB_STEP_SUMMARY"
+          fi
           exit "$status"
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sandbox-output
+          path: |
+            output/playwright/sandbox-server.log
+            output/playwright/ngrok.log
+          if-no-files-found: ignore
+          retention-days: 7
 
   quality-gate:
     name: Quality Gate
     needs:
       - composer-validation
+      - docs-integrity
       - php-syntax
       - scripts-lint
       - phpcs
@@ -547,9 +596,12 @@ jobs:
         shell: bash
         env:
           RESULTS: ${{ toJSON(needs) }}
+          REQUIRE_SANDBOX: ${{ inputs.require_sandbox && 'true' || 'false' }}
+          SANDBOX_EXECUTED: ${{ needs.sandbox.outputs.executed }}
         run: |
           echo "$RESULTS" | jq -r 'to_entries[] | "\(.key)=\(.value.result)"'
-          for job in composer-validation php-syntax scripts-lint phpcs phpstan phpunit dependency-audit frontend-build typecheck javascript-lint package package-smoke source-package-parity integration-mysql integration-mariadb plugin-check browser-e2e; do
+          echo "Real Plaid Sandbox executed: ${SANDBOX_EXECUTED:-false}"
+          for job in composer-validation docs-integrity php-syntax scripts-lint phpcs phpstan phpunit dependency-audit frontend-build typecheck javascript-lint package package-smoke source-package-parity integration-mysql integration-mariadb plugin-check browser-e2e; do
             result=$(echo "$RESULTS" | jq -r --arg job "$job" '.[$job].result')
             [[ "$result" == success ]] || { echo "::error::$job: $result"; exit 1; }
           done
@@ -558,3 +610,8 @@ jobs:
             result=$(echo "$RESULTS" | jq -r --arg job "$job" '.[$job].result')
             [[ "$result" == success || "$result" == skipped ]] || { echo "::error::$job: $result"; exit 1; }
           done
+          # A release needs the real Sandbox gate to have RUN and passed; a skipped job is not a pass.
+          if [[ "$REQUIRE_SANDBOX" == 'true' && "$SANDBOX_EXECUTED" != 'true' ]]; then
+            echo "::error::The real Plaid Sandbox gate did not execute; a release requires it."
+            exit 1
+          fi

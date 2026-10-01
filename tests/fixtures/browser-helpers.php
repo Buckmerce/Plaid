@@ -60,6 +60,7 @@ add_action('init', static function (): void {
             'refund_creates' => count(PayBridge_Test_Plaid_Mock::calls('/transfer/refund/create')),
             'edit_url' => $order->get_edit_order_url(),
             'pay_url' => $order->get_checkout_payment_url(),
+            'receipt_url' => $order->get_checkout_payment_url(true),
             'needs_payment' => $order->needs_payment(),
             'link_tokens' => count(PayBridge_Test_Plaid_Mock::calls('/link/token/create')),
         ));

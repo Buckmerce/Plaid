@@ -24,6 +24,7 @@ use PayBridge\Plaid\Plaid\Exception\PlaidApiException;
 use PayBridge\Plaid\Plaid\Exception\PlaidException;
 use PayBridge\Plaid\Plaid\Refund\TransferRefundService;
 use PayBridge\Plaid\Plaid\Transfer\TransferService;
+use PayBridge\Plaid\Settings\AccountScope;
 use PayBridge\Plaid\Settings\Settings;
 use PayBridge\Plaid\Support\Money;
 use PayBridge\Plaid\Support\SiteMarker;
@@ -261,7 +262,7 @@ final class RefundService implements ReturnListener
         $reserved = strtotime($record->created_at . ' UTC');
         $matches = array();
         foreach ($transfer->refunds as $refund) {
-            if (! Money::same_amount($refund->amount, $record->amount) || null !== $this->store->find_by_refund_id($record->environment, $refund->id)) {
+            if (! Money::same_amount($refund->amount, $record->amount) || null !== $this->store->find_by_refund_id($record->scope(), $refund->id)) {
                 continue;
             }
             $created = '' === $refund->created ? false : strtotime($refund->created);
@@ -374,13 +375,38 @@ final class RefundService implements ReturnListener
     {
         $until = '' === $record->monitor_until ? false : strtotime($record->monitor_until . ' UTC');
         $lease = '' === $record->lease_expires_at ? false : strtotime($record->lease_expires_at . ' UTC');
-        $plan = RefundMonitoringPolicy::plan($status, time(), false === $until ? null : $until, false === $lease ? null : $lease);
+        $created = strtotime($record->created_at . ' UTC');
+        $plan = RefundMonitoringPolicy::plan($status, time(), false === $until ? null : $until, false === $lease ? null : $lease, false === $created ? null : $created, $this->debit_horizon($record));
         $this->store->schedule($record->id, $plan['next'], $plan['until']);
+    }
+
+    /**
+     * End of the refunded debit's monitoring: its unauthorized return window (+ buffer) from
+     * Plaid, or the conservative fallback when Plaid reported none (MonitoringPolicy, ADR-0014).
+     */
+    private function debit_horizon(RefundRecord $record): ?int
+    {
+        $order = wc_get_order($record->order_id);
+        if (! $order instanceof \WC_Order) {
+            return null;
+        }
+        $snapshot = PaymentSnapshot::from_json((string) $order->get_meta(OrderMeta::PAYMENT_SNAPSHOT, true));
+        $created = strtotime($record->created_at . ' UTC');
+        if (null === $snapshot || $record->transfer_id !== (string) $order->get_meta(OrderMeta::TRANSFER_ID, true)) {
+            // The refunded transfer is no longer the order's current one: fall back to the longest window.
+            return false === $created ? null : $created + MonitoringPolicy::FALLBACK_UNAUTHORIZED_WINDOW_DAYS * DAY_IN_SECONDS;
+        }
+        $input = PaymentMonitor::input($order, (string) $order->get_meta(OrderMeta::PAYMENT_STATE, true), $snapshot, time());
+        return MonitoringPolicy::return_windows($input)[1];
     }
 
     /** Reconciliation / manual sync of one refund from Plaid. Safe to repeat. */
     public function sync(RefundRecord $record): void
     {
+        if (! $record->scope()->equals($this->settings->account_scope())) {
+            // Only the Plaid account that created a refund can read it (ADR-0015, ADR-0018).
+            return;
+        }
         if (RefundState::CREATING === $record->status && $record->lease_is_live()) {
             $this->reschedule($record, RefundState::CREATING);
             return;
@@ -474,13 +500,16 @@ final class RefundService implements ReturnListener
         $this->project($order, $adopted, RefundState::UNCERTAIN, $refund->status, array('source' => $source, 'failure_code' => $refund->failure_code));
     }
 
-    /** Records a refund that was created outside PayBridge (e.g. the Plaid Dashboard). */
-    public function record_external(\WC_Order $order, TransferRefund $refund, string $attempt_id): ?RefundRecord
+    /**
+     * Records a refund that was created outside PayBridge (e.g. the Plaid Dashboard), reported
+     * by the event stream of $scope — the account that owns the refund.
+     */
+    public function record_external(\WC_Order $order, TransferRefund $refund, string $attempt_id, AccountScope $scope): ?RefundRecord
     {
         $record = $this->store->insert_external(array(
             'order_id' => $order->get_id(),
-            'environment' => (string) $order->get_meta(OrderMeta::ENVIRONMENT, true),
-            'account_fp' => $this->settings->account_fingerprint(),
+            'environment' => $scope->environment,
+            'account_fp' => $scope->account_fp,
             'attempt_id' => $attempt_id,
             'transfer_id' => $refund->transfer_id,
             'refund_id' => $refund->id,
@@ -490,7 +519,7 @@ final class RefundService implements ReturnListener
             'failure_code' => $refund->failure_code,
         ));
         if (null === $record) {
-            return $this->store->find_by_refund_id((string) $order->get_meta(OrderMeta::ENVIRONMENT, true), $refund->id);
+            return $this->store->find_by_refund_id($scope, $refund->id);
         }
         $this->alerts->add($order, PaymentAlerts::EXTERNAL_REFUND, '', (string) $record->id, $record->amount);
         $order->add_order_note(sprintf(
@@ -514,9 +543,10 @@ final class RefundService implements ReturnListener
      */
     public function on_payment_returned(\WC_Order $order, string $transfer_id): array
     {
-        $environment = (string) $order->get_meta(OrderMeta::ENVIRONMENT, true);
+        $account = (string) $order->get_meta(OrderMeta::ACCOUNT_FINGERPRINT, true);
+        $scope = new AccountScope((string) $order->get_meta(OrderMeta::ENVIRONMENT, true), '' === $account ? $this->settings->account_fingerprint() : $account);
         $exposed = array();
-        foreach ($this->store->for_transfer($environment, $transfer_id) as $record) {
+        foreach ($this->store->for_transfer($scope, $transfer_id) as $record) {
             if (RefundState::PENDING === $record->status && '' !== $record->refund_id) {
                 try {
                     ($this->plaid_refunds)()->cancel($record->refund_id);
@@ -550,7 +580,7 @@ final class RefundService implements ReturnListener
     {
         $this->store->expire_abandoned();
         $checked = 0;
-        foreach ($this->store->due($this->settings->environment_name(), $this->settings->account_fingerprint(), $limit) as $record) {
+        foreach ($this->store->due($this->settings->account_scope(), $limit) as $record) {
             try {
                 $this->sync($record);
             } catch (\Throwable $exception) {

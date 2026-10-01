@@ -44,7 +44,7 @@ function harness( { responses = [], plaid = true, restNonce = '' } = {} ) {
 			linkTokenUrl: 'https://shop.test/wp-json/paybridge-for-plaid/v1/link-token',
 			completeUrl: 'https://shop.test/wp-json/paybridge-for-plaid/v1/complete',
 			returnUrl: 'https://shop.test/checkout/order-received/42/?key=wc_order_abc123',
-			i18n: { preparing: 'preparing', opening: 'opening', verifying: 'verifying', submitted: 'submitted', exited: 'exited', incomplete: 'incomplete', insufficient: 'insufficient', failed: 'failed', unverified: 'unverified', review: 'review', error: 'error', unavailable: 'unavailable', notPayable: 'notPayable', missingName: 'missingName', rateLimited: 'rateLimited', retry: 'Try again' },
+			i18n: { preparing: 'preparing', opening: 'opening', verifying: 'verifying', submitted: 'submitted', exited: 'exited', incomplete: 'incomplete', insufficient: 'insufficient', failed: 'failed', unverified: 'unverified', review: 'review', error: 'error', unavailable: 'unavailable', notPayable: 'notPayable', missingName: 'missingName', returned: 'returned', rateLimited: 'rateLimited', retry: 'Try again' },
 		},
 		location: { assign: ( url ) => redirects.push( url ) },
 		setTimeout: ( fn ) => setImmediate( fn ),
@@ -174,6 +174,13 @@ test( 'server errors and a missing Plaid Link script are recoverable', async () 
 	assert.equal( noName.status.textContent, 'missingName' );
 	assert.equal( noName.button.disabled, true, 'retrying cannot fix a missing account holder name' );
 	assert.equal( noName.handlers.length, 0 );
+
+	const returned = harness( { responses: [ { status: 409, body: { code: 'paybridge_not_payable' } } ] } );
+	returned.button.listeners.click();
+	await tick();
+	assert.equal( returned.status.textContent, 'returned', 'a returned bank payment is explained' );
+	assert.equal( returned.button.disabled, true, 'a returned order is never offered another bank debit' );
+	assert.equal( returned.handlers.length, 0, 'Plaid Link is never opened' );
 
 	const noPlaid = harness( { plaid: false } );
 	noPlaid.button.listeners.click();

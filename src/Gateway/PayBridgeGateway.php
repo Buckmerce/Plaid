@@ -13,8 +13,10 @@ use PayBridge\Plaid\Exception\ConfigurationException;
 use PayBridge\Plaid\Exception\MissingAccountHolderNameException;
 use PayBridge\Plaid\Exception\PaymentAttemptBusyException;
 use PayBridge\Plaid\Exception\PayBridgeException;
+use PayBridge\Plaid\Exception\ReturnedPaymentRetryException;
 use PayBridge\Plaid\Logging\Logger;
 use PayBridge\Plaid\Payment\PaymentAttemptService;
+use PayBridge\Plaid\Payment\ReturnRetryPolicy;
 use PayBridge\Plaid\Plaid\TransferIntent\TransferIntentRequest;
 use PayBridge\Plaid\REST\RestRoutes;
 use PayBridge\Plaid\Refund\WooRefundContext;
@@ -56,7 +58,7 @@ final class PayBridgeGateway extends \WC_Payment_Gateway
             'secret' => array('title' => __('Secret', 'paybridge-for-plaid'), 'type' => 'pbfp_secret', 'default' => '', 'description' => __('Use the secret of the selected environment. Leave blank when saving to keep the stored secret.', 'paybridge-for-plaid')),
             'funding_account_id' => array('title' => __('Funding Account ID (optional)', 'paybridge-for-plaid'), 'type' => 'text', 'default' => '', 'description' => __('Leave empty when your Plaid Transfer account uses Plaid Ledger (the default). Only accounts without a Ledger configure a funding account ID here.', 'paybridge-for-plaid')),
             'pay_by_bank' => array('title' => __('Pay by Bank', 'paybridge-for-plaid'), 'type' => 'title'),
-            'link_customization_name' => array('title' => __('Link customization name', 'paybridge-for-plaid'), 'type' => 'text', 'default' => '', 'description' => __('Required for Production. In the Plaid Dashboard open Link → Link Customization, create a customization with Account Select set to “Enabled for one account” (its language must match your store language), publish it and enter its name here. Sandbox uses Plaid\'s default customization when empty.', 'paybridge-for-plaid')),
+            'link_customization_name' => array('title' => __('Link customization name', 'paybridge-for-plaid'), 'type' => 'text', 'default' => '', 'description' => __('Required in Sandbox and Production. In the Plaid Dashboard of the selected environment open Link → Link Customization, create a customization with Account Select set to “Enabled for one account” (its language must match your store language), publish it and enter its name here.', 'paybridge-for-plaid')),
             'statement_descriptor' => array('title' => __('Bank statement description', 'paybridge-for-plaid'), 'type' => 'text', 'default' => Settings::DEFAULT_STATEMENT_DESCRIPTOR, 'custom_attributes' => array('maxlength' => (string) Settings::STATEMENT_DESCRIPTOR_MAX, 'autocomplete' => 'off'), 'description' => __('Shown on the customer\'s bank statement after the company name Plaid has on file. Use a stable word that describes the purpose, such as PAYMENT or ORDER: recognizable descriptions reduce "unrecognized payment" disputes and returns. Letters, digits and spaces only, at most 10 characters; never put order numbers or personal data here.', 'paybridge-for-plaid')),
             'network' => array('title' => __('Payment network', 'paybridge-for-plaid'), 'type' => 'select', 'default' => 'same-day-ach', 'options' => array('same-day-ach' => __('Same Day ACH', 'paybridge-for-plaid'), 'ach' => __('Standard ACH', 'paybridge-for-plaid')), 'description' => __('Same Day ACH payments made after Plaid\'s cutoff are sent as Standard ACH automatically.', 'paybridge-for-plaid')),
             'confirmation_state' => array('title' => __('Mark order paid when', 'paybridge-for-plaid'), 'type' => 'select', 'default' => 'funds_available', 'options' => array('funds_available' => __('Funds are available (recommended)', 'paybridge-for-plaid'), 'settled' => __('Transfer is settled', 'paybridge-for-plaid')), 'description' => __('Until then orders stay On hold. ACH debits can still be returned later; returns are always recorded and flagged.', 'paybridge-for-plaid')),
@@ -215,7 +217,13 @@ final class PayBridgeGateway extends \WC_Payment_Gateway
         if (! parent::is_available()) {
             return false;
         }
-        return array() === GatewayAvailability::problems(Settings::load(), $this->current_currency(), GatewayAvailability::site_uses_https());
+        $order = $this->order_being_paid();
+        if (null !== $order && ReturnRetryPolicy::for_order($order)->is_blocked()) {
+            // A returned bank payment is never debited again through Transfer UI (ADR-0019), whichever
+            // payment method the order currently names (the customer may have tried another one since).
+            return false;
+        }
+        return array() === GatewayAvailability::problems(Settings::load(), null === $order ? get_woocommerce_currency() : (string) $order->get_currency(), GatewayAvailability::site_uses_https());
     }
 
     /**
@@ -258,6 +266,8 @@ final class PayBridgeGateway extends \WC_Payment_Gateway
             return array('result' => 'success', 'redirect' => $redirect);
         } catch (MissingAccountHolderNameException $exception) {
             wc_add_notice(self::legal_name_message(), 'error');
+        } catch (ReturnedPaymentRetryException $exception) {
+            wc_add_notice(ReturnRetryPolicy::customer_message(), 'error');
         } catch (PaymentAttemptBusyException $exception) {
             wc_add_notice(__('Your bank payment is already being prepared. Please wait a few seconds and try again.', 'paybridge-for-plaid'), 'error');
         } catch (ConfigurationException $exception) {
@@ -314,15 +324,14 @@ final class PayBridgeGateway extends \WC_Payment_Gateway
         return $outcome->ok ? true : new \WP_Error('paybridge_refund_failed', $outcome->message);
     }
 
-    private function current_currency(): string
+    /** The order of the WooCommerce order-pay screen, when availability is evaluated there. */
+    private function order_being_paid(): ?\WC_Order
     {
         $order_id = absint(get_query_var('order-pay'));
-        if ($order_id > 0) {
-            $order = wc_get_order($order_id);
-            if ($order instanceof \WC_Order) {
-                return (string) $order->get_currency();
-            }
+        if ($order_id < 1) {
+            return null;
         }
-        return get_woocommerce_currency();
+        $order = wc_get_order($order_id);
+        return $order instanceof \WC_Order ? $order : null;
     }
 }

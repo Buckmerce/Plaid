@@ -15,12 +15,16 @@ use PayBridge\Plaid\Plaid\Exception\PlaidException;
 use PayBridge\Plaid\Plaid\Transfer\TransferService;
 use PayBridge\Plaid\Plaid\TransferIntent\TransferIntentService;
 use PayBridge\Plaid\Refund\RefundEventHandler;
+use PayBridge\Plaid\Settings\AccountScope;
 use PayBridge\Plaid\Support\Money;
 use PayBridge\Plaid\Support\SiteMarker;
 
 /**
  * Applies one durable Plaid transfer event (fetched via /transfer/event/sync)
  * to its WooCommerce order. Idempotent: replays are NOOP/STALE in the state machine.
+ *
+ * Every correlation is limited to the Plaid account whose stream delivered the event
+ * (ADR-0018): an order paid through another account is never changed by this event.
  */
 final class TransferEventProcessor
 {
@@ -36,22 +40,22 @@ final class TransferEventProcessor
     }
 
     /** @return array{status:string, order_id:int, error_code:string} */
-    public function process(TransferEvent $event, string $environment): array
+    public function process(TransferEvent $event, AccountScope $scope): array
     {
         if ($event->is_refund_event()) {
             // Refund events carry the original transfer_id; they never touch the payment state.
             return null === $this->refund_events
                 ? array('status' => TransferEventStore::RETRY, 'order_id' => 0, 'error_code' => 'refunds_unavailable')
-                : $this->refund_events->process($event, $environment);
+                : $this->refund_events->process($event, $scope);
         }
         if (! $event->is_lifecycle_event()) {
             return array('status' => TransferEventStore::IGNORED, 'order_id' => 0, 'error_code' => '');
         }
-        $match = $this->locator->by_transfer_id($event->transfer_id);
+        $match = $this->locator->by_transfer_id($event->transfer_id, $scope);
         if (null !== $match && OrderLocator::MATCH_RETIRED === $match['match']) {
             return array('status' => TransferEventStore::IGNORED, 'order_id' => $match['order']->get_id(), 'error_code' => 'retired_attempt');
         }
-        $order = null === $match ? $this->adopt($event, $environment) : $match['order'];
+        $order = null === $match ? $this->adopt($event, $scope) : $match['order'];
         if (is_array($order)) {
             return $order;
         }
@@ -60,13 +64,16 @@ final class TransferEventProcessor
         }
 
         try {
-            return DatabaseMutex::with(DatabaseMutex::payment_resource($order->get_id()), function () use ($order, $event, $environment): array {
+            return DatabaseMutex::with(DatabaseMutex::payment_resource($order->get_id()), function () use ($order, $event, $scope): array {
                 $order = wc_get_order($order->get_id());
                 if (! $order instanceof \WC_Order || $event->transfer_id !== (string) $order->get_meta(OrderMeta::TRANSFER_ID, true)) {
                     return array('status' => TransferEventStore::RETRY, 'order_id' => 0, 'error_code' => 'order_changed');
                 }
-                if ($environment !== (string) $order->get_meta(OrderMeta::ENVIRONMENT, true)) {
+                if ($scope->environment !== (string) $order->get_meta(OrderMeta::ENVIRONMENT, true)) {
                     return array('status' => TransferEventStore::IGNORED, 'order_id' => $order->get_id(), 'error_code' => 'environment_mismatch');
+                }
+                if (! OrderLocator::order_in_scope($order, $scope)) {
+                    return array('status' => TransferEventStore::IGNORED, 'order_id' => $order->get_id(), 'error_code' => 'account_mismatch');
                 }
                 $snapshot = PaymentSnapshot::from_json((string) $order->get_meta(OrderMeta::PAYMENT_SNAPSHOT, true));
                 if (null === $snapshot || ('' !== $event->transfer_amount && ! Money::same_amount($event->transfer_amount, $snapshot->amount))) {
@@ -117,19 +124,19 @@ final class TransferEventProcessor
      *
      * @return \WC_Order|array{status:string, order_id:int, error_code:string}|null
      */
-    private function adopt(TransferEvent $event, string $environment): \WC_Order|array|null
+    private function adopt(TransferEvent $event, AccountScope $scope): \WC_Order|array|null
     {
         $ignore = static fn (string $code, int $order_id = 0): array => array('status' => TransferEventStore::IGNORED, 'order_id' => $order_id, 'error_code' => $code);
         try {
             $candidate = null;
             $attempt_id = '';
             if ('' !== $event->intent_id) {
-                $match = $this->locator->by_intent_id($event->intent_id);
+                $match = $this->locator->by_intent_id($event->intent_id, $scope);
                 $candidate = null !== $match && OrderLocator::MATCH_ACTIVE === $match['match'] ? $match['order'] : null;
             }
             if (null === $candidate) {
-                if (PaymentEpoch::predates($environment, $event->timestamp)) {
-                    // Older than this store's first Transfer Intent: never ours, no API call needed.
+                if (PaymentEpoch::predates($scope, $event->timestamp)) {
+                    // Older than this store's first Transfer Intent with this account: never ours, no API call needed.
                     return $ignore('before_first_payment');
                 }
                 try {
@@ -149,7 +156,7 @@ final class TransferEventProcessor
                 if (isset($metadata['pbfp_site']) && ! hash_equals(SiteMarker::current(), (string) $metadata['pbfp_site'])) {
                     return $ignore('foreign_site');
                 }
-                if (isset($metadata['pbfp_environment']) && $environment !== $metadata['pbfp_environment']) {
+                if (isset($metadata['pbfp_environment']) && $scope->environment !== $metadata['pbfp_environment']) {
                     return $ignore('environment_mismatch');
                 }
                 $candidate = $this->locator->paybridge_order($order_id);
@@ -158,8 +165,12 @@ final class TransferEventProcessor
                     return $ignore('order_missing');
                 }
             }
-            if ($environment !== (string) $candidate->get_meta(OrderMeta::ENVIRONMENT, true)) {
+            if ($scope->environment !== (string) $candidate->get_meta(OrderMeta::ENVIRONMENT, true)) {
                 return $ignore('environment_mismatch', $candidate->get_id());
+            }
+            if (! OrderLocator::order_in_scope($candidate, $scope)) {
+                // The order's attempt was made with another Plaid account: this stream cannot own it.
+                return $ignore('account_mismatch', $candidate->get_id());
             }
             if ('' !== $attempt_id && AttemptHistory::is_retired($candidate, $attempt_id)) {
                 return $ignore('retired_attempt', $candidate->get_id());

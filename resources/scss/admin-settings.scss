@@ -138,9 +138,18 @@ $pbfp-ok-border: #00a32a;
 		margin: 16px 0 6px;
 	}
 
+
 	.pbfp-refund--problem td {
 		color: $pbfp-fail;
 	}
+}
+
+// The panel renders inside WooCommerce's order data box, whose `#order_data p { color: #767676 }`
+// is too light on notice backgrounds; alerts and explanations use the admin text color. The ID
+// matches WooCommerce's selector so this rule wins without !important.
+#order_data .pbfp-order-panel .notice p,
+#order_data .pbfp-order-panel .pbfp-retry-policy {
+	color: #1d2327;
 }
 
 .pbfp-order-actions .button {

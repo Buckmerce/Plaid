@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace PayBridge\Plaid\Persistence;
 
+use PayBridge\Plaid\Settings\AccountScope;
+
 // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; compare-and-set locking must bypass object caches.
 
 /**
@@ -161,16 +163,22 @@ final class PaymentLockStore
         ));
     }
 
-    /** @return array{order_id:int, status:string}|null */
-    public function find_by_transfer_id(string $transfer_id): ?array
+    /**
+     * The order whose current attempt used this transfer with this Plaid account (ADR-0018).
+     * Plaid does not document identifiers as unique across clients, so a lookup never crosses
+     * accounts; rows written before the account fingerprint existed (NULL) still match.
+     *
+     * @return array{order_id:int, status:string}|null
+     */
+    public function find_by_transfer_id(string $transfer_id, AccountScope $scope): ?array
     {
-        return $this->find_by('transfer_id', $transfer_id);
+        return $this->find_by('transfer_id', $transfer_id, $scope);
     }
 
     /** @return array{order_id:int, status:string}|null */
-    public function find_by_intent_id(string $intent_id): ?array
+    public function find_by_intent_id(string $intent_id, AccountScope $scope): ?array
     {
-        return $this->find_by('transfer_intent_id', $intent_id);
+        return $this->find_by('transfer_intent_id', $intent_id, $scope);
     }
 
     /**
@@ -320,17 +328,19 @@ final class PaymentLockStore
     }
 
     /** @return array{order_id:int, status:string}|null */
-    private function find_by(string $column, string $value): ?array
+    private function find_by(string $column, string $value, AccountScope $scope): ?array
     {
         global $wpdb;
-        if ('' === $value || ! in_array($column, array('transfer_id', 'transfer_intent_id'), true)) {
+        if ('' === $value || ! $scope->is_valid() || ! in_array($column, array('transfer_id', 'transfer_intent_id'), true)) {
             return null;
         }
         $rows = $wpdb->get_results($wpdb->prepare(
-            'SELECT order_id, status FROM %i WHERE %i = %s LIMIT 2',
+            'SELECT order_id, status FROM %i WHERE %i = %s AND environment = %s AND (account_fp = %s OR account_fp IS NULL) LIMIT 2',
             Installer::locks_table(),
             $column,
-            $value
+            $value,
+            $scope->environment,
+            $scope->account_fp
         ), ARRAY_A);
         if (! is_array($rows) || 1 !== count($rows)) {
             // Zero: unknown. Two: a correlation conflict that must never be guessed.

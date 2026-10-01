@@ -7,6 +7,7 @@ namespace PayBridge\Plaid\Persistence;
 use PayBridge\Plaid\Exception\PersistenceException;
 use PayBridge\Plaid\Refund\RefundRecord;
 use PayBridge\Plaid\Refund\RefundState;
+use PayBridge\Plaid\Settings\AccountScope;
 
 // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; refund reservations and compare-and-set updates must bypass object caches.
 
@@ -16,6 +17,10 @@ use PayBridge\Plaid\Refund\RefundState;
  * - The idempotency key is unique: one intended refund can never get two rows, and the
  *   same key is what Plaid receives, so a retried create cannot create a second refund.
  * - One WooCommerce refund object maps to at most one row (unique wc_refund_id).
+ * - A Plaid refund is identified by (environment, account_fp, refund_id) (ADR-0018): Plaid does
+ *   not document refund IDs as unique across clients, so one account's refund can never be
+ *   matched, adopted or recorded as another account's. Schema-2 rows whose account is unknown
+ *   (AccountScope::LEGACY) still match, so they are never recorded twice.
  * - Every status change is a compare-and-set on the previous status, so concurrent
  *   event workers, reconciliation and admin actions apply each transition exactly once.
  */
@@ -33,11 +38,14 @@ final class RefundStore
     public function reserve(array $fields): array
     {
         global $wpdb;
+        if (! AccountScope::is_fingerprint($fields['account_fp'])) {
+            throw new PersistenceException('A refund reservation needs the Plaid account of the payment.');
+        }
         $token = bin2hex(random_bytes(32));
         $inserted = $wpdb->query($wpdb->prepare(
             "INSERT IGNORE INTO %i (order_id, wc_refund_id, environment, account_fp, attempt_id, transfer_id, idempotency_key, amount, currency, status, origin,
                                     owner_token, lease_expires_at, reconcile_after, checks, created_at, updated_at)
-             VALUES (%d, NULLIF(%d, 0), %s, NULLIF(%s, ''), %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 0, UTC_TIMESTAMP(), UTC_TIMESTAMP())",
+             VALUES (%d, NULLIF(%d, 0), %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 0, UTC_TIMESTAMP(), UTC_TIMESTAMP())",
             Installer::refunds_table(),
             $fields['order_id'],
             $fields['wc_refund_id'],
@@ -72,10 +80,17 @@ final class RefundStore
     public function insert_external(array $fields): ?RefundRecord
     {
         global $wpdb;
+        $scope = new AccountScope($fields['environment'], $fields['account_fp']);
+        if (! $scope->is_valid()) {
+            throw new PersistenceException('An external refund needs the Plaid account that reported it.');
+        }
+        if (null !== $this->find_by_refund_id($scope, $fields['refund_id'])) {
+            return null;
+        }
         $inserted = $wpdb->query($wpdb->prepare(
             "INSERT IGNORE INTO %i (order_id, wc_refund_id, environment, account_fp, attempt_id, transfer_id, refund_id, idempotency_key, amount, currency, status, origin,
                                     failure_code, checks, created_at, updated_at)
-             VALUES (%d, NULL, %s, NULLIF(%s, ''), %s, %s, %s, %s, %s, %s, %s, %s, NULLIF(%s, ''), 0, UTC_TIMESTAMP(), UTC_TIMESTAMP())",
+             VALUES (%d, NULL, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NULLIF(%s, ''), 0, UTC_TIMESTAMP(), UTC_TIMESTAMP())",
             Installer::refunds_table(),
             $fields['order_id'],
             $fields['environment'],
@@ -83,7 +98,8 @@ final class RefundStore
             $fields['attempt_id'],
             $fields['transfer_id'],
             $fields['refund_id'],
-            substr('ext-' . $fields['refund_id'], 0, 50),
+            // Unique per account and refund; the refund itself is identified by (environment, account_fp, refund_id).
+            'ext-' . substr(hash('sha256', $fields['environment'] . '|' . $fields['account_fp'] . '|' . $fields['refund_id']), 0, 46),
             $fields['amount'],
             $fields['currency'],
             $fields['status'],
@@ -93,7 +109,7 @@ final class RefundStore
         if (false === $inserted) {
             throw new PersistenceException('The external refund could not be recorded.');
         }
-        return 1 === $inserted ? $this->find_by_refund_id($fields['environment'], $fields['refund_id']) : null;
+        return 1 === $inserted ? $this->find_by_refund_id($scope, $fields['refund_id']) : null;
     }
 
     public function find(int $id): ?RefundRecord
@@ -120,13 +136,22 @@ final class RefundStore
         return self::record($wpdb->get_row($wpdb->prepare('SELECT * FROM %i WHERE idempotency_key = %s LIMIT 1', Installer::refunds_table(), $key), ARRAY_A));
     }
 
-    public function find_by_refund_id(string $environment, string $refund_id): ?RefundRecord
+    /** @phpstan-impure Reads a row that another worker may have just written. */
+    public function find_by_refund_id(AccountScope $scope, string $refund_id): ?RefundRecord
     {
         global $wpdb;
-        if ('' === $refund_id) {
+        if ('' === $refund_id || ! $scope->is_valid()) {
             return null;
         }
-        return self::record($wpdb->get_row($wpdb->prepare('SELECT * FROM %i WHERE environment = %s AND refund_id = %s LIMIT 1', Installer::refunds_table(), $environment, $refund_id), ARRAY_A));
+        return self::record($wpdb->get_row($wpdb->prepare(
+            'SELECT * FROM %i WHERE environment = %s AND account_fp IN (%s, %s) AND refund_id = %s ORDER BY account_fp = %s DESC LIMIT 1',
+            Installer::refunds_table(),
+            $scope->environment,
+            $scope->account_fp,
+            AccountScope::LEGACY,
+            $refund_id,
+            $scope->account_fp
+        ), ARRAY_A));
     }
 
     /** @return list<RefundRecord> Oldest first. */
@@ -136,11 +161,21 @@ final class RefundStore
         return self::records($wpdb->get_results($wpdb->prepare('SELECT * FROM %i WHERE order_id = %d ORDER BY id ASC LIMIT 100', Installer::refunds_table(), $order_id), ARRAY_A));
     }
 
-    /** @return list<RefundRecord> Oldest first. */
-    public function for_transfer(string $environment, string $transfer_id): array
+    /** @return list<RefundRecord> Refunds of one account's transfer, oldest first. */
+    public function for_transfer(AccountScope $scope, string $transfer_id): array
     {
         global $wpdb;
-        return self::records($wpdb->get_results($wpdb->prepare('SELECT * FROM %i WHERE environment = %s AND transfer_id = %s ORDER BY id ASC LIMIT 100', Installer::refunds_table(), $environment, $transfer_id), ARRAY_A));
+        if (! $scope->is_valid()) {
+            return array();
+        }
+        return self::records($wpdb->get_results($wpdb->prepare(
+            'SELECT * FROM %i WHERE environment = %s AND account_fp IN (%s, %s) AND transfer_id = %s ORDER BY id ASC LIMIT 100',
+            Installer::refunds_table(),
+            $scope->environment,
+            $scope->account_fp,
+            AccountScope::LEGACY,
+            $transfer_id
+        ), ARRAY_A));
     }
 
     /** The create call returned a refund: records its ID and status. Only the reservation owner may do this. */
@@ -254,25 +289,32 @@ final class RefundStore
         return is_int($updated) ? $updated : 0;
     }
 
-    /** @return list<RefundRecord> Refunds of the configured Plaid account whose next check is due. */
-    public function due(string $environment, string $account_fp, int $limit): array
+    /**
+     * Refunds of the configured Plaid account whose next check is due. Refunds of any other
+     * account (or of an unknown legacy account) are never read with these credentials.
+     *
+     * @return list<RefundRecord>
+     */
+    public function due(AccountScope $scope, int $limit): array
     {
         global $wpdb;
+        if (! $scope->is_valid()) {
+            return array();
+        }
         return self::records($wpdb->get_results($wpdb->prepare(
-            "SELECT * FROM %i WHERE environment = %s AND (account_fp IS NULL OR %s = '' OR account_fp = %s) AND reconcile_after IS NOT NULL AND reconcile_after <= UTC_TIMESTAMP() ORDER BY reconcile_after ASC LIMIT %d",
+            'SELECT * FROM %i WHERE environment = %s AND account_fp = %s AND reconcile_after IS NOT NULL AND reconcile_after <= UTC_TIMESTAMP() ORDER BY reconcile_after ASC LIMIT %d',
             Installer::refunds_table(),
-            $environment,
-            $account_fp,
-            $account_fp,
+            $scope->environment,
+            $scope->account_fp,
             max(1, min(100, $limit))
         ), ARRAY_A));
     }
 
-    /** @return array<string, int> Refund counts per status in one environment. */
-    public function counts(string $environment): array
+    /** @return array<string, int> Refund counts per status of one Plaid account. */
+    public function counts(AccountScope $scope): array
     {
         global $wpdb;
-        $rows = $wpdb->get_results($wpdb->prepare('SELECT status, COUNT(*) AS total FROM %i WHERE environment = %s GROUP BY status', Installer::refunds_table(), $environment), ARRAY_A);
+        $rows = $wpdb->get_results($wpdb->prepare('SELECT status, COUNT(*) AS total FROM %i WHERE environment = %s AND account_fp = %s GROUP BY status', Installer::refunds_table(), $scope->environment, $scope->account_fp), ARRAY_A);
         $counts = array();
         foreach (is_array($rows) ? $rows : array() as $row) {
             $counts[(string) $row['status']] = (int) $row['total'];
@@ -280,17 +322,21 @@ final class RefundStore
         return $counts;
     }
 
-    /** Refunds that may still change and must stay readable with this Plaid account (ADR-0015). */
+    /**
+     * Refunds that may still change and must stay readable with this Plaid account (ADR-0015).
+     * An empty fingerprint counts every account of the environment (legacy rows included).
+     */
     public function open_count(string $environment, string $account_fp = ''): int
     {
         global $wpdb;
         return (int) $wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(*) FROM %i WHERE environment = %s AND (%s = '' OR account_fp IS NULL OR account_fp = %s)
+            "SELECT COUNT(*) FROM %i WHERE environment = %s AND (%s = '' OR account_fp IN (%s, %s))
                AND (status IN (%s, %s, %s, %s) OR reconcile_after IS NOT NULL)",
             Installer::refunds_table(),
             $environment,
             $account_fp,
             $account_fp,
+            AccountScope::LEGACY,
             RefundState::CREATING,
             RefundState::UNCERTAIN,
             RefundState::PENDING,

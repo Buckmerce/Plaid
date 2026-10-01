@@ -9,6 +9,7 @@ use PayBridge\Plaid\Exception\PaymentAttemptBusyException;
 use PayBridge\Plaid\Gateway\GatewayAvailability;
 use PayBridge\Plaid\Exception\PaymentException;
 use PayBridge\Plaid\Exception\PersistenceException;
+use PayBridge\Plaid\Exception\ReturnedPaymentRetryException;
 use PayBridge\Plaid\Logging\Logger;
 use PayBridge\Plaid\Persistence\DatabaseMutex;
 use PayBridge\Plaid\Persistence\PaymentEpoch;
@@ -22,6 +23,7 @@ use PayBridge\Plaid\Plaid\Exception\PlaidException;
 use PayBridge\Plaid\Plaid\Link\LinkTokenService;
 use PayBridge\Plaid\Plaid\TransferIntent\TransferIntentRequest;
 use PayBridge\Plaid\Plaid\TransferIntent\TransferIntentService;
+use PayBridge\Plaid\Settings\AccountScope;
 use PayBridge\Plaid\Settings\Settings;
 use PayBridge\Plaid\Support\Money;
 use PayBridge\Plaid\Support\SiteMarker;
@@ -36,7 +38,9 @@ use PayBridge\Plaid\Support\SiteMarker;
  * - money can only move for an intent that received a Link token, and Link
  *   tokens are only issued for the one intent stored on the order;
  * - an intent is replaced only when Plaid reports it FAILED, its transfer ended
- *   without funds, or no Link token issued for it can still be used.
+ *   without funds, or no Link token issued for it can still be used;
+ * - an order whose transfer was returned is never debited again through Transfer UI
+ *   (ReturnRetryPolicy, ADR-0019); failures before money moved may be retried.
  */
 final class PaymentAttemptService
 {
@@ -163,6 +167,14 @@ final class PaymentAttemptService
         if (! $order->needs_payment()) {
             throw new PaymentException('This order cannot be paid.');
         }
+        // Every new debit (checkout, pay link, Link token) passes here: a returned transfer is
+        // never followed by another bank debit that Plaid Transfer UI cannot mark as a retry.
+        $return_policy = ReturnRetryPolicy::for_order($order);
+        if ($return_policy->is_blocked()) {
+            $this->logger->log('warning', 'returned_payment_retry_blocked', array('order_id' => $order->get_id(), 'transfer_id' => $return_policy->original_transfer_id, 'error_code' => $return_policy->return_code, 'reason' => $return_policy->outcome));
+            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- A value object; the exception message is a fixed string.
+            throw new ReturnedPaymentRetryException($return_policy);
+        }
         $environment = $this->settings->environment_name();
         $currency = strtoupper((string) $order->get_currency());
         if (Money::SUPPORTED_CURRENCY !== $currency) {
@@ -252,7 +264,8 @@ final class PaymentAttemptService
         $state = (string) $order->get_meta(OrderMeta::PAYMENT_STATE, true);
         if (TransferIntent::SUCCEEDED === $intent->status) {
             if (PaymentState::is_terminal($state)) {
-                // The previous transfer failed, was cancelled or returned: a new attempt may start.
+                // The previous transfer failed or was cancelled before money moved (returned
+                // transfers were refused above by ReturnRetryPolicy): a new attempt may start.
                 $this->retire($order, $intent_id, 'transfer_' . $state);
                 return self::REPLACE;
             }
@@ -333,7 +346,7 @@ final class PaymentAttemptService
         // Last local checks before the remote side effect; any failure here fails closed.
         try {
             $mutex->assert_owned();
-            if (! PaymentEpoch::mark($snapshot->environment)) {
+            if (! PaymentEpoch::mark(new AccountScope($snapshot->environment, $account))) {
                 throw new PersistenceException('The payment epoch could not be recorded.');
             }
             if (! $this->locks->begin_creation($order->get_id(), $token, $snapshot->fingerprint())) {

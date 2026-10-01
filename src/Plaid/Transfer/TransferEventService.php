@@ -9,7 +9,7 @@ use PayBridge\Plaid\Plaid\DTO\TransferEvent;
 use PayBridge\Plaid\Plaid\DTO\TransferEventPage;
 use PayBridge\Plaid\Plaid\Exception\PlaidMalformedResponseException;
 
-/** Plaid /transfer/event/sync (docs/api/api/products/transfer/reading-transfers.md#transfereventsync). */
+/** Plaid /transfer/event/sync (https://plaid.com/docs/api/products/transfer/reading-transfers/#transfereventsync). */
 final class TransferEventService
 {
     public const PAGE_SIZE = 100;

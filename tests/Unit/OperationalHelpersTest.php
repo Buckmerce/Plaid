@@ -16,6 +16,8 @@ use PayBridge\Plaid\Payment\PaymentState;
 use PayBridge\Plaid\Plaid\Exception\PlaidApiException;
 use PayBridge\Plaid\Plaid\Exception\PlaidNetworkException;
 use PayBridge\Plaid\Support\Money;
+use PayBridge\Plaid\Settings\AccountIdentity;
+use PayBridge\Plaid\Settings\AccountScope;
 use PHPUnit\Framework\TestCase;
 
 final class OperationalHelpersTest extends TestCase
@@ -76,13 +78,17 @@ final class OperationalHelpersTest extends TestCase
 
     public function test_event_sync_retries_use_bounded_exponential_backoff(): void
     {
-        self::assertSame(60, EventSyncService::retry_delay(), 'Healthy: continue promptly.');
+        $scope = new AccountScope('production', AccountIdentity::fingerprint('client-a'));
+        $other = new AccountScope('production', AccountIdentity::fingerprint('client-b'));
+        self::assertSame(60, EventSyncService::retry_delay($scope), 'Healthy: continue promptly.');
         $delays = array();
         foreach (array(1, 2, 3, 4, 5, 6, 9, 50) as $failures) {
-            update_option(EventSyncService::FAILURES_OPTION, $failures);
-            $delays[] = EventSyncService::retry_delay();
+            update_option(EventSyncService::HEALTH_OPTION_PREFIX . $scope->key(), array('failures' => $failures));
+            $delays[] = EventSyncService::retry_delay($scope);
         }
         self::assertSame(array(60, 120, 240, 480, 900, 900, 900, 900), $delays);
+        self::assertSame(60, EventSyncService::retry_delay($other), 'Failures of one Plaid account never slow down another account\'s stream.');
+        self::assertNotSame(EventSyncService::mutex_resource($scope), EventSyncService::mutex_resource($other), 'Each account stream has its own event-sync lock.');
     }
 
     public function test_attempt_history_never_drops_money_moving_attempts(): void

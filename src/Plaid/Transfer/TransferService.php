@@ -7,7 +7,7 @@ namespace PayBridge\Plaid\Plaid\Transfer;
 use PayBridge\Plaid\Plaid\Client\PlaidClientInterface;
 use PayBridge\Plaid\Plaid\DTO\Transfer;
 
-/** Plaid /transfer/get (docs/api/api/products/transfer/reading-transfers.md). */
+/** Plaid /transfer/get (https://plaid.com/docs/api/products/transfer/reading-transfers/). */
 final class TransferService
 {
     public function __construct(private readonly PlaidClientInterface $client)

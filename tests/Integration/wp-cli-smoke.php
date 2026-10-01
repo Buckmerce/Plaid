@@ -15,17 +15,22 @@ use PayBridge\Plaid\Settings\Settings;
 global $wpdb;
 pbfp_configure();
 
-// Schema v2 exists, is verified and uses only PayBridge-owned names.
+// Schema v3 exists, is verified and uses only PayBridge-owned names.
 pbfp_assert(Installer::schema_is_valid(), 'Fresh activation must create a valid schema.');
-pbfp_assert_same('2', get_option(Installer::OPTION), 'Schema version 2 (refunds, monitoring projection).');
+pbfp_assert_same('3', get_option(Installer::OPTION), 'Schema version 3 (account-scoped Plaid event and refund identities).');
 foreach (array('paybridge_plaid_events', 'paybridge_plaid_payment_locks', 'paybridge_plaid_refunds') as $suffix) {
     pbfp_assert_same($wpdb->prefix . $suffix, $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->prefix . $suffix)), 'Missing table ' . $suffix);
 }
-$unique = $wpdb->get_results("SHOW INDEX FROM {$wpdb->prefix}paybridge_plaid_events WHERE Key_name = 'environment_event'", ARRAY_A);
-pbfp_assert(2 === count($unique) && '0' === (string) $unique[0]['Non_unique'], 'Event identity must be UNIQUE(environment, event_id).');
-foreach (array('idempotency_key' => 1, 'environment_refund' => 2, 'wc_refund_id' => 1) as $key_name => $columns) {
+$unique = $wpdb->get_results("SHOW INDEX FROM {$wpdb->prefix}paybridge_plaid_events WHERE Key_name = 'account_event'", ARRAY_A);
+pbfp_assert(array('environment', 'account_fp', 'event_id') === array_column($unique, 'Column_name') && '0' === (string) $unique[0]['Non_unique'], 'Event identity must be UNIQUE(environment, account_fp, event_id).');
+pbfp_assert(array() === $wpdb->get_results("SHOW INDEX FROM {$wpdb->prefix}paybridge_plaid_events WHERE Key_name = 'environment_event'"), 'No environment-only event identity (it would make another account\'s event a duplicate).');
+foreach (array('idempotency_key' => array('idempotency_key'), 'account_refund' => array('environment', 'account_fp', 'refund_id'), 'wc_refund_id' => array('wc_refund_id')) as $key_name => $columns) {
     $index = $wpdb->get_results($wpdb->prepare("SHOW INDEX FROM {$wpdb->prefix}paybridge_plaid_refunds WHERE Key_name = %s", $key_name), ARRAY_A);
-    pbfp_assert($columns === count($index) && '0' === (string) $index[0]['Non_unique'], 'Refund identity must be UNIQUE: ' . $key_name);
+    pbfp_assert($columns === array_column($index, 'Column_name') && '0' === (string) $index[0]['Non_unique'], 'Refund identity must be UNIQUE: ' . $key_name);
+}
+pbfp_assert(array() === $wpdb->get_results("SHOW INDEX FROM {$wpdb->prefix}paybridge_plaid_refunds WHERE Key_name = 'environment_refund'"), 'No environment-only refund identity.');
+foreach (array('paybridge_plaid_events', 'paybridge_plaid_refunds') as $suffix) {
+    pbfp_assert_same('NO', (string) $wpdb->get_row($wpdb->prepare('SHOW COLUMNS FROM %i LIKE %s', $wpdb->prefix . $suffix, 'account_fp'), ARRAY_A)['Null'], 'account_fp is NOT NULL in ' . $suffix);
 }
 foreach (array('payment_state', 'account_fp', 'monitor_until') as $column) {
     pbfp_assert(null !== $wpdb->get_row($wpdb->prepare("SHOW COLUMNS FROM {$wpdb->prefix}paybridge_plaid_payment_locks LIKE %s", $column)), 'Payment index column ' . $column);
@@ -147,7 +152,7 @@ $wpdb->query($wpdb->prepare("INSERT INTO {$locks_table} (order_id, environment, 
 update_option(Installer::OPTION, '1');
 pbfp_assert(! Installer::schema_is_valid(), 'A schema 1 database is detected as outdated.');
 Installer::install();
-pbfp_assert(Installer::schema_is_valid() && '2' === get_option(Installer::OPTION), 'Schema 1 → 2 migration verified.');
+pbfp_assert(Installer::schema_is_valid() && '3' === get_option(Installer::OPTION), 'Schema 1 → 3 migration verified.');
 pbfp_assert_same(Settings::load()->account_fingerprint(), (string) $wpdb->get_var("SELECT account_fp FROM {$locks_table} WHERE order_id = 987654321"), 'Existing payments are attributed to the configured Plaid account.');
 $wpdb->query("DELETE FROM {$locks_table} WHERE order_id = 987654321");
 
@@ -156,21 +161,20 @@ global $wpdb;
 $documented_options = array(
     'woocommerce_paybridge_plaid_settings',
     'paybridge_plaid_schema_version',
-    'paybridge_plaid_event_cursor_sandbox',
-    'paybridge_plaid_event_cursor_production',
-    'paybridge_plaid_last_event_sync',
-    'paybridge_plaid_last_event_sync_error',
     'paybridge_plaid_last_reconciliation',
     'paybridge_plaid_last_reconciliation_error',
     'paybridge_plaid_last_connection_test',
     'paybridge_plaid_payment_alerts',
     'paybridge_plaid_last_webhook',
     'paybridge_plaid_last_webhook_rejection',
-    'paybridge_plaid_first_intent_at_sandbox',
-    'paybridge_plaid_first_intent_at_production',
-    'paybridge_plaid_event_sync_failures',
     'paybridge_plaid_last_link_token_error',
 );
+// Per Plaid account (environment + 16-hex account fingerprint, ADR-0018).
+$scoped_option = '/^paybridge_plaid_(event_cursor|first_intent_at|event_sync)_(sandbox|production)_[a-f0-9]{16}$/';
 $paybridge_options = $wpdb->get_col($wpdb->prepare("SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s", 'paybridge%', 'woocommerce_paybridge%'));
-pbfp_assert(array() === array_diff($paybridge_options, $documented_options), 'Undocumented PayBridge options: ' . implode(', ', array_diff($paybridge_options, $documented_options)));
+$undocumented = array_filter(array_diff($paybridge_options, $documented_options), static fn (string $name): bool => 1 !== preg_match($scoped_option, $name));
+pbfp_assert(array() === $undocumented, 'Undocumented PayBridge options: ' . implode(', ', $undocumented));
+foreach (array('paybridge_plaid_event_cursor_sandbox', 'paybridge_plaid_first_intent_at_sandbox', 'paybridge_plaid_last_event_sync', 'paybridge_plaid_event_sync_failures') as $legacy) {
+    pbfp_assert(false === get_option($legacy), 'A fresh store never writes the schema-2 per-environment option ' . $legacy);
+}
 WP_CLI::success('PayBridge smoke test passed (HPOS=' . ($expect_hpos ? 'yes' : 'no') . ').');

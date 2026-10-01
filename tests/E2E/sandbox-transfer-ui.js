@@ -91,6 +91,10 @@ async page => {
 		await link.getByRole( 'textbox', { name: 'Username' } ).fill( config.username );
 		await link.getByRole( 'textbox', { name: 'Password' } ).fill( config.password );
 		await link.getByRole( 'button', { name: 'Submit' } ).click();
+		await link.getByText( 'Plaid Checking', { exact: false } ).first().waitFor( { timeout: 60000 } );
+		// The Link customization has Account Select "Enabled for one account" (Transfer UI step 1):
+		// accounts are chosen one at a time, never with multi-select checkboxes.
+		assert( ( await link.getByRole( 'checkbox' ).count() ) === 0, 'Account Select is "Enabled for one account" (no multi-account checkboxes).' );
 		await link.getByText( 'Plaid Checking', { exact: false } ).first().click( { timeout: 60000 } );
 		await link.getByRole( 'button', { name: 'Continue' } ).click();
 		const confirmation = await link.getByText( /transfer/i ).first().textContent( { timeout: 60000 } );

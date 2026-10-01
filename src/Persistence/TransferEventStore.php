@@ -6,15 +6,18 @@ namespace PayBridge\Plaid\Persistence;
 
 use PayBridge\Plaid\Exception\PersistenceException;
 use PayBridge\Plaid\Plaid\DTO\TransferEvent;
+use PayBridge\Plaid\Settings\AccountScope;
 
 // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; lease claims must bypass object caches.
 
 /**
  * Durable idempotency store for Plaid transfer events.
  *
- * Identity is (environment, event_id). Recording is INSERT IGNORE, so replays
- * are harmless; processing uses an owner-token lease so a crashed worker's
- * event is reclaimed and an event can never be processed by two workers.
+ * Identity is (environment, account_fp, event_id): event IDs are positions in ONE Plaid
+ * account's stream (ADR-0018), so another account's event with the same ID is a different
+ * event. Recording is INSERT IGNORE, so replays are harmless; processing uses an owner-token
+ * lease so a crashed worker's event is reclaimed and an event can never be processed by two
+ * workers. Every read and claim is limited to one account scope.
  */
 final class TransferEventStore
 {
@@ -30,9 +33,12 @@ final class TransferEventStore
     public const ABANDONED = 'abandoned';
 
     /** @throws PersistenceException */
-    public function record(string $environment, TransferEvent $event): void
+    public function record(AccountScope $scope, TransferEvent $event): void
     {
         global $wpdb;
+        if (! $scope->is_valid()) {
+            throw new PersistenceException('Transfer events can only be recorded for a Plaid account scope.');
+        }
         $data = wp_json_encode(array(
             'event_id' => $event->event_id,
             'event_type' => $event->event_type,
@@ -49,10 +55,11 @@ final class TransferEventStore
         ));
         $timestamp = strtotime($event->timestamp);
         $result = $wpdb->query($wpdb->prepare(
-            'INSERT IGNORE INTO %i (environment, event_id, event_type, transfer_id, event_data, status, attempts, provider_created_at, created_at, updated_at)
-             VALUES (%s, %s, %s, %s, %s, %s, 0, %s, UTC_TIMESTAMP(), UTC_TIMESTAMP())',
+            'INSERT IGNORE INTO %i (environment, account_fp, event_id, event_type, transfer_id, event_data, status, attempts, provider_created_at, created_at, updated_at)
+             VALUES (%s, %s, %s, %s, %s, %s, %s, 0, %s, UTC_TIMESTAMP(), UTC_TIMESTAMP())',
             Installer::events_table(),
-            $environment,
+            $scope->environment,
+            $scope->account_fp,
             $event->event_id,
             substr($event->event_type, 0, 64),
             substr($event->transfer_id, 0, 64),
@@ -70,12 +77,15 @@ final class TransferEventStore
      *
      * @return list<array{id:int, owner_token:string, event:TransferEvent, attempts:int}>
      */
-    public function claim_batch(string $environment, int $limit): array
+    public function claim_batch(AccountScope $scope, int $limit): array
     {
         global $wpdb;
+        if (! $scope->is_valid()) {
+            return array();
+        }
         $candidates = $wpdb->get_col($wpdb->prepare(
             'SELECT id FROM %i
-             WHERE environment = %s AND attempts < %d
+             WHERE environment = %s AND account_fp = %s AND attempts < %d
                AND (
                     status = %s
                  OR (status IN (%s, %s) AND lease_expires_at < UTC_TIMESTAMP())
@@ -83,7 +93,8 @@ final class TransferEventStore
                )
              ORDER BY event_id ASC LIMIT %d',
             Installer::events_table(),
-            $environment,
+            $scope->environment,
+            $scope->account_fp,
             self::MAX_ATTEMPTS,
             self::RECEIVED,
             self::UNMATCHED,
@@ -121,14 +132,21 @@ final class TransferEventStore
                 $this->finish((int) $id, $token, self::ABANDONED, 'unreadable_event_data');
                 continue;
             }
-            $claimed[] = array(
-                'id' => (int) $id,
-                'owner_token' => $token,
-                'event' => TransferEvent::from_array($data + array('failure_reason' => array(
+            try {
+                $event = TransferEvent::from_array($data + array('failure_reason' => array(
                     'failure_code' => $data['failure_code'] ?? null,
                     'ach_return_code' => $data['ach_return_code'] ?? null,
                     'description' => $data['failure_description'] ?? null,
-                )), ''),
+                )), '');
+            } catch (\PayBridge\Plaid\Plaid\Exception\PlaidException $exception) {
+                // A corrupted row must never block the rest of the stream (poison row).
+                $this->finish((int) $id, $token, self::ABANDONED, 'unreadable_event_data');
+                continue;
+            }
+            $claimed[] = array(
+                'id' => (int) $id,
+                'owner_token' => $token,
+                'event' => $event,
                 'attempts' => (int) $row['attempts'],
             );
         }
@@ -174,19 +192,71 @@ final class TransferEventStore
         ));
     }
 
-    public function count_by_status(string $status): int
+    /** @return array<string, int> Event counts per status of one account scope. */
+    public function counts(AccountScope $scope): array
     {
         global $wpdb;
-        return (int) $wpdb->get_var($wpdb->prepare('SELECT COUNT(*) FROM %i WHERE status = %s', Installer::events_table(), $status));
+        $rows = $wpdb->get_results($wpdb->prepare(
+            'SELECT status, COUNT(*) AS total FROM %i WHERE environment = %s AND account_fp = %s GROUP BY status',
+            Installer::events_table(),
+            $scope->environment,
+            $scope->account_fp
+        ), ARRAY_A);
+        $counts = array();
+        foreach (is_array($rows) ? $rows : array() as $row) {
+            $counts[(string) $row['status']] = (int) $row['total'];
+        }
+        return $counts;
     }
 
-    public function has_processable(string $environment): bool
+    /** Events of every other scope (previous accounts, schema-2 legacy rows): kept for auditing only. */
+    public function count_outside(AccountScope $scope): int
     {
         global $wpdb;
-        return (bool) $wpdb->get_var($wpdb->prepare(
-            'SELECT 1 FROM %i WHERE environment = %s AND attempts < %d AND (status = %s OR (status IN (%s, %s, %s) AND lease_expires_at < UTC_TIMESTAMP())) LIMIT 1',
+        return (int) $wpdb->get_var($wpdb->prepare(
+            'SELECT COUNT(*) FROM %i WHERE NOT (environment = %s AND account_fp = %s)',
             Installer::events_table(),
-            $environment,
+            $scope->environment,
+            $scope->account_fp
+        ));
+    }
+
+    /**
+     * Events of this account that are not final yet: waiting, or deferred for a later retry
+     * (backoff lease still running). They are operational work — maintenance must keep running
+     * until each one is processed, ignored or abandoned (ADR-0021).
+     */
+    public function has_backlog(AccountScope $scope): bool
+    {
+        global $wpdb;
+        if (! $scope->is_valid()) {
+            return false;
+        }
+        return (bool) $wpdb->get_var($wpdb->prepare(
+            'SELECT 1 FROM %i WHERE environment = %s AND account_fp = %s AND status IN (%s, %s, %s, %s) AND attempts < %d LIMIT 1',
+            Installer::events_table(),
+            $scope->environment,
+            $scope->account_fp,
+            self::RECEIVED,
+            self::UNMATCHED,
+            self::RETRY,
+            self::PROCESSING,
+            self::MAX_ATTEMPTS
+        ));
+    }
+
+    /** Events of this account that can be claimed right now (received, or retry/unmatched/processing with an expired lease). */
+    public function has_processable(AccountScope $scope): bool
+    {
+        global $wpdb;
+        if (! $scope->is_valid()) {
+            return false;
+        }
+        return (bool) $wpdb->get_var($wpdb->prepare(
+            'SELECT 1 FROM %i WHERE environment = %s AND account_fp = %s AND attempts < %d AND (status = %s OR (status IN (%s, %s, %s) AND lease_expires_at < UTC_TIMESTAMP())) LIMIT 1',
+            Installer::events_table(),
+            $scope->environment,
+            $scope->account_fp,
             self::MAX_ATTEMPTS,
             self::RECEIVED,
             self::UNMATCHED,
