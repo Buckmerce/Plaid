@@ -1,395 +1,951 @@
 # Buckmerce – Bank Payments via Plaid for WooCommerce
 
-WooCommerce payment gateway for US bank (ACH) payments through **Plaid Transfer UI**.
-The customer authorizes a debit in Plaid Link; the store marks the order paid only after
-Plaid itself reports the transfer as settled / funds available, follows it until the ACH return
-window closes, and refunds it natively through Plaid.
+[![Quality](https://github.com/al5dy/buckmerce-plaid/actions/workflows/quality.yml/badge.svg?branch=master)](https://github.com/al5dy/buckmerce-plaid/actions/workflows/quality.yml)
+![PHP](https://img.shields.io/badge/PHP-8.1%E2%80%938.4-777BB4?logo=php&logoColor=white)
+![WordPress](https://img.shields.io/badge/WordPress-6.6%2B-21759B?logo=wordpress&logoColor=white)
+![WooCommerce](https://img.shields.io/badge/WooCommerce-8.7%2B-96588A?logo=woocommerce&logoColor=white)
+![Plaid](https://img.shields.io/badge/Plaid-Transfer-000000)
+![License](https://img.shields.io/badge/license-GPL--2.0--or--later-blue)
 
-| | |
-|---|---|
-| Plugin slug | `buckmerce-plaid` |
-| Gateway ID | `buckmerce_plaid` |
-| PHP namespace | `Buckmerce\Plaid` |
-| Version | 1.0.0 |
-| Requires | WordPress 6.6+, WooCommerce 8.7+, PHP 8.1–8.4, MySQL 8.0+ / MariaDB 10.11+ (tested up to WordPress 7.1 / WooCommerce 11.1) |
-| License | GPL-2.0-or-later |
+**Buckmerce** is a WooCommerce payment gateway for one-time US bank payments through **Plaid Transfer UI**.
 
-Buckmerce for Plaid is an independent third-party integration. It is not developed, endorsed or
-supported by Plaid Inc., and it is not affiliated with WooCommerce or Automattic.
+The customer chooses **Pay by Bank**, connects a bank through Plaid Link, selects an account and authorizes an ACH debit. Buckmerce keeps the server authoritative, follows the payment through the Plaid Transfer lifecycle, reconciles missed events, projects the result into WooCommerce, supports native refunds, and continues monitoring for ACH returns after the order is paid.
+
+This repository contains the complete human-readable PHP, TypeScript and SCSS source plus the build and test tooling used to produce the WordPress.org release ZIP.
+
+> Buckmerce is an independent third-party integration. It is not developed, endorsed or supported by Plaid Inc., WooCommerce or Automattic.
 
 ---
 
-## Contents
+## Highlights
 
-1. [How it works](#how-it-works)
-2. [Requirements](#requirements)
-3. [Installation](#installation)
-4. [Configuration](#configuration)
-5. [Payment lifecycle and order statuses](#payment-lifecycle-and-order-statuses)
-6. [Webhooks, event sync and reconciliation](#webhooks-event-sync-and-reconciliation)
-7. [WooCommerce integration (HPOS, Blocks, Classic)](#woocommerce-integration)
-8. [Operations: WP-CLI, diagnostics, Site Health](#operations)
-9. [Security model](#security-model)
-10. [Privacy and external services](#privacy-and-external-services)
-11. [Development](#development)
-12. [Testing](#testing)
-13. [CI and releases](#ci-and-releases)
-14. [Project layout](#project-layout)
-15. [Documentation](#documentation)
+- **Plaid Transfer UI** for one-time Pay by Bank checkout.
+- **Standard ACH** and **Same Day ACH**.
+- **WooCommerce Classic Checkout** and **Checkout Blocks**.
+- **HPOS compatible** using WooCommerce CRUD APIs.
+- **Server-authoritative payment confirmation**: browser callbacks never mark an order paid.
+- **Verified Plaid webhooks** using ES256 JWT verification and exact request-body hashing.
+- **Durable transfer event ingestion** with account-scoped cursors and idempotent event processing.
+- **Background reconciliation** for missed webhooks, stale payments and open refunds.
+- **Native WooCommerce refunds** with full and multiple partial refunds.
+- **ACH return handling** with order state projection, notes, alerts and merchant email.
+- **Duplicate-payment protection** using durable reservations and database mutexes.
+- **Payment attempt history** for failed attempts without confusing late events with a newer attempt.
+- **Plaid account-change guard** while Production payments or refunds are still being monitored.
+- **Configuration health**, connection testing, diagnostics, Site Health and structured redacted logs.
+- **WP-CLI operations** for status, event sync, reconciliation, order sync and Sandbox testing.
+- **Reproducible release packaging** with a strict runtime allowlist.
 
 ---
-
-## How it works
-
-```
-Customer            WooCommerce (Buckmerce)                          Plaid
-   │  Place order  ──►  order "pending", redirect to order-pay page
-   │  Pay by bank  ──►  POST /link-token ─► /transfer/intent/create ─►  intent (PENDING)
-   │                                        /link/token/create     ─►  link_token
-   │  ◄── Plaid Link (Transfer UI) opens with the link_token
-   │  authorizes   ──►  POST /complete (order id + key only)
-   │                    server reads /transfer/intent/get          ─►  SUCCEEDED + transfer_id
-   │                    order → "on-hold" (awaiting ACH settlement)
-   │                                                                   ACH moves money
-   │                    ◄── signed webhook TRANSFER_EVENTS_UPDATE (ES256 JWT)
-   │                    /transfer/event/sync (cursor)             ─►  pending/posted/settled/
-   │                                                                   funds_available/failed/returned
-   │                    order → payment_complete() at funds_available (default)
-```
-
-Key design points (details in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and the ADRs):
-
-- **Server-authoritative.** Browser callbacks never mark an order paid. The amount, currency,
-  intent and transfer are always re-read from Plaid and compared with an immutable payment
-  snapshot of the order.
-- **One intent per order.** A database reservation (`{prefix}buckmerce_plaid_payment_locks`)
-  plus a MySQL advisory lock guarantee at most one active Transfer Intent per order, even
-  with double clicks, parallel tabs or retries.
-- **Webhooks are notifications only.** A verified webhook triggers `/transfer/event/sync`;
-  order state changes come exclusively from events read from Plaid.
-- **Idempotent event processing.** Events are stored by `(environment, event_id)` in
-  `{prefix}buckmerce_plaid_events` and processed exactly once under a lease.
-- **Explicit state machine.** Every transition is validated; stale or conflicting events are
-  recorded and never regress an order.
-- **Reconciliation.** A background job re-reads open intents and transfers, so a missed
-  webhook never leaves an order stuck.
 
 ## Requirements
 
-- WordPress 6.6 or later, WooCommerce 8.7 or later (8.5/8.6 do not record HPOS refunds as refunded through the gateway, [ADR-0022](docs/adr/0022-minimum-woocommerce-8-7.md)), PHP 8.1–8.4, MySQL 8.0+ or MariaDB 10.11+.
-- Store currency **USD** (Plaid Transfer debits US bank accounts).
-- HTTPS for Production (the gateway is unavailable in Production over plain HTTP).
-- A Plaid account with **Transfer** enabled and API keys for the selected environment.
-- WP-Cron or a real cron triggering Action Scheduler (WooCommerce's job queue).
+| Component | Requirement |
+| --- | --- |
+| WordPress | 6.6+ |
+| WooCommerce | 8.7+ |
+| PHP | 8.1–8.4 |
+| PHP extension | OpenSSL |
+| Database | MySQL 8.0+ or MariaDB 10.11+ |
+| Currency | USD |
+| Plaid | Plaid Transfer enabled |
+| Production | HTTPS |
 
-## Installation
+The plugin declares compatibility with WooCommerce **custom order tables (HPOS)** and **cart/checkout blocks**.
 
-1. Download `buckmerce-plaid-<version>.zip` from the GitHub release (or build it, see
-   [Development](#development)).
-2. WordPress admin → **Plugins → Add New → Upload Plugin**, upload the ZIP and activate.
-   Activation creates the three Buckmerce tables (events, payment index, refunds) and verifies
-   their schema; if verification fails the gateway stays disabled and an admin notice explains why.
-3. Configure the gateway in **WooCommerce → Settings → Payments → Buckmerce for Plaid**.
+---
 
-## Configuration
+## Quick start
 
-The settings screen opens with a **status panel**: Ready / Disabled / Incomplete / Attention
-required, a Sandbox or Production badge and a PASS/FAIL checklist (credentials, HTTPS, USD, Link
-customization, schema, webhook route, last connection test, background jobs, WP-Cron).
+### 1. Install
 
-| Setting | Default | Notes |
-|---|---|---|
-| **General** | | |
-| Offer Pay by Bank at checkout | off | Controls NEW payments only. Existing payments, returns and refunds are always monitored. |
-| Title / Description | "Pay by Bank" | Shown at checkout. |
-| **Plaid connection** | | |
-| Environment | Sandbox | `sandbox` or `production`. Production requires HTTPS. |
-| Client ID / Secret | — | From Plaid Dashboard → Developers → Keys. The secret is write-only (never rendered back; blank keeps it; **Remove stored secret** clears it). Changing the Client ID or environment is refused while Production payments are monitored ([ADR-0015](docs/adr/0015-plaid-account-change-guard.md)); rotating the secret is always allowed. |
-| Funding Account ID | empty | Leave empty with **Plaid Ledger** (the default; Plaid rejects `funding_account_id` then). |
-| **Pay by Bank** | | |
-| Link customization name | empty | **Required in Sandbox and Production** ([ADR-0020](docs/adr/0020-link-customization-in-every-environment.md)). Create a Plaid Link customization in the selected environment with Account Select = "Enabled for one account" (language matching the store), publish it and enter its name. |
-| Bank statement description | `PAYMENT` | Shown on the customer's bank statement after your Plaid company name; upper-case letters, digits and spaces, ≤ 10 characters (ACH limit). |
-| Payment network | Same Day ACH | `same-day-ach` or `ach`. |
-| Mark order paid when | Funds available | `funds_available` (recommended) or `settled`. |
-| **Advanced and logging** | | |
-| Debug logging | off | Redacted logs in WooCommerce → Status → Logs (source `buckmerce-plaid`). |
-| Uninstall cleanup | off | When on, deleting the plugin removes Buckmerce settings, event/refund history and tables. Order payment data is always kept. |
+Install the release ZIP as a normal WordPress plugin and activate it with WooCommerce active.
 
-The ACH class is always **WEB** (Transfer UI is a Nacha WEB authorization, [ADR-0013](docs/adr/0013-transfer-ui-configuration.md)).
-Customers must enter a billing first and last name: it is the account holder's legal name Plaid
-requires, and Buckmerce never substitutes a placeholder or company name.
+Open:
 
-**Test connection** on the settings screen (or `wp buckmerce-plaid test-connection`) calls Plaid
-with the saved keys and reports a classified result: invalid credentials, Transfer not enabled,
-permission denied, rate limited, Plaid unavailable, network error or connected (with Ledger and
-funding-account advice).
+```text
+WooCommerce → Settings → Payments → Buckmerce for Plaid
+```
 
-### Plaid Dashboard
+### 2. Configure Plaid credentials
 
-- Enable **Transfer** for the environment you use.
-- Register the webhook in Plaid Dashboard → **Team Settings → Webhooks → New Webhook**, event type
-  **Transfer event**, URL `https://<your-store>/wp-json/buckmerce-plaid/v1/webhook`
-  (shown with a copy button on the settings screen). Plaid allows one Transfer webhook URL
-  per environment.
-- Without a registered webhook (for example before Production access is granted) payments
-  still complete: the 15-minute reconciliation job pulls `/transfer/event/sync` itself, only
-  with more latency.
+In the Plaid Dashboard open:
 
-### Sandbox testing
+```text
+Developers → Keys
+```
 
-Plaid Sandbox simulates Transfer UI outcomes by amount: **$11.11** succeeds (funds available),
-**$22.22** fails, **$33.33** is returned with R01, **$44.44** with R02. Refunds of **$1.11** are
-returned and **$2.22** fail; other refunds stay pending until
-`wp buckmerce-plaid simulate-refund <refund-id> refund.posted|refund.settled`. Use the Sandbox
-test user `user_good` / `pass_good` in Link. The payment page shows a small "Sandbox" badge.
+Start with Sandbox and enter:
 
-## Payment lifecycle and order statuses
+- Client ID
+- Sandbox Secret
 
-| Buckmerce state (`_bmfp_payment_state`) | Meaning | WooCommerce order |
-|---|---|---|
-| `intent_created` / `intent_pending` | Transfer Intent created, Link not completed | `pending` |
-| `intent_failed` | Customer's authorization failed (e.g. NSF risk) | stays `pending`, customer may retry |
-| `transfer_created`, `pending`, `posted` | ACH debit submitted | `on-hold` |
-| `settled` | Settled at the network | `on-hold` (or paid when "Mark order paid when" = settled) |
-| `funds_available` | Funds available in the Plaid balance | `payment_complete()` → `processing`/`completed` |
-| `failed` | Transfer failed | `failed` |
-| `cancelled` | Transfer cancelled | `cancelled` |
-| `returned` | ACH return after settlement (R01, R02, …) | `failed`, history kept (paid date, transaction ID), "Bank payment returned" badge, admin alert, merchant email ([ADR-0012](docs/adr/0012-returned-payment-semantics.md)) |
-| `manual_review` | Contradiction (e.g. money for a cancelled order, amount mismatch) | `on-hold` + admin alert + email; merchant actions in the order panel |
+Buckmerce never renders the stored Secret back into the settings field. Saving an empty Secret preserves the existing value; removing it is an explicit action.
 
-Buckmerce keeps following every payment until Plaid's **unauthorized return window** (about
-three months after settlement) has closed — whether or not the gateway is still enabled
-([ADR-0014](docs/adr/0014-maintenance-and-return-windows.md)); when no payment, refund or event
-needs monitoring anymore, the background jobs stop by themselves
-([ADR-0021](docs/adr/0021-maintenance-follows-operational-work.md)). A **failed** order can be paid
-again through WooCommerce's pay link; that is always a new attempt, and every earlier attempt
-stays in the order's payment history ([ADR-0017](docs/adr/0017-payment-attempt-history.md)).
-A **returned** order is never debited again by bank: Plaid allows reprocessing returned transfers
-only for R01/R09 (at most twice, within 180 days, marked "Retry 1/2" on `/transfer/create`), Plaid
-Transfer UI cannot mark such a retry, and unauthorized returns such as R10 may never be resubmitted
-([ADR-0019](docs/adr/0019-returned-transfer-retry-policy.md)). The order panel explains the
-reason; collect the payment another way.
+### 3. Create the Link customization
 
-Plaid transfer events, the sync cursor, the payment epoch and refund identities are kept per
-environment **and Plaid account**, so switching to another Plaid account can never skip, mix or
-deduplicate away another account's events ([ADR-0018](docs/adr/0018-account-scoped-event-streams.md)).
+In the same Plaid environment create and publish a Link customization with:
 
-### Refunds
+```text
+Account Select = Enabled for one account
+```
 
-**Refund via Buckmerce for Plaid** on the WooCommerce order screen sends full or partial refunds to
-the customer's bank through Plaid ([ADR-0016](docs/adr/0016-refund-architecture.md)):
+Use the same language as the WooCommerce store and enter the customization name in Buckmerce.
 
-- available once the payment settled; at most 10 refunds per payment, never more than the
-  remaining refundable amount (failed/returned refunds don't count), within 180 days;
-- each WooCommerce refund maps to exactly one Plaid refund (durable reservation + Plaid
-  idempotency key); double submits and parallel requests cannot create a second refund; a
-  timeout is resolved from Plaid instead of being retried blindly;
-- refund status (pending → posted → settled, or failed/cancelled/returned) comes from verified
-  Plaid events and reconciliation; failures and returns raise alerts and emails;
-- if the original debit is returned after a refund, pending refunds are cancelled at Plaid and a
-  critical alert tells you the amount that already left.
+The Link customization is required in both Sandbox and Production.
 
-Transitions, ranks and conflict rules: [`docs/STATE_MACHINE.md`](docs/STATE_MACHINE.md) and
-[`docs/PAYMENT_LIFECYCLE.md`](docs/PAYMENT_LIFECYCLE.md). Extension hooks:
-`buckmerce_plaid_payment_state_changed`, `buckmerce_plaid_payment_confirmed`,
-`buckmerce_plaid_payment_failed`, `buckmerce_plaid_payment_cancelled`,
-`buckmerce_plaid_payment_returned`, `buckmerce_plaid_payment_manual_review`.
+### 4. Configure the funding source
 
-## Webhooks, event sync and reconciliation
+For the normal Plaid Ledger configuration, leave **Funding Account ID** empty.
 
-- `POST /wp-json/buckmerce-plaid/v1/webhook` accepts only bodies signed by Plaid:
-  ES256 JWT in `Plaid-Verification`, key fetched by `kid` from
-  `/webhook_verification_key/get` (cached, rate-limited, negative-cached), `iat` at most
-  5 minutes old, constant-time SHA-256 body hash comparison. Invalid webhooks return an
-  error and never touch orders; key-lookup failures and Plaid rate limiting return 503 so
-  Plaid retries.
-- A valid `TRANSFER_EVENTS_UPDATE` schedules `/transfer/event/sync` through Action Scheduler
-  (group `buckmerce-plaid`, hook `buckmerce_plaid_transfer_event_sync`). The cursor
-  (`after_id`) advances only after events are durably stored.
-- Transfers that do not belong to this store (another integration or store on the same
-  Plaid account, another environment, an unknown attempt) are recorded as `ignored`
-  with a reason and never retried.
-- Refund events (`refund.*`, identified by `refund_id`) take the same verified path and drive
-  the refund state machine, never the payment state.
-- Reconciliation (`buckmerce_plaid_reconcile`, every 15 minutes, independent of the enabled
-  switch) catches up on events and re-reads due payments and refunds, bounded per run.
+Only Plaid Transfer accounts without Ledger should provide a Funding Account ID.
 
-See [`docs/WEBHOOKS_AND_EVENTS.md`](docs/WEBHOOKS_AND_EVENTS.md).
+### 5. Configure the webhook
+
+Buckmerce displays the site-specific endpoint:
+
+```text
+https://example.com/wp-json/buckmerce-plaid/v1/webhook
+```
+
+Add it in the Plaid Dashboard as a **Transfer event** webhook for the selected environment.
+
+### 6. Test and enable
+
+Use **Test connection**. The settings screen evaluates the local configuration and records the Plaid connectivity result.
+
+When the status is ready, enable:
+
+```text
+Offer Pay by Bank at checkout
+```
+
+Test the complete flow in Sandbox before switching to Production.
+
+---
+
+## Checkout architecture
+
+```text
+Customer
+   │
+   │ chooses Pay by Bank
+   ▼
+WooCommerce
+   │
+   │ process_payment()
+   ▼
+Buckmerce payment reservation
+   │
+   │ /transfer/intent/create
+   ▼
+Plaid Transfer Intent
+   │
+   │ /link/token/create
+   ▼
+Plaid Link / Transfer UI
+   │
+   │ customer connects bank and authorizes
+   ▼
+Buckmerce /complete
+   │
+   │ /transfer/intent/get
+   │ /transfer/get
+   ▼
+WooCommerce order → On hold
+   │
+   │ verified webhook + /transfer/event/sync
+   ▼
+pending → posted → settled → funds_available
+   │
+   └─ failed / cancelled / returned
+```
+
+The browser is intentionally not authoritative. A successful Plaid Link callback means the UI flow completed; it does **not** mean the WooCommerce order is paid.
+
+Buckmerce re-reads the Transfer Intent and Transfer from Plaid and verifies the server-side snapshot before projecting state into WooCommerce.
+
+---
+
+## Payment creation
+
+For each new payment attempt Buckmerce creates an immutable server-side snapshot containing the authoritative order data, including:
+
+- WooCommerce order ID
+- amount
+- currency
+- Plaid environment
+- attempt identity
+
+The Transfer Intent request uses:
+
+```text
+mode = PAYMENT
+iso_currency_code = USD
+ach_class = web
+network = same-day-ach | ach
+```
+
+The customer legal name is derived from WooCommerce billing first and last name and is required. A valid billing email is included when available.
+
+Application metadata is limited to non-secret correlation values.
+
+### Duplicate-payment protection
+
+Payment creation is protected by:
+
+- a plugin-owned payment reservation table;
+- a database advisory mutex;
+- immutable attempt snapshots;
+- compare-and-set transfer binding;
+- idempotent completion behavior.
+
+Parallel tabs, repeated completion requests and double clicks should not create multiple active transfers for one order.
+
+---
 
 ## WooCommerce integration
 
-- **HPOS**: declared compatible; all order data goes through WooCommerce CRUD
-  (`$order->get_meta()` / `update_meta_data()` / `save()`), never `wp_posts`/`wp_postmeta`.
-  Payment lookups by intent/transfer ID use Buckmerce's own indexed table, so they work in
-  both storage modes. Writes are verified after `save()` because WooCommerce swallows
-  storage exceptions.
-- **Checkout Blocks** and **Classic checkout**: both place the order and redirect to the
-  order-pay page, where Plaid Link runs (`woocommerce_receipt_buckmerce_plaid`).
-- Unpaid-order cleanup keeps orders whose bank authorization is still in progress.
-- Native refunds through `process_refund()` (see [Refunds](#refunds)).
-- Orders list: a "Pay by Bank" column flags returned payments and payments in review.
+### Classic Checkout
 
-## Operations
+The gateway participates as a normal `WC_Payment_Gateway`.
 
-```bash
-wp buckmerce-plaid status                  # versions, HPOS, Blocks, REST, schema, sync/reconciliation health
-wp buckmerce-plaid test-connection         # verify keys and Transfer readiness
-wp buckmerce-plaid sync-events             # run /transfer/event/sync now
-wp buckmerce-plaid reconcile               # re-check open payments now
-wp buckmerce-plaid sync-order <order-id>   # re-read one order's payment and refunds from Plaid
-wp buckmerce-plaid refunds <order-id>      # Buckmerce refunds and the refundable amount
-wp buckmerce-plaid fire-sandbox-webhook [--url=<https-url>]   # Sandbox only
-wp buckmerce-plaid simulate-refund <refund-id> <refund.posted|refund.settled|refund.failed|refund.returned>   # Sandbox only
+Before payment begins, Buckmerce validates that the billing first and last name can represent the bank account holder's legal name.
+
+### Checkout Blocks
+
+Buckmerce registers a WooCommerce Blocks payment method and uses the same server-side gateway implementation and order lifecycle.
+
+### HPOS
+
+The plugin declares HPOS compatibility and uses WooCommerce CRUD APIs for order state and order metadata. It does not depend on direct `wp_posts` / `wp_postmeta` access for payment state.
+
+### Order payment page
+
+After checkout, the customer is sent to WooCommerce's native order-pay flow. The page displays server-derived order information and loads Plaid Link only when the order can be paid.
+
+Customer payment REST calls are protected by:
+
+- order ID;
+- WooCommerce order key;
+- ownership/session access;
+- a payment nonce.
+
+A numeric order ID alone is never sufficient.
+
+---
+
+## Gateway configuration
+
+| Setting | Purpose |
+| --- | --- |
+| Offer Pay by Bank at checkout | Enables new payments. Existing payments/refunds continue to be maintained when disabled. |
+| Title | Checkout payment-method title. |
+| Description | Checkout payment-method description. |
+| Environment | Sandbox or Production. |
+| Client ID | Plaid account Client ID. |
+| Secret | Environment-specific Plaid Secret. |
+| Funding Account ID | Optional for Plaid Transfer accounts without Ledger. |
+| Link customization name | Required published Transfer UI customization. |
+| Bank statement description | Stable statement descriptor, maximum 10 letters/digits/spaces. |
+| Payment network | Same Day ACH or Standard ACH. |
+| Mark order paid when | Funds available (default) or settled. |
+| Debug logging | Enables debug/info entries in WooCommerce logs. |
+| Uninstall cleanup | Removes plugin settings/tables when the plugin is deleted; order audit data remains. |
+
+Production payments are unavailable unless the site uses HTTPS. New payments are also unavailable when the order currency is not USD.
+
+---
+
+## Payment lifecycle
+
+Internal payment states include:
+
+```text
+new
+intent_creating
+intent_created
+intent_pending
+intent_failed
+intent_uncertain
+transfer_created
+pending
+posted
+settled
+funds_available
+failed
+cancelled
+returned
+manual_review
 ```
 
-Also available: **WooCommerce → Buckmerce diagnostics** (status checklist and operational
-counts: monitored payments, oldest one, manual review, unknown intent outcomes, event backlog,
-refunds pending/failed, overdue jobs, WP-Cron, last webhook/sync/reconciliation), Site Health
-tests, a Buckmerce panel on the order screen (attempt, Plaid IDs, statuses, settlement and
-return windows, refunds, earlier attempts; **Sync with Plaid**, **Cancel bank payment** while
-Plaid allows it, manual-review actions), and persistent admin notices plus merchant emails for
-returns, refund problems and manual review. Incident procedures: [`docs/RUNBOOKS.md`](docs/RUNBOOKS.md).
+Transitions are explicitly validated. Unknown, stale or conflicting events are not allowed to silently regress payment state.
+
+### WooCommerce projection
+
+Typical successful flow:
+
+```text
+Pending payment
+  → On hold
+  → payment_complete()
+  → Processing or Completed
+```
+
+The final Processing/Completed choice remains WooCommerce's normal `payment_complete()` behavior.
+
+The merchant can choose whether `payment_complete()` occurs when Plaid reports:
+
+- **Funds available** — default and recommended by the plugin; or
+- **Settled**.
+
+---
+
+## ACH returns
+
+Buckmerce continues monitoring completed bank payments through the applicable return-monitoring period.
+
+When a payment is returned, the plugin records the return information and surfaces it operationally:
+
+- payment state becomes `returned`;
+- WooCommerce order is moved to Failed when appropriate;
+- private order note is added;
+- orders-list status indicator is updated;
+- persistent merchant alert is created;
+- merchant email is sent;
+- the original payment and attempt history remain available.
+
+A returned payment is **not automatically debited again** through Transfer UI.
+
+Plaid has specific retry semantics for certain ACH return codes when using direct transfer creation. The 1.0 Transfer UI flow does not express those retry markers, so Buckmerce refuses a new bank debit for the returned order instead of risking an invalid reprocessing attempt.
+
+Payments that failed before money moved can start a fresh payment attempt.
+
+---
+
+## Refunds
+
+Buckmerce implements WooCommerce automatic refunds through Plaid Transfer.
+
+Supported behavior includes:
+
+- full refunds;
+- multiple partial refunds;
+- deterministic idempotency keys;
+- refund reservations;
+- refund lifecycle tracking;
+- reconciliation of uncertain refund creation;
+- refund cancellation when Plaid still allows it;
+- merchant alerts for failed or returned refunds;
+- detection of refunds created outside WooCommerce.
+
+The plugin deliberately applies a stricter merchant policy than Plaid's minimum API eligibility: it waits for the debit to reach an accepted settled state before offering a normal WooCommerce refund path.
+
+Refund state is maintained independently from the order payment state.
+
+Typical refund lifecycle:
+
+```text
+creating
+  → pending
+  → posted
+  → settled
+
+or
+
+creating / pending / posted
+  → failed
+  → cancelled
+  → returned
+  → uncertain
+```
+
+---
+
+## Webhooks
+
+Endpoint:
+
+```text
+POST /wp-json/buckmerce-plaid/v1/webhook
+```
+
+The endpoint is reachable without a WordPress login because Plaid is the caller, but it is not unauthenticated.
+
+Authorization runs in the REST `permission_callback` and verifies the Plaid request before business processing.
+
+Verification includes:
+
+1. request body size limit;
+2. `Plaid-Verification` JWT presence and shape;
+3. `alg = ES256`;
+4. validated `kid`;
+5. Plaid verification key fetched through `/webhook_verification_key/get`;
+6. ES256 signature verification using the bundled, namespace-prefixed `firebase/php-jwt`;
+7. issued-at freshness;
+8. SHA-256 of the exact raw request body;
+9. constant-time comparison with `request_body_sha256`.
+
+Verified payloads are request-scoped and consumed once by the webhook handler.
+
+A valid `TRANSFER_EVENTS_UPDATE` webhook does not directly modify an order. It schedules transfer-event synchronization; authoritative state comes from Plaid's event stream and transfer reads.
+
+---
+
+## REST endpoints
+
+Namespace:
+
+```text
+buckmerce-plaid/v1
+```
+
+| Route | Method | Purpose | Authorization |
+| --- | --- | --- | --- |
+| `/link-token` | POST | Issue a Plaid Link token for the current payment attempt | Order access + payment nonce |
+| `/complete` | POST | Re-read the Transfer Intent after Link finishes | Order access + payment nonce |
+| `/webhook` | POST | Receive Plaid Transfer event notifications | Plaid JWT + request body verification |
+
+The customer-facing REST endpoints also have bounded per-order rate limiting.
+
+---
+
+## Plaid API surface
+
+The runtime client uses an explicit endpoint allowlist.
+
+### Payment and Link
+
+```text
+/transfer/intent/create
+/transfer/intent/get
+/link/token/create
+/transfer/get
+/transfer/cancel
+```
+
+### Event synchronization
+
+```text
+/transfer/event/sync
+```
+
+### Refunds
+
+```text
+/transfer/refund/create
+/transfer/refund/get
+/transfer/refund/cancel
+```
+
+### Configuration and diagnostics
+
+```text
+/transfer/configuration/get
+/transfer/ledger/get
+/webhook_verification_key/get
+```
+
+### Sandbox-only operations
+
+```text
+/sandbox/transfer/simulate
+/sandbox/transfer/refund/simulate
+/sandbox/transfer/fire_webhook
+```
+
+The Plaid client refuses Sandbox-only endpoints in Production.
+
+All Plaid API requests use JSON over HTTPS, certificate verification, a 30-second timeout, no redirects and the pinned Plaid API version:
+
+```text
+2020-09-14
+```
+
+Plaid `request_id` values are retained for support correlation.
+
+---
+
+## Background processing
+
+Buckmerce uses WooCommerce **Action Scheduler**.
+
+Action group:
+
+```text
+buckmerce-plaid
+```
+
+Primary hooks:
+
+```text
+buckmerce_plaid_transfer_event_sync
+buckmerce_plaid_reconcile
+buckmerce_plaid_reconcile_continue
+```
+
+### Event sync
+
+Verified webhooks enqueue a unique event-sync action. Duplicate notifications coalesce when an event-sync job is already scheduled.
+
+The event sync reads Plaid `/transfer/event/sync` with an account-scoped cursor and stores the events before applying them.
+
+### Reconciliation
+
+A recurring reconciliation pass runs every 15 minutes while there is actual operational work:
+
+- monitored payments;
+- open refunds;
+- event backlog; or
+- a failed event sync that still needs retrying.
+
+A pass can also schedule a bounded continuation one minute later when more work remains.
+
+Disabling the payment gateway does not abandon existing payment maintenance. Once no payment/refund/event work remains, recurring reconciliation can stop.
+
+---
+
+## Persistence model
+
+Buckmerce owns three operational tables:
+
+```text
+{prefix}buckmerce_plaid_events
+{prefix}buckmerce_plaid_payment_locks
+{prefix}buckmerce_plaid_refunds
+```
+
+### Events
+
+Stores durable Plaid transfer/refund events with:
+
+- environment;
+- Plaid account fingerprint;
+- event ID;
+- event type;
+- transfer/order correlation;
+- processing state;
+- lease/attempt metadata.
+
+Event identity is unique per environment + Plaid account + event ID.
+
+### Payment locks
+
+One row per WooCommerce order coordinates:
+
+- current attempt;
+- Transfer Intent ID;
+- Transfer ID;
+- payment state;
+- account identity;
+- reconciliation scheduling;
+- monitor-until date;
+- reservation ownership.
+
+### Refunds
+
+Tracks:
+
+- WooCommerce refund;
+- Plaid refund;
+- amount/currency;
+- environment/account;
+- payment attempt;
+- idempotency key;
+- refund state;
+- reconciliation metadata;
+- failure and request IDs.
+
+Order-level payment details remain in WooCommerce order metadata via WooCommerce CRUD.
+
+Schema installation is forward-only and idempotent and verifies required columns/indexes before recording the schema version.
+
+---
+
+## Plaid account isolation
+
+A Plaid Client ID/environment combination is part of the operational identity.
+
+Event streams, cursors, payment epochs and refund identities are scoped so an event from one Plaid account cannot be mistaken for an event with the same numeric ID from another account.
+
+Buckmerce also refuses a dangerous Plaid account/environment switch while monitored Production work still depends on the old credentials.
+
+This protects long-running ACH return and refund monitoring from accidental credential replacement.
+
+---
 
 ## Security model
 
-- The Plaid secret stays on the server: it is never sent to the browser, never logged, never
-  rendered in settings; logs pass through a redactor.
-- Only the endpoints in `PlaidClient::ALLOWED_PATHS` can be called; `/sandbox/*` is blocked in
-  Production.
-- Customer REST endpoints require the order key plus a session binding and a per-order
-  payment nonce; the browser never sends amounts or intent IDs.
-- Webhooks are verified as described above; replays are harmless because events are
-  idempotent.
-- The webhook JWT library (`firebase/php-jwt`) is bundled under the
-  `Buckmerce\Plaid\Vendor\` namespace (Strauss) to avoid conflicts with other plugins.
+The plugin is designed around fail-closed payment processing.
 
-Threat model and controls: [`docs/SECURITY.md`](docs/SECURITY.md).
+### Server authority
 
-## Privacy and external services
+The browser cannot choose or override:
 
-The plugin connects to Plaid (`https://sandbox.plaid.com` or `https://production.plaid.com`)
-and loads Plaid Link from `https://cdn.plaid.com/link/v2/stable/link-initialize.js` on the
-order-pay page. It sends the order amount, a short description, the customer's billing name
-and email address, and Buckmerce identifiers (order ID, attempt ID, environment, a hashed
-store marker). Bank account
-credentials are entered only in Plaid Link and never reach the store. Plaid:
-[Terms](https://plaid.com/legal/), [Privacy Policy](https://plaid.com/legal/#end-user-privacy-policy).
-A privacy-policy text is added to **Settings → Privacy**. Details:
-[`docs/PRIVACY_COMPLIANCE.md`](docs/PRIVACY_COMPLIANCE.md).
+- order amount;
+- currency;
+- environment;
+- Transfer Intent;
+- funding account;
+- payment state.
+
+### Secrets
+
+Plaid credentials:
+
+- stay server-side;
+- are not returned in settings HTML;
+- are not sent to browser JavaScript;
+- are recursively redacted from structured logs.
+
+### Logging redaction
+
+Sensitive key fragments include credentials, tokens, cookies, Plaid verification headers, bank account/routing fields, names, email, phone, postal/address data, JWT/signature fields and private/API keys.
+
+Request/response bodies are not used as routine Plaid log payloads.
+
+### Webhook security
+
+Webhook verification uses a maintained JWT library rather than custom cryptography.
+
+### Admin operations
+
+Sensitive merchant actions require:
+
+- `manage_woocommerce`;
+- an action-specific nonce;
+- server-side revalidation.
+
+### Concurrency
+
+MySQL advisory locks and durable reservations protect creation and mutation paths that cannot safely race.
+
+---
+
+## Observability
+
+### Configuration status
+
+The payment settings screen reports states such as:
+
+```text
+Ready
+Disabled
+Incomplete
+Attention required
+```
+
+The checklist covers:
+
+- Plaid credentials;
+- environment;
+- HTTPS;
+- USD currency;
+- Link customization;
+- schema;
+- webhook route;
+- connection result;
+- Action Scheduler/background processing.
+
+### Order panel
+
+The WooCommerce order panel can surface:
+
+- current payment attempt;
+- Transfer Intent and status;
+- Transfer ID and status;
+- created/settled/funds-available dates;
+- expected funds date;
+- return windows;
+- returned/failure/manual-review information;
+- last sync/event/request ID;
+- refund history;
+- previous payment attempts;
+- payment/refund alerts.
+
+Available merchant actions are exposed only when appropriate, including:
+
+- Sync with Plaid;
+- Cancel bank payment;
+- manual-review decisions;
+- allow another attempt after eligible failures.
+
+### Diagnostics and Site Health
+
+Diagnostics provide a sanitized support view of:
+
+- versions;
+- HPOS/Blocks state;
+- database server;
+- configuration readiness;
+- event cursor;
+- background jobs;
+- last webhook;
+- last event sync;
+- last reconciliation;
+- payment/refund counts and backlog.
+
+Site Health reports critical/recommended problems for broken configuration or stalled maintenance.
+
+### Logs
+
+WooCommerce log source:
+
+```text
+buckmerce-plaid
+```
+
+Warnings/errors are available for operational failures; debug/info entries are controlled by the Debug logging setting.
+
+---
+
+## WP-CLI
+
+Buckmerce registers:
+
+```bash
+wp buckmerce-plaid status
+wp buckmerce-plaid test-connection
+wp buckmerce-plaid sync-events
+wp buckmerce-plaid reconcile
+wp buckmerce-plaid sync-order <order-id>
+wp buckmerce-plaid refunds <order-id>
+```
+
+Sandbox-only tools:
+
+```bash
+wp buckmerce-plaid simulate-refund <refund-id> <refund.posted|refund.settled|refund.failed|refund.returned>
+
+wp buckmerce-plaid fire-sandbox-webhook \
+  --webhook-url=https://public.example/wp-json/buckmerce-plaid/v1/webhook
+```
+
+CLI output is designed not to expose Plaid secrets.
+
+---
+
+## Extension hooks
+
+Useful emitted actions include:
+
+```text
+buckmerce_plaid_transfer_intent_created
+buckmerce_plaid_payment_state_changed
+buckmerce_plaid_payment_confirmed
+buckmerce_plaid_payment_failed
+buckmerce_plaid_payment_cancelled
+buckmerce_plaid_payment_manual_review
+buckmerce_plaid_payment_returned
+buckmerce_plaid_webhook_processed
+buckmerce_plaid_refund_created
+buckmerce_plaid_refund_failed
+buckmerce_plaid_refund_returned
+buckmerce_plaid_refund_cancelled
+```
+
+Merchant alert email recipient can be changed with:
+
+```text
+buckmerce_plaid_alert_recipient
+```
+
+---
 
 ## Development
 
-Prerequisites: PHP 8.1+ with `mysqli`, Composer 2, Node.js 22, WP-CLI 2.x, MySQL/MariaDB,
-`zip`/`unzip`.
+### PHP dependencies
+
+Install the development toolchain:
 
 ```bash
-composer install     # dev tools; also regenerates vendor-prefixed/ via Strauss
-npm ci
-npm run build        # Parcel: TypeScript + SCSS → assets/
-npm run plugin-zip   # build + dist/buckmerce-plaid-<version>.zip
+composer install
 ```
 
-`vendor-prefixed/` (the prefixed runtime dependency) is committed so releases do not need
-Composer; CI fails if it is out of date. Front-end sources live in `resources/ts` and
-`resources/scss`; compiled `assets/` are gitignored and produced by the build.
+Runtime third-party dependency:
+
+```text
+firebase/php-jwt
+```
+
+It is namespace-prefixed into:
+
+```text
+Buckmerce\Plaid\Vendor\
+```
+
+using Strauss to reduce dependency collisions with other WordPress plugins.
+
+### Front-end dependencies
+
+```bash
+npm ci
+```
+
+Human-readable front-end sources:
+
+```text
+resources/ts/
+resources/scss/
+resources/images/
+```
+
+Generated release assets:
+
+```text
+assets/build/
+assets/*.css
+assets/images/
+```
+
+Build:
+
+```bash
+npm run build
+```
+
+Typecheck:
+
+```bash
+npm run typecheck
+```
+
+JavaScript build/test gate:
+
+```bash
+npm test
+```
+
+### PHP quality gates
+
+```bash
+composer validate --strict
+composer syntax
+composer lint
+composer stan
+composer test
+```
+
+The repository includes unit, integration, browser/E2E, package, Plugin Check and real Plaid Sandbox test paths.
+
+---
+
+## Release package
+
+Build the WordPress release ZIP:
+
+```bash
+npm run plugin-zip
+```
+
+The packaging script starts from an empty staging directory and copies only explicitly allowed runtime files.
+
+The final ZIP is checked for:
+
+- one expected plugin root;
+- required runtime files;
+- allowlisted contents only;
+- no development/test files;
+- no local environment files;
+- no source maps;
+- no nested archives;
+- no obvious credentials;
+- source/package parity;
+- fresh generated-asset parity;
+- PHP syntax;
+- identity/version consistency.
+
+Release archives use normalized permissions, timestamps and entry ordering to support deterministic rebuilds.
+
+---
 
 ## Testing
 
-| Command | What it covers |
-|---|---|
-| `composer syntax` / `composer lint` / `composer stan` | PHP lint, PHPCS, PHPStan level 6 |
-| `composer test` | PHPUnit: money (cents), snapshot, payment/refund state machines and ordering matrices, monitoring policy, refund policy and idempotency keys, Plaid client/DTOs/services/refund contract, webhook verification, settings, redaction |
-| `npm test` | Build, TypeScript typecheck, behavioural tests of the payment-page script |
-| `bash scripts/verify-package.sh` | ZIP contents, source/package parity, fresh-asset byte parity, no dev files/source maps/secrets, SHA-256 |
-| `bash scripts/test-package-smoke.sh` | Pristine WordPress + WooCommerce + only the ZIP, on a fresh HPOS store and a fresh legacy-storage store: activation, schema, Blocks, diagnostics, Site Health, order panel, default uninstall |
-| `bash scripts/test-integration.sh` | Fresh WordPress + WooCommerce from the release ZIP; HPOS off and on; payments, refunds, lifecycle (disabled gateway, return windows, account guard, returns and no re-debit, retry after failure, cancel, manual review), Plaid account switch and account-scoped streams, maintenance scheduling, schema 2 → 3 migration, webhook REST matrix, multi-process concurrency, uninstall |
-| `bash scripts/test-browser-e2e.sh` | Playwright: Classic and Blocks checkout (guest and logged-in), Link success/failure/exit/retry, double submit, admin refunds, return badge, blocked re-debit of a returned order, misconfiguration, axe-core accessibility |
-| `bash scripts/check-docs.sh`, `bash scripts/audit-source.sh` | Engineering docs tracked and linked; no credentials, `.env`, traces or caches in the source archive |
-| `bash scripts/check-identity.sh [zip]` | The only identity is Buckmerce: no former identifier in any repository file or in the release ZIP |
-| `bash scripts/check-translations.sh` | Translation template equals the sources; bundled translations (ru_RU) complete and compiled (`bash scripts/build-translations.sh` rebuilds them with WP-CLI) |
-| `bash scripts/test-plugin-check.sh` | WordPress Plugin Check on the release ZIP (no errors, no warnings) |
-| `npm run test:sandbox` | Real Plaid Sandbox: genuine Transfer UI from both checkouts, $11.11/$22.22/$33.33 lifecycles, a genuine Link exit, full and partial refunds, refund failure and return, a lost Plaid response recovered by idempotency (needs `BUCKMERCE_PLAID_SANDBOX_CLIENT_ID`, `_SECRET`, `_USERNAME`, `_PASSWORD` and `_LINK_CUSTOMIZATION`; exits 78 when one is absent) |
-| `npm run test:sandbox:ngrok` | The same run with the store on a public HTTPS URL through ngrok (`BUCKMERCE_PLAID_NGROK_DOMAIN`): lifecycles driven by genuine Plaid-signed webhooks, then forged, tampered, replayed and stale webhooks sent through the tunnel |
+The repository includes:
 
-All scripts create a throwaway site and database (`buckmerce_test_*`, `buckmerce_browser_*`,
-`buckmerce_check_*`, `buckmerce_sandbox_*`), install only the release ZIP and delete both
-afterwards. `scripts/lib/test-env.sh` loads the gitignored `.env` (see
-[`.env.example`](.env.example)) and falls back to `~/.my.cnf` for the database credentials;
-optional `BUCKMERCE_PLAID_TEST_WP_VERSION` / `BUCKMERCE_PLAID_TEST_WC_VERSION` select the
-versions. Plaid is replaced by a deterministic mock in all but the Sandbox scripts.
+- PHPUnit unit tests;
+- WordPress/WooCommerce integration scripts;
+- MySQL and MariaDB integration paths;
+- concurrency/idempotency tests;
+- JavaScript unit tests;
+- browser checkout smoke tests;
+- Classic Checkout and Checkout Blocks flows;
+- HPOS coverage;
+- refund lifecycle coverage;
+- webhook REST/JWT verification coverage;
+- Sandbox transfer/refund simulation;
+- real signed Plaid Sandbox webhook testing when credentials are available;
+- WordPress Plugin Check against the built ZIP.
 
-### Public-HTTPS webhook gate (ngrok)
+GitHub Actions runs the quality matrix for pushes and pull requests and builds the release artifact from the tested commit.
 
-```bash
-ngrok config add-authtoken <token>        # once; or export NGROK_AUTHTOKEN
-echo 'BUCKMERCE_PLAID_NGROK_DOMAIN=your-reserved-name.ngrok-free.dev' >> .env
-npm run plugin-zip && npm run test:sandbox:ngrok
+---
+
+## Privacy and external services
+
+Buckmerce uses Plaid to perform bank-payment functionality.
+
+Server-to-server data sent to Plaid can include:
+
+- Plaid Client ID and Secret;
+- order amount and currency;
+- statement description;
+- customer billing legal name;
+- customer billing email;
+- internal order/payment correlation metadata;
+- refund amount;
+- transfer/refund identifiers.
+
+Plaid Link is loaded from:
+
+```text
+https://cdn.plaid.com/link/v2/stable/link-initialize.js
 ```
 
-The store is installed at `https://<domain>`; `ngrok http` forwards to the PHP built-in
-server. The gate first processes the Plaid account's historical events (all must be ignored
-as other stores', without touching this store), runs the three Transfer UI payments ($11.11
-through the Checkout block, $22.22 and $33.33 through the Classic checkout), asks Plaid to send a
-signed `TRANSFER_EVENTS_UPDATE` to the public webhook URL
-(`wp buckmerce-plaid fire-sandbox-webhook`), and requires the lifecycle to be completed only
-by that webhook → Action Scheduler → `/transfer/event/sync`. It then sends missing, malformed,
-tampered-body, flipped-signature, `alg: none`, HS256-confusion, attacker-signed (Plaid key ID
-and unknown key ID) and oversized requests through the tunnel, replays the genuine webhook
-(accepted, harmless) and, after five minutes, replays it again (rejected as stale).
-`BUCKMERCE_PLAID_SKIP_STALE_REPLAY=1` skips the five-minute wait. A reserved ngrok domain can
-be online in only one ngrok agent at a time.
+Plaid API environments:
 
-## CI and releases
-
-`.github/workflows/quality.yml` runs on pushes and pull requests to `master` (and is called by
-the release workflow): Composer validation (pinned Composer, prefixed runtime must match the lock), documentation integrity and source audit, PHP syntax, shellcheck, PHPCS, PHPStan, PHPUnit on
-PHP 8.1–8.4 (8.5 early-warning), dependency audits and review, front-end build/typecheck/tests,
-one reproducible package build with SHA-256, pristine-install smoke, source/package parity (a
-rebuild of the commit must be byte-identical), integration on MySQL 8.0/8.4
-and MariaDB 10.11/11.4 across WordPress 6.6–7.1 and WooCommerce 8.7.0–11.1.2, Plugin Check,
-browser E2E with accessibility, the real Sandbox gate, and a **Quality Gate** job.
-
-`.github/workflows/release.yml` runs for tags `vX.Y.Z` (or `-rc.N`): it verifies version metadata,
-runs the complete quality pipeline with the real Sandbox gate required, and publishes exactly the
-ZIP that pipeline built and tested (same SHA-256). See
-[`docs/CI_CD_RELEASE.md`](docs/CI_CD_RELEASE.md).
-
-## Project layout
-
-```
-buckmerce-plaid.php   bootstrap: header, constants, autoloaders, activation hooks
-uninstall.php             conservative, opt-in cleanup of Buckmerce-owned data only
-src/
-  Admin/                  configuration status, connection test, order panel, orders-list column, diagnostics, Site Health, notices
-  Background/             Action Scheduler jobs: event sync, reconciliation
-  Checkout/               order-pay page, customer access checks, Blocks payment method
-  CLI/                    wp buckmerce-plaid commands
-  Gateway/                WC_Payment_Gateway, availability rules
-  Logging/                WooCommerce logger wrapper + redactor
-  Payment/                snapshot, state machine, attempts + history, completion, event processor, projector, monitoring
-  Refund/                 refund policy, service, state machine, event handler, monitoring
-  Persistence/            installer, payment index/reservations, refund store, event store, cursor, DB mutex
-  Plaid/                  HTTP client, DTOs, intent/link/transfer/refund/event services, webhook verification
-  REST/                   /link-token, /complete, /webhook
-  Settings/, Support/, Exception/
-resources/                TypeScript and SCSS sources, images
-vendor-prefixed/          firebase/php-jwt under Buckmerce\Plaid\Vendor\
-tests/                    Unit, Integration (WP-CLI), E2E (Playwright), js, fixtures
-scripts/                  package, package verification, pristine smoke, integration, browser, Plugin Check, Sandbox scripts
-docs/                     engineering documentation, ADRs, API integration maps
+```text
+https://sandbox.plaid.com
+https://production.plaid.com
 ```
 
-## Documentation
+Plaid Terms: https://plaid.com/legal/
 
-Start with [`docs/README.md`](docs/README.md). Most relevant:
-[Development handbook](docs/DEVELOPMENT_HANDBOOK.md) ·
-[Architecture](docs/ARCHITECTURE.md) ·
-[Plaid Transfer contract](docs/api/PLAID_TRANSFER.md) ·
-[Security](docs/SECURITY.md) ·
-[Concurrency & idempotency](docs/CONCURRENCY_IDEMPOTENCY.md) ·
-[Data model](docs/DATA_MODEL.md) ·
-[Testing](docs/TESTING_QA.md) ·
-[Runbooks](docs/RUNBOOKS.md) ·
-[ADRs](docs/adr/README.md).
+Plaid Privacy Policy: https://plaid.com/legal/#end-user-privacy-policy
 
-Contributor and agent rules: [`AGENTS.md`](AGENTS.md).
+Buckmerce itself does not require a license key, subscription, paid feature unlock, trial timer or usage quota.
+
+---
+
+## Current scope
+
+Version 1.0 intentionally focuses on:
+
+```text
+US consumer Pay by Bank
+USD
+one-time payments
+Plaid Transfer UI
+ACH debit
+WooCommerce
+```
+
+Not included in 1.0:
+
+- credit/debit card processing;
+- WooCommerce Subscriptions recurring payments;
+- saved bank accounts;
+- non-USD payment rails;
+- automatic re-debit of returned ACH payments.
+
+Keeping these boundaries explicit reduces ambiguity in payment semantics and keeps the one-time Transfer UI flow predictable.
+
+---
+
+## License
+
+Buckmerce is licensed under **GPL-2.0-or-later**.
+
+The bundled `firebase/php-jwt` library is distributed under **BSD-3-Clause**.
+
+Plaid, WooCommerce and WordPress trademarks belong to their respective owners.
