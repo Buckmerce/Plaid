@@ -1,9 +1,9 @@
 <?php
 
 /**
- * Bundled translations on a real WordPress + WooCommerce site that runs ONLY the release ZIP.
- * scripts/test-integration.sh sets WPLANG=ru_RU in wp-config.php for this suite (no language
- * pack is needed for a plugin text domain). Proves that WordPress loads the shipped files, that
+ * WordPress language-pack translations on a site that runs ONLY the release ZIP.
+ * scripts/test-integration.sh installs a development test language pack outside the plugin and
+ * sets WPLANG=ru_RU in wp-config.php. Proves that WordPress loads the external files, that
  * every string is translated and still formats, and that payment logic does not depend on
  * English text. A translation loaded too early would log a PHP notice, which fails the run.
  */
@@ -22,12 +22,13 @@ use Buckmerce\Plaid\Settings\Settings;
 
 $domain = 'buckmerce-plaid';
 $locale = 'ru_RU';
-$languages = WP_PLUGIN_DIR . '/buckmerce-plaid/languages';
+$languages = WP_LANG_DIR . '/plugins';
 
-WP_CLI::log('The release ZIP ships the template and the compiled translation');
+WP_CLI::log('The release ZIP excludes translations; the site has a separate language pack');
 bmfp_assert_same($locale, get_locale(), 'The site locale is ' . $locale . '.');
-foreach (array($domain . '.pot', "$domain-$locale.po", "$domain-$locale.mo", "$domain-$locale.l10n.php") as $file) {
-    bmfp_assert(is_file($languages . '/' . $file), 'The ZIP contains languages/' . $file . '.');
+bmfp_assert(! file_exists(WP_PLUGIN_DIR . '/buckmerce-plaid/languages'), 'The ZIP has no languages directory.');
+foreach (array("$domain-$locale.mo", "$domain-$locale.l10n.php") as $file) {
+    bmfp_assert(is_file($languages . '/' . $file), 'The site language pack contains ' . $file . '.');
 }
 $compiled = include $languages . "/$domain-$locale.l10n.php";
 bmfp_assert(is_array($compiled) && is_array($compiled['messages'] ?? null), 'The compiled PHP translation is readable.');
@@ -35,7 +36,7 @@ bmfp_assert(is_array($compiled) && is_array($compiled['messages'] ?? null), 'The
 $messages = $compiled['messages'];
 bmfp_assert(count($messages) >= 400, 'The translation covers the whole plugin (' . count($messages) . ' strings).');
 
-WP_CLI::log('WordPress loads every string from the bundled files, and every translation still formats');
+WP_CLI::log('WordPress loads every string from the external language pack, and every translation still formats');
 $cyrillic = 0;
 foreach ($messages as $source => $translation) {
     // Not a string literal on purpose: this walks the shipped catalogue, it is not a new string.
@@ -58,7 +59,7 @@ foreach ($messages as $source => $translation) {
 }
 // Brand and protocol names (Buckmerce for Plaid, PHP, HTTPS, Client ID, …) stay as they are.
 bmfp_assert($cyrillic >= count($messages) - 20, 'All but a few proper names are Russian text (' . $cyrillic . ' of ' . count($messages) . ').');
-bmfp_assert(is_textdomain_loaded($domain), 'The text domain is loaded from the plugin.');
+bmfp_assert(is_textdomain_loaded($domain), 'WordPress loaded the language-pack text domain just in time.');
 
 WP_CLI::log('Customer and merchant surfaces are Russian');
 delete_option(BMFP_TEST_SETTINGS_OPTION);

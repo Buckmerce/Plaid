@@ -33,7 +33,7 @@ final class BuckmercePaymentMethod extends AbstractPaymentMethodType
     {
         $handle = 'buckmerce-plaid-blocks';
         wp_register_script($handle, BUCKMERCE_PLAID_URL . 'assets/build/blocks.js', array('wc-blocks-registry', 'wc-settings', 'wp-element', 'wp-html-entities', 'wp-i18n'), BUCKMERCE_PLAID_VERSION, true);
-        wp_set_script_translations($handle, 'buckmerce-plaid', BUCKMERCE_PLAID_DIR . 'languages');
+        wp_set_script_translations($handle, 'buckmerce-plaid');
         return array($handle);
     }
 

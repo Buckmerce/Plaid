@@ -177,7 +177,7 @@ final class IdentityTest extends TestCase
             '_x' => 2, '_ex' => 2, 'esc_html_x' => 2, 'esc_attr_x' => 2, '_n_noop' => 2,
             '_n' => 3, '_nx_noop' => 3,
             '_nx' => 4,
-            'load_plugin_textdomain' => 0, 'wp_set_script_translations' => 1,
+            'wp_set_script_translations' => 1,
         );
         $calls = 0;
         foreach (array_merge(self::php_files('src'), array(self::root() . '/' . self::SLUG . '.php', self::root() . '/uninstall.php')) as $file) {
@@ -222,7 +222,7 @@ final class IdentityTest extends TestCase
             self::assertStringContainsString('#: ' . self::SLUG . ".php\n", $catalogue, 'The plugin header strings come from the main file.');
         }
         foreach (array('.mo', '.l10n.php') as $suffix) {
-            self::assertFileExists(self::root() . '/languages/' . self::SLUG . '-ru_RU' . $suffix, 'The bundled ru_RU translation is compiled.');
+            self::assertFileExists(self::root() . '/languages/' . self::SLUG . '-ru_RU' . $suffix, 'The development ru_RU translation is compiled.');
         }
     }
 
@@ -272,7 +272,7 @@ final class IdentityTest extends TestCase
         $top_level = $entries[1];
         sort($top_level);
         self::assertSame(
-            array('LICENSE', 'assets', self::SLUG . '.php', 'composer.json', 'languages', 'readme.txt', 'src', 'uninstall.php', 'vendor-prefixed'),
+            array('LICENSE', 'assets', self::SLUG . '.php', 'composer.json', 'readme.txt', 'src', 'uninstall.php', 'vendor-prefixed'),
             $top_level,
             'The WordPress.org package has exactly these top-level entries; composer.json is shipped, vendor/ is not.'
         );
@@ -289,7 +289,7 @@ final class IdentityTest extends TestCase
         };
         // Every runtime file of the repository is covered …
         $runtime = array(self::SLUG . '.php', 'readme.txt', 'LICENSE', 'composer.json', 'uninstall.php', 'vendor-prefixed/autoload.php', 'vendor-prefixed/firebase/php-jwt/LICENSE', 'vendor-prefixed/firebase/php-jwt/src/JWT.php', 'vendor-prefixed/composer/installed.php');
-        foreach (array_merge(self::php_files('src'), glob(self::root() . '/languages/*') ?: array()) as $file) {
+        foreach (self::php_files('src') as $file) {
             $runtime[] = substr($file, strlen(self::root()) + 1);
         }
         foreach ($runtime as $path) {
@@ -302,7 +302,8 @@ final class IdentityTest extends TestCase
             'phpunit.xml.dist', 'phpstan.neon', 'phpcs.xml.dist', 'tests/Unit/IdentityTest.php', 'docs/SECURITY.md', 'scripts/package.sh',
             'resources/ts/blocks.ts', 'node_modules/parcel/package.json', 'vendor/autoload.php', 'vendor/firebase/php-jwt/src/JWT.php',
             'dist/' . self::SLUG . '-1.0.0.zip', self::SLUG . '.zip', 'output/report.json', 'src/Plugin.php.orig', 'src/.gitkeep', 'src/debug.log',
-            'assets/build/blocks.js.map', 'assets/build/extra.js', 'languages/other-domain-ru_RU.mo', 'languages/.gitkeep', 'dump.sql',
+            'assets/build/blocks.js.map', 'assets/build/extra.js', 'languages/buckmerce-plaid.pot', 'languages/buckmerce-plaid-ru_RU.po',
+            'languages/buckmerce-plaid-ru_RU.mo', 'languages/buckmerce-plaid-ru_RU.l10n.php', 'languages/other-domain-ru_RU.mo', 'languages/.gitkeep', 'dump.sql',
             'vendor-prefixed/firebase/php-jwt/README.md', 'vendor-prefixed/firebase/php-jwt/composer.json', 'vendor-prefixed/firebase/php-jwt/tests/JWTTest.php',
         );
         foreach ($development as $path) {
@@ -319,13 +320,13 @@ final class IdentityTest extends TestCase
     {
         // The slug used before the WordPress.org identity; assembled so that this file does not
         // contain it. Everything the release ZIP is built from is scanned: names and content,
-        // compiled translations included. Documentation that is not shipped is not.
+        // WordPress.org language packs and documentation are not shipped in the ZIP.
         $superseded = 'buckmerce-' . 'for-plaid';
         $files = array();
         foreach (array(self::SLUG . '.php', 'uninstall.php', 'readme.txt', 'composer.json', 'LICENSE') as $relative) {
             $files[] = self::root() . '/' . $relative;
         }
-        foreach (array('src', 'languages', 'vendor-prefixed', 'resources', 'assets') as $directory) {
+        foreach (array('src', 'vendor-prefixed', 'assets') as $directory) {
             if (is_dir(self::root() . '/' . $directory)) {
                 $files = array_merge($files, self::files($directory));
             }

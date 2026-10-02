@@ -123,7 +123,7 @@ smoke_store() {
         (new Buckmerce\Plaid\Admin\OrderMetaBox())->render(wc_get_order($order->get_id()));
         if (! str_contains((string) ob_get_clean(), "bmfp-order-panel")) { $fail("order panel"); }
         // Everything the plugin runs is inside the installed ZIP: its main file, every loaded class
-        // (the prefixed library included), its assets and its bundled translations.
+        // (the prefixed library included) and its assets.
         $root = wp_normalize_path(WP_PLUGIN_DIR . "/buckmerce-plaid/");
         if ($root . "buckmerce-plaid.php" !== wp_normalize_path(BUCKMERCE_PLAID_FILE) || $root !== wp_normalize_path(BUCKMERCE_PLAID_DIR)) { $fail("the plugin does not run from " . $root); }
         if (! str_ends_with(BUCKMERCE_PLAID_URL, "/wp-content/plugins/buckmerce-plaid/")) { $fail("asset URL base " . BUCKMERCE_PLAID_URL); }
@@ -135,10 +135,10 @@ smoke_store() {
         }
         if ($loaded < 20) { $fail("the plugin classes were not loaded"); }
         if (! class_exists("Buckmerce\\Plaid\\Vendor\\Firebase\\JWT\\JWT") || class_exists("Firebase\\JWT\\JWT", false)) { $fail("the bundled JWT library must be the prefixed copy of the ZIP"); }
-        foreach (array("assets/admin-settings.css", "assets/payment-page.css", "assets/build/admin-settings.js", "assets/build/blocks.js", "assets/build/payment-page.js", "assets/images/buckmerce-mark.svg", "languages/buckmerce-plaid.pot", "composer.json") as $shipped) {
+        foreach (array("assets/admin-settings.css", "assets/payment-page.css", "assets/build/admin-settings.js", "assets/build/blocks.js", "assets/build/payment-page.js", "assets/images/buckmerce-mark.svg", "composer.json") as $shipped) {
             if (! is_readable(BUCKMERCE_PLAID_DIR . $shipped)) { $fail("missing shipped file " . $shipped); }
         }
-        foreach (array("tests", "docs", "scripts", "resources", "vendor", "node_modules", ".github", ".env", "package.json", "README.md") as $development) {
+        foreach (array("tests", "docs", "scripts", "resources", "languages", "vendor", "node_modules", ".github", ".env", "package.json", "README.md") as $development) {
             if (file_exists(BUCKMERCE_PLAID_DIR . $development)) { $fail("development file installed: " . $development); }
         }
         WP_CLI::success("Runtime checks passed for " . $version);

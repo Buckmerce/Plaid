@@ -55,6 +55,8 @@ Buckmerce for Plaid is an independent third-party integration. It is not develop
 
 Buckmerce uses Plaid Transfer. Plaid must enable Transfer for your team; Production access requires Plaid's approval of your Transfer application. Plaid Transfer UI requires a Link customization with Account Select set to "Enabled for one account" in each environment you use (its language must match your store language). Refunds are paid from your Plaid Ledger's available balance.
 
+Buckmerce does not require a license key, subscription, paid upgrade, trial activation, usage quota or feature unlock. Plaid controls access to Transfer Sandbox and Production through your own Plaid account.
+
 = Sandbox =
 
 In Sandbox no real money moves. Plaid simulates transfer outcomes by amount: an order total of $11.11 succeeds (pending → posted → settled → funds available), $22.22 fails, and $33.33 succeeds and is then returned (R01). Refunds of $1.11 are returned and $2.22 fail. Use the Plaid Sandbox test credentials shown in Plaid Link. The payment page shows a small "Sandbox" badge.
@@ -166,7 +168,6 @@ The plugin bundles one third-party library: `firebase/php-jwt` (BSD-3-Clause), u
 * New: configuration status, classified connection test, richer diagnostics and order panel, manual-review decisions and "Cancel bank payment".
 * Changed: the ACH class is always WEB; the ACH class and reconciliation settings were removed.
 * Improved: accessibility of the payment page and admin status colors (WCAG 2.2 AA).
-* New: Russian (ru_RU) translation.
 
 = 0.1.0 =
 * Initial release: Pay by Bank with Plaid Transfer UI, verified webhooks, transfer event sync, reconciliation, HPOS and Checkout block support, diagnostics, Site Health checks and WP-CLI commands.

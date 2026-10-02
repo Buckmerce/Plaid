@@ -1,6 +1,6 @@
 <?php
 
-/** Webhook security matrix through the real REST stack (CLAUDE.md Task 55). */
+/** Webhook authorization and security matrix through the real REST stack. */
 
 declare(strict_types=1);
 
@@ -12,6 +12,44 @@ use Buckmerce\Plaid\Payment\OrderMeta;
 bmfp_configure();
 bmfp_reset_world();
 $mock = Buckmerce_Test_Plaid_Mock::class;
+
+$route = rest_get_server()->get_routes()['/buckmerce-plaid/v1/webhook'][0] ?? null;
+bmfp_assert(is_array($route) && is_callable($route['permission_callback'] ?? null), 'Webhook has a real permission callback.');
+bmfp_assert(is_callable($route['callback'] ?? null), 'Webhook has a route callback.');
+bmfp_assert($route['permission_callback'][0] === $route['callback'][0], 'Authorization and processing share the request-scoped controller.');
+$controller = $route['permission_callback'][0];
+$permission = $route['permission_callback'];
+$handler = $route['callback'];
+$probe = (string) wp_json_encode(array('webhook_type' => 'ITEM', 'webhook_code' => 'ERROR', 'environment' => 'sandbox'));
+$request = new WP_REST_Request('POST', '/buckmerce-plaid/v1/webhook');
+$request->set_body($probe);
+$request->set_header('Plaid-Verification', $mock::sign($probe));
+wp_set_current_user(0);
+delete_transient('bmfp_jwk_sandbox_' . substr(hash('sha256', $mock::KID), 0, 32));
+$key_calls = count($mock::calls('/webhook_verification_key/get'));
+bmfp_assert_same(true, $permission($request), 'Signed webhook is authorized without a WordPress user or nonce.');
+bmfp_assert_same($key_calls + 1, count($mock::calls('/webhook_verification_key/get')), 'Authorization fetches the verification key once.');
+$request->set_body((string) wp_json_encode(array('webhook_type' => 'TRANSFER', 'webhook_code' => 'TRANSFER_EVENTS_UPDATE', 'environment' => 'sandbox')));
+$request->set_param('verified_payload', array('webhook_type' => 'TRANSFER', 'webhook_code' => 'TRANSFER_EVENTS_UPDATE', 'environment' => 'sandbox'));
+$handled = $handler($request);
+bmfp_assert_same(200, $handled->get_status(), 'The same request can be handled after authorization.');
+bmfp_assert_same($key_calls + 1, count($mock::calls('/webhook_verification_key/get')), 'Processing does not verify or fetch the key again.');
+bmfp_assert_same(0, bmfp_pending_actions(Scheduler::EVENT_SYNC_HOOK), 'Only the verified ITEM payload is processed, not mutated body or caller parameter.');
+bmfp_assert_same(401, $handler($request)->get_error_data()['status'], 'A verified payload cannot be replayed through the handler.');
+$forged = new WP_REST_Request('POST', '/buckmerce-plaid/v1/webhook');
+$forged->set_param('verified_payload', array('webhook_type' => 'TRANSFER', 'webhook_code' => 'TRANSFER_EVENTS_UPDATE'));
+bmfp_assert_same(401, $handler($forged)->get_error_data()['status'], 'Client parameters cannot bypass authorization.');
+$bad = new WP_REST_Request('POST', '/buckmerce-plaid/v1/webhook');
+$bad->set_body($probe);
+$bad->set_header('Plaid-Verification', 'not.a.jwt');
+bmfp_assert($permission($bad) instanceof WP_Error, 'An invalid signature is rejected in the permission callback.');
+bmfp_assert_same(401, $handler($bad)->get_error_data()['status'], 'Rejected requests cannot reach business processing.');
+bmfp_configure(array('secret' => ''));
+$unconfigured = new WP_REST_Request('POST', '/buckmerce-plaid/v1/webhook');
+$unconfigured->set_body($probe);
+$unconfigured->set_header('Plaid-Verification', $mock::sign($probe));
+bmfp_assert_same(503, $permission($unconfigured)->get_error_data()['status'], 'Unconfigured Plaid credentials are retryable.');
+bmfp_configure();
 
 // A paid order that must never change because of an invalid webhook.
 $order = bmfp_order('11.11');
@@ -29,9 +67,11 @@ function bmfp_meta_state(WC_Order $order): string
 
 $body = (string) wp_json_encode(array('webhook_type' => 'TRANSFER', 'webhook_code' => 'TRANSFER_EVENTS_UPDATE', 'environment' => 'sandbox'));
 $b64 = static fn (string $v): string => rtrim(strtr(base64_encode($v), '+/', '-_'), '=');
+$signed_parts = explode('.', $mock::sign($body));
 $cases = array(
     'missing header' => array(401, $body, array()),
     'malformed JWT' => array(401, $body, array('plaid-verification' => 'not.a.jwt')),
+    'invalid signature' => array(401, $body, array('plaid-verification' => $signed_parts[0] . '.' . $signed_parts[1] . '.' . $b64('invalid'))),
     'modified body' => array(401, str_replace('sandbox', 'production', $body), array('plaid-verification' => $mock::sign($body))),
     'wrong alg' => array(401, $body, array('plaid-verification' => $b64('{"alg":"HS256","kid":"' . $mock::KID . '","typ":"JWT"}') . '.' . $b64('{"iat":' . time() . ',"request_body_sha256":"' . hash('sha256', $body) . '"}') . '.' . $b64('sig'))),
     'alg none' => array(401, $body, array('plaid-verification' => $b64('{"alg":"none","kid":"' . $mock::KID . '"}') . '.' . $b64('{"iat":' . time() . '}') . '.')),

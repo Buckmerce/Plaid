@@ -7,7 +7,7 @@
 #      nested archives, logs, dumps, IDE files, source maps and .env files are rejected by name
 #      first (clear message) and by the allowlist in any case;
 #   3. source/package parity: every runtime file of the repository is in the ZIP and is
-#      byte-identical (src/, translations, vendor-prefixed/, the top-level files);
+#      byte-identical (src/, vendor-prefixed/, the top-level files);
 #   4. the shipped composer.json is valid and declares the bundled library, PHP, the license and
 #      the Strauss prefixes; the bundled library is prefixed and ships its license;
 #   5. no source maps, local filesystem paths, credentials or values of the local .env;
@@ -54,7 +54,7 @@ reject() {
 }
 reject 'hidden files' '(^|/)\.[^/]+'
 reject 'environment files' '(^|/)\.env[^/]*$'
-reject 'development directories' '(^|/)(tests?|docs|scripts|tools|resources|node_modules|vendor|dist|output|coverage|test-results|playwright-report|build-src)(/|$)'
+reject 'development directories' '(^|/)(tests?|docs|scripts|tools|resources|languages|node_modules|vendor|dist|output|coverage|test-results|playwright-report|build-src)(/|$)'
 reject 'development configuration' '(^|/)(composer\.lock|package(-lock)?\.json|tsconfig\.json|phpunit\.xml[^/]*|phpstan\.neon[^/]*|phpcs\.xml[^/]*|\.phpunit\.result\.cache|AGENTS\.md|CLAUDE\.md|README\.md|CHANGELOG\.md)$'
 reject 'nested archives' '\.(zip|tar|tgz|gz|bz2|xz|7z|rar|phar)$'
 reject 'logs, dumps, backups or temporary files' '\.(log|sql|dump|sqlite3?|db|bak|backup|orig|rej|tmp|temp|swp|swo)$|~$'
@@ -76,10 +76,6 @@ done
 while IFS= read -r source; do
     same "$source"
 done < <(cd "$base_dir" && find src -type f -name '*.php' | LC_ALL=C sort)
-# Every bundled translation file (template, source .po and the compiled files WordPress loads).
-while IFS= read -r translation; do
-    same "$translation"
-done < <(cd "$base_dir" && find languages -type f \( -name '*.pot' -o -name '*.po' -o -name '*.mo' -o -name '*.l10n.php' -o -name '*.json' \) | LC_ALL=C sort)
 while IFS= read -r dependency; do
     bmfp_release_is_allowed "$dependency" && same "$dependency"
 done < <(cd "$base_dir" && find vendor-prefixed -type f | LC_ALL=C sort)

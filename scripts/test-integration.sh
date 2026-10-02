@@ -86,8 +86,9 @@ for hpos in no yes; do
     BUCKMERCE_PLAID_EXPECT_HPOS="$hpos" BUCKMERCE_PLAID_SITE="$site_dir" php "$base_dir/tests/Integration/concurrency.php"
 done
 
-# Bundled translations: the same ZIP on a Russian site. The locale comes from wp-config.php, so no
-# WordPress language pack is needed; a translation loaded too early is logged and fails below.
+# Simulate a WordPress.org language pack outside the ZIP. A translation loaded too early is logged.
+mkdir -p "$site_dir/wp-content/languages/plugins"
+cp "$base_dir/languages/buckmerce-plaid-ru_RU.mo" "$base_dir/languages/buckmerce-plaid-ru_RU.l10n.php" "$site_dir/wp-content/languages/plugins/"
 "${wp_cli[@]}" config set WPLANG ru_RU >/dev/null
 "${wp_cli[@]}" eval-file "$base_dir/tests/Integration/wp-cli-i18n.php" --use-include
 "${wp_cli[@]}" config delete WPLANG >/dev/null

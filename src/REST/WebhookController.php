@@ -27,8 +27,15 @@ final class WebhookController
     /** Last rejected webhook (time, reason, HTTP status); written at most once a minute. */
     public const LAST_REJECTION_OPTION = 'buckmerce_plaid_last_webhook_rejection';
     private const REJECTION_RECORD_INTERVAL_SECONDS = 60;
+    /** @var \WeakMap<\WP_REST_Request, array<string, mixed>> */
+    private \WeakMap $verified_payloads;
 
-    public function handle(\WP_REST_Request $request): \WP_REST_Response
+    public function __construct()
+    {
+        $this->verified_payloads = new \WeakMap();
+    }
+
+    public function authorize(\WP_REST_Request $request): bool|\WP_Error
     {
         $logger = new Logger();
         $raw_body = (string) $request->get_body();
@@ -36,7 +43,7 @@ final class WebhookController
         if (strlen($raw_body) > WebhookVerificationService::MAX_BODY_BYTES) {
             $logger->security('webhook_rejected', array('reason' => 'oversized_body', 'bytes' => strlen($raw_body)));
             self::record_rejection('oversized_body', 413);
-            return new \WP_REST_Response(array('error' => 'invalid_webhook'), 413);
+            return new \WP_Error('buckmerce_invalid_webhook', 'invalid_webhook', array('status' => 413));
         }
         $settings = Settings::load();
         try {
@@ -45,14 +52,27 @@ final class WebhookController
         } catch (ConfigurationException $exception) {
             $logger->security('webhook_rejected', array('reason' => 'not_configured'));
             self::record_rejection('not_configured', 503);
-            return new \WP_REST_Response(array('error' => 'not_configured'), 503);
+            return new \WP_Error('buckmerce_not_configured', 'not_configured', array('status' => 503));
         } catch (WebhookVerificationException $exception) {
             $logger->security('webhook_rejected', array('reason' => $exception->reason, 'body_sha256' => Logger::fingerprint($raw_body)));
             $status = in_array($exception->reason, array('key_unavailable', 'key_fetch_rate_limited'), true) ? 503 : 401;
             self::record_rejection($exception->reason, $status);
-            return new \WP_REST_Response(array('error' => 'invalid_webhook'), $status);
+            return new \WP_Error('buckmerce_invalid_webhook', 'invalid_webhook', array('status' => $status));
         }
 
+        $this->verified_payloads[$request] = $body;
+        return true;
+    }
+
+    public function handle(\WP_REST_Request $request): \WP_REST_Response|\WP_Error
+    {
+        if (! isset($this->verified_payloads[$request])) {
+            return new \WP_Error('buckmerce_invalid_webhook', 'invalid_webhook', array('status' => 401));
+        }
+        $body = $this->verified_payloads[$request];
+        unset($this->verified_payloads[$request]);
+        $logger = new Logger();
+        $settings = Settings::load();
         $type = is_string($body['webhook_type'] ?? null) ? $body['webhook_type'] : '';
         $code = is_string($body['webhook_code'] ?? null) ? $body['webhook_code'] : '';
         $environment = is_string($body['environment'] ?? null) ? $body['environment'] : '';

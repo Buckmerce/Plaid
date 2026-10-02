@@ -18,8 +18,7 @@ use Buckmerce\Plaid\Payment\ReturnRetryPolicy;
 
 /**
  * REST routes. Customer routes require order key + ownership + a payment nonce;
- * the webhook route is public at the HTTP layer and authenticated
- * cryptographically inside WebhookController.
+ * the webhook route authenticates Plaid's signed request in its permission callback.
  */
 final class RestRoutes
 {
@@ -58,11 +57,11 @@ final class RestRoutes
             'permission_callback' => array($this, 'authorize_payer'),
             'args' => $order_args,
         ));
+        $webhook = new WebhookController();
         register_rest_route(self::NAMESPACE, '/webhook', array(
             'methods' => \WP_REST_Server::CREATABLE,
-            'callback' => array(new WebhookController(), 'handle'),
-            // Authenticated by Plaid-Verification JWT inside the callback (never before verification).
-            'permission_callback' => '__return_true',
+            'callback' => array($webhook, 'handle'),
+            'permission_callback' => array($webhook, 'authorize'),
             'args' => array(),
         ));
     }

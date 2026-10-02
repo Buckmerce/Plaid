@@ -35,6 +35,6 @@ if compgen -G "$languages/$bmfp_i18n_domain-*.po" >/dev/null; then
     wp i18n make-php "$languages"
     wp i18n make-json "$languages" --no-purge
 else
-    printf 'No bundled translations (languages/%s-<locale>.po) to build.\n' "$bmfp_i18n_domain"
+    printf 'No source translations (languages/%s-<locale>.po) to build.\n' "$bmfp_i18n_domain"
 fi
 bash "$base_dir/scripts/check-translations.sh"

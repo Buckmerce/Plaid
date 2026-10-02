@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Translation gate: every bundled translation (languages/buckmerce-plaid-<locale>.po) must
+# Development translation gate: every source translation (languages/buckmerce-plaid-<locale>.po) must
 #   - contain exactly the strings of the POT template (nothing missing, nothing obsolete);
 #   - translate every string (no empty or fuzzy entries) with the same printf placeholders;
 #   - declare its locale and plural forms;
-#   - ship compiled files (.mo and .l10n.php, built with `wp i18n make-mo` / `make-php`) that
+#   - have compiled files (.mo and .l10n.php, built with `wp i18n make-mo` / `make-php`) that
 #     hold the same messages as the .po.
 # With WP-CLI installed it also regenerates the template from the sources and requires the
-# committed POT to contain exactly those strings, so a string changed in the code without
+# source POT to contain exactly those strings, so a string changed in the code without
 # rebuilding the translations fails here. BUCKMERCE_PLAID_REQUIRE_WP_CLI=1 (CI) makes a missing
 # WP-CLI a failure instead of a skipped template check.
 # Rebuild everything with: bash scripts/build-translations.sh

@@ -18,14 +18,13 @@ bmfp_release_top_level=(
     uninstall.php         # conservative uninstall
     src                   # runtime PHP classes (Buckmerce\Plaid\)
     assets                # compiled CSS/JS and images
-    languages             # translation template and bundled translations
     vendor-prefixed       # firebase/php-jwt under Buckmerce\Plaid\Vendor\ (webhook verification)
 )
 
 # Runtime directories package.sh reads; every file in them is either allowlisted below or named
 # in bmfp_release_not_shipped, otherwise the build stops.
 # shellcheck disable=SC2034
-bmfp_release_source_dirs=(src assets languages vendor-prefixed)
+bmfp_release_source_dirs=(src assets vendor-prefixed)
 
 # One extended regular expression per kind of runtime file.
 bmfp_release_allowlist=(
@@ -38,9 +37,6 @@ bmfp_release_allowlist=(
     '^assets/(admin-settings|payment-page)\.css$'
     '^assets/build/(admin-settings|blocks|payment-page)\.js$'
     '^assets/images/[a-z0-9]+(-[a-z0-9]+)*\.(svg|png|jpg|webp)$'
-    '^languages/buckmerce-plaid\.pot$'
-    '^languages/buckmerce-plaid-[a-z]{2,3}(_[A-Z]{2})?\.(po|mo|l10n\.php)$'
-    '^languages/buckmerce-plaid-[a-z]{2,3}(_[A-Z]{2})?-[a-f0-9]{32}\.json$'
     '^vendor-prefixed/autoload\.php$'
     '^vendor-prefixed/composer/(ClassLoader|InstalledVersions|autoload_[a-z0-9]+|installed|platform_check)\.php$'
     '^vendor-prefixed/composer/(installed\.json|LICENSE)$'
@@ -71,7 +67,6 @@ bmfp_release_required=(
     assets/build/blocks.js
     assets/build/payment-page.js
     assets/images/buckmerce-mark.svg
-    languages/buckmerce-plaid.pot
     vendor-prefixed/autoload.php
     vendor-prefixed/composer/autoload_real.php
     vendor-prefixed/composer/installed.php
