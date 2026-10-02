@@ -1,4 +1,4 @@
-# Buckmerce – Bank Payments via Plaid for WooCommerce
+# Bank Payments via Plaid for WooCommerce
 
 [![Quality](https://github.com/al5dy/buckmerce-plaid/actions/workflows/quality.yml/badge.svg?branch=master)](https://github.com/al5dy/buckmerce-plaid/actions/workflows/quality.yml)
 ![PHP](https://img.shields.io/badge/PHP-8.1%E2%80%938.4-777BB4?logo=php&logoColor=white)
