@@ -96,6 +96,28 @@ async page => {
 		accessibilityScans.push( label );
 	};
 	const accessibilityScans = [];
+	// Logs in through the WordPress login form. The form is used only after the page has loaded:
+	// a click that lands while late stylesheets still move the form submits nothing, and the run
+	// would wait for a navigation that never starts. A submit that stays on the login screen is
+	// repeated once; a second failure is a real one.
+	const login = async ( user, password ) => {
+		for ( let attempt = 1; ; attempt++ ) {
+			await page.goto( baseUrl + '/wp-login.php', { waitUntil: 'load' } );
+			await page.fill( '#user_login', user );
+			await page.fill( '#user_pass', password );
+			try {
+				await Promise.all( [
+					page.waitForURL( ( url ) => ! url.pathname.endsWith( '/wp-login.php' ), { timeout: 20000, waitUntil: 'domcontentloaded' } ),
+					page.click( '#wp-submit' ),
+				] );
+				return;
+			} catch ( error ) {
+				if ( attempt >= 2 ) {
+					throw error;
+				}
+			}
+		}
+	};
 	const activeIsPayButton = () => page.evaluate( () => document.activeElement === document.querySelector( '[data-bmfp-pay]' ) );
 	// The phase reached is reported with any failure, so a CI log says where the run stopped.
 	let currentPhase = 'start';
@@ -106,11 +128,8 @@ async page => {
 
 	// ---------------------------------------------------------------- admin
 	phase( 'admin' );
-	await page.goto( baseUrl + '/wp-login.php', { waitUntil: 'domcontentloaded' } );
-	await page.fill( '#user_login', 'bmfp_admin' );
-	await page.fill( '#user_pass', 'local-test-password' );
-	await Promise.all( [ page.waitForNavigation(), page.click( '#wp-submit' ) ] );
-	await page.goto( baseUrl + '/wp-admin/admin.php?page=wc-settings&tab=checkout&section=buckmerce_plaid', { waitUntil: 'domcontentloaded' } );
+	await login( 'bmfp_admin', 'local-test-password' );
+	await page.goto( baseUrl + '/wp-admin/admin.php?page=wc-settings&tab=checkout&section=buckmerce_plaid', { waitUntil: 'load' } );
 	const settingsHtml = await page.content();
 	assert( settingsHtml.includes( 'Buckmerce for Plaid' ), 'Settings screen renders.' );
 	assert( ! settingsHtml.includes( 'browser-sandbox-secret-value' ), 'The stored secret is never rendered.' );
@@ -288,10 +307,7 @@ async page => {
 	phase( 'logged-in customer: Classic and Blocks' );
 	const customer = await json( '/?bmfp_e2e_customer=1' );
 	await page.context().clearCookies();
-	await page.goto( baseUrl + '/wp-login.php', { waitUntil: 'domcontentloaded' } );
-	await page.fill( '#user_login', customer.login );
-	await page.fill( '#user_pass', customer.password );
-	await Promise.all( [ page.waitForNavigation(), page.click( '#wp-submit' ) ] );
+	await login( customer.login, customer.password );
 	await classicCheckout();
 	orderId = orderIdFromUrl();
 	await page.locator( '[data-bmfp-pay]' ).waitFor();
@@ -320,10 +336,7 @@ async page => {
 
 	// ---------------------------------------------- admin: native refunds and returns
 	phase( 'admin: native refunds and returns' );
-	await page.goto( baseUrl + '/wp-login.php', { waitUntil: 'domcontentloaded' } );
-	await page.fill( '#user_login', 'bmfp_admin' );
-	await page.fill( '#user_pass', 'local-test-password' );
-	await Promise.all( [ page.waitForNavigation(), page.click( '#wp-submit' ) ] );
+	await login( 'bmfp_admin', 'local-test-password' );
 	state = await json( '/?bmfp_e2e_order=' + firstPaidOrder );
 	assert( state.paid, 'Precondition: the first order is paid.' );
 	await page.goto( state.edit_url, { waitUntil: 'domcontentloaded' } );
