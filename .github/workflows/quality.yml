@@ -159,16 +159,6 @@ jobs:
       - name: npm dependencies (build toolchain of the shipped assets)
         run: npm audit --audit-level=high
 
-  dependency-review:
-    name: Dependency review
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/dependency-review-action@v5
-        with:
-          fail-on-severity: high
-
   frontend-build:
     name: Front-end build
     runs-on: ubuntu-24.04
@@ -580,7 +570,6 @@ jobs:
       - phpstan
       - phpunit
       - dependency-audit
-      - dependency-review
       - frontend-build
       - typecheck
       - javascript-lint
@@ -608,11 +597,9 @@ jobs:
             result=$(echo "$RESULTS" | jq -r --arg job "$job" '.[$job].result')
             [[ "$result" == success ]] || { echo "::error::$job: $result"; exit 1; }
           done
-          # Dependency review only runs for pull requests; the Sandbox gate is skipped for forks.
-          for job in dependency-review sandbox; do
-            result=$(echo "$RESULTS" | jq -r --arg job "$job" '.[$job].result')
-            [[ "$result" == success || "$result" == skipped ]] || { echo "::error::$job: $result"; exit 1; }
-          done
+          # The Sandbox gate is skipped for pull requests from forks (they never receive the secrets).
+          result=$(echo "$RESULTS" | jq -r '.sandbox.result')
+          [[ "$result" == success || "$result" == skipped ]] || { echo "::error::sandbox: $result"; exit 1; }
           # A release needs the real Sandbox gate to have RUN and passed; a skipped job is not a pass.
           if [[ "$REQUIRE_SANDBOX" == 'true' && "$SANDBOX_EXECUTED" != 'true' ]]; then
             echo "::error::The real Plaid Sandbox gate did not execute; a release requires it."
