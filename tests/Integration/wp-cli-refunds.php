@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Native WooCommerce refunds through Plaid (ADR-0016), end to end against the Plaid double:
+ * Native WooCommerce refunds through Plaid, end to end against the Plaid double:
  * wc_create_refund() → process_refund() → /transfer/refund/create → refund events → state.
  */
 

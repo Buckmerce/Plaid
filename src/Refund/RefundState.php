@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Buckmerce\Plaid\Refund;
 
 /**
- * Refund states (docs/STATE_MACHINE.md §Refunds, ADR-0016). A refund is its own
+ * Refund states. A refund is its own
  * lifecycle; it never changes the payment state machine.
  *
  * Local states exist only around the create call:

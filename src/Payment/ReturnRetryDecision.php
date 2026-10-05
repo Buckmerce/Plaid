@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Buckmerce\Plaid\Payment;
 
-/** Outcome of ReturnRetryPolicy for one order (ADR-0019). Immutable value object. */
+/** Outcome of ReturnRetryPolicy for one order. Immutable value object. */
 final class ReturnRetryDecision
 {
     /** No transfer of the order was returned: the policy does not restrict new attempts. */

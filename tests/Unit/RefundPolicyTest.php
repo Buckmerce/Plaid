@@ -14,7 +14,7 @@ use Buckmerce\Plaid\Refund\RefundState;
 use Buckmerce\Plaid\Settings\Settings;
 use PHPUnit\Framework\TestCase;
 
-/** Refund amount integrity and eligibility (ADR-0016), from local data only. */
+/** Refund amount integrity and eligibility, from local data only. */
 final class RefundPolicyTest extends TestCase
 {
     private PaymentSnapshot $snapshot;

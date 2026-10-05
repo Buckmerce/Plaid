@@ -8,7 +8,7 @@ use Buckmerce\Plaid\Persistence\PaymentLockStore;
 
 /**
  * Projects an order's current payment attempt into the payment index: its state, when
- * Plaid must be re-read and until when it is monitored (MonitoringPolicy, ADR-0014).
+ * Plaid must be re-read and until when it is monitored (MonitoringPolicy).
  * Idempotent; called after every authoritative change and by reconciliation.
  */
 final class PaymentMonitor

@@ -25,8 +25,8 @@ use Buckmerce\Plaid\Support\SiteMarker;
  * Applies one durable refund event (event_type "refund.*", non-null refund_id) fetched by
  * /transfer/event/sync after a verified TRANSFER_EVENTS_UPDATE webhook or reconciliation.
  * The same pipeline as payment events: idempotent, retry-safe, out-of-order safe. Refund
- * identity and ownership are limited to the Plaid account whose stream delivered the event
- * (ADR-0018): another account's refund with the same ID is never matched or adopted.
+ * identity and ownership are limited to the Plaid account whose stream delivered the event.
+ * Another account's refund with the same ID is never matched or adopted.
  */
 final class RefundEventHandler
 {

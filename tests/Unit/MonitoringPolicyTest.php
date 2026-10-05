@@ -11,7 +11,7 @@ use Buckmerce\Plaid\Payment\PaymentSnapshot;
 use Buckmerce\Plaid\Payment\PaymentState;
 use PHPUnit\Framework\TestCase;
 
-/** Return-window based monitoring (ADR-0014): follows the Plaid transfer, never the order date. */
+/** Return-window based monitoring: follows the Plaid transfer, never the order date. */
 final class MonitoringPolicyTest extends TestCase
 {
     private const NOW = 1790000000; // 2026-09-21T…Z

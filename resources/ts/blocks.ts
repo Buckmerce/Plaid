@@ -31,30 +31,28 @@ interface WpHtmlEntities {
 	decodeEntities: ( value: string ) => string;
 }
 
-interface WpI18n {
-	__: ( text: string, domain?: string ) => string;
-}
-
 declare global {
 	interface Window {
 		wc?: { wcBlocksRegistry?: WcBlocksRegistry; wcSettings?: WcSettings };
-		wp?: { element?: WpElement; htmlEntities?: WpHtmlEntities; i18n?: WpI18n };
+		wp?: { element?: WpElement; htmlEntities?: WpHtmlEntities };
 	}
 }
 
-( function ( registry, settings, element, entities, i18n ): void {
+( function ( registry, settings, element, entities ): void {
 	if ( ! registry || ! settings || ! element ) {
 		return;
 	}
 	const decode = ( value: string ): string => ( entities ? entities.decodeEntities( value ) : value );
-	const translate = ( text: string ): string => ( i18n ? i18n.__( text, 'buckmerce-plaid' ) : text );
 	const data = settings.getSetting< BuckmerceBlockData >( 'buckmerce_plaid_data', {} );
-	const title = decode( data.title || translate( 'Pay by Bank' ) );
-	const description = decode( data.description || translate( 'Securely pay directly from your bank account.' ) );
+	// The server always sends the title and description, already translated (Settings::title(),
+	// Settings::description()); the literals only keep the method labelled if that data is missing.
+	const title = decode( data.title || 'Pay by Bank' );
+	const description = decode( data.description || 'Securely pay directly from your bank account.' );
 
 	const label = element.createElement(
 		'span',
-		{ className: 'bmfp-block-label' },
+		// Laid out inline: no Buckmerce stylesheet is loaded on the Checkout block or in the editor.
+		{ className: 'bmfp-block-label', style: { display: 'inline-flex', alignItems: 'center', gap: '8px' } },
 		data.icon ? element.createElement( 'img', { src: data.icon, alt: '', width: 24, height: 24, className: 'bmfp-block-label__icon' } ) : null,
 		element.createElement( 'span', { className: 'bmfp-block-label__text' }, title )
 	);
@@ -74,8 +72,7 @@ declare global {
 	window.wc && window.wc.wcBlocksRegistry,
 	window.wc && window.wc.wcSettings,
 	window.wp && window.wp.element,
-	window.wp && window.wp.htmlEntities,
-	window.wp && window.wp.i18n
+	window.wp && window.wp.htmlEntities
 );
 
 export {};

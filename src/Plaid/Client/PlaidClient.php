@@ -15,7 +15,7 @@ use Buckmerce\Plaid\Plaid\PlaidEnvironment;
  * The only component that performs HTTP calls to Plaid.
  *
  * Authentication uses the PLAID-CLIENT-ID / PLAID-SECRET headers documented at
- * https://plaid.com/docs/api/ (docs/api/PLAID_TRANSFER.md), JSON over HTTPS, with
+ * https://plaid.com/docs/api/, JSON over HTTPS, with
  * the API version pinned through the Plaid-Version header.
  */
 final class PlaidClient implements PlaidClientInterface

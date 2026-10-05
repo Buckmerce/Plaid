@@ -92,7 +92,7 @@ final class TransferBinder
     }
 
     /**
-     * Stores the provider dates that decide how long a payment is monitored (ADR-0014).
+     * Stores the provider dates that decide how long a payment is monitored.
      * A value Plaid no longer reports is kept: windows only ever become known, never unknown.
      */
     public static function record_transfer_details(\WC_Order $order, Transfer $transfer): void

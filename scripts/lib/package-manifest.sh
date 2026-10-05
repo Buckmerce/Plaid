@@ -6,7 +6,7 @@
 # inside the ZIP (buckmerce-plaid/).
 #
 # A new kind of runtime file is added here on purpose, with its reason; the development project
-# (tests, docs, scripts, front-end sources, tooling configuration) is never listed.
+# (tests, scripts, front-end sources, tooling configuration) is never listed.
 
 # Everything directly inside buckmerce-plaid/. Nothing else may sit beside these.
 # shellcheck disable=SC2034
@@ -18,13 +18,14 @@ bmfp_release_top_level=(
     uninstall.php         # conservative uninstall
     src                   # runtime PHP classes (Buckmerce\Plaid\)
     assets                # compiled CSS/JS and images
+    languages             # translation template, source catalogues and compiled translations
     vendor-prefixed       # firebase/php-jwt under Buckmerce\Plaid\Vendor\ (webhook verification)
 )
 
 # Runtime directories package.sh reads; every file in them is either allowlisted below or named
 # in bmfp_release_not_shipped, otherwise the build stops.
 # shellcheck disable=SC2034
-bmfp_release_source_dirs=(src assets vendor-prefixed)
+bmfp_release_source_dirs=(src assets languages vendor-prefixed)
 
 # One extended regular expression per kind of runtime file.
 bmfp_release_allowlist=(
@@ -35,8 +36,11 @@ bmfp_release_allowlist=(
     '^uninstall\.php$'
     '^src/([A-Za-z0-9]+/)*[A-Za-z0-9]+\.php$'
     '^assets/(admin-settings|payment-page)\.css$'
-    '^assets/build/(admin-settings|blocks|payment-page)\.js$'
-    '^assets/images/[a-z0-9]+(-[a-z0-9]+)*\.(svg|png|jpg|webp)$'
+    '^assets/(admin-settings|blocks|payment-page)\.js$'
+    '^assets/[a-z0-9]+(-[a-z0-9]+)*\.(svg|png|jpg|webp)$'
+    '^languages/buckmerce-plaid\.pot$'
+    '^languages/buckmerce-plaid-[a-z]{2,3}(_[A-Za-z0-9]+)*\.(po|mo|l10n\.php)$'
+    '^languages/buckmerce-plaid-[a-z]{2,3}(_[A-Za-z0-9]+)*-[a-f0-9]{32}\.json$'
     '^vendor-prefixed/autoload\.php$'
     '^vendor-prefixed/composer/(ClassLoader|InstalledVersions|autoload_[a-z0-9]+|installed|platform_check)\.php$'
     '^vendor-prefixed/composer/(installed\.json|LICENSE)$'
@@ -63,10 +67,14 @@ bmfp_release_required=(
     src/Bootstrap.php
     assets/admin-settings.css
     assets/payment-page.css
-    assets/build/admin-settings.js
-    assets/build/blocks.js
-    assets/build/payment-page.js
-    assets/images/buckmerce-mark.svg
+    assets/admin-settings.js
+    assets/blocks.js
+    assets/payment-page.js
+    assets/buckmerce-mark.svg
+    languages/buckmerce-plaid.pot
+    languages/buckmerce-plaid-ru_RU.po
+    languages/buckmerce-plaid-ru_RU.mo
+    languages/buckmerce-plaid-ru_RU.l10n.php
     vendor-prefixed/autoload.php
     vendor-prefixed/composer/autoload_real.php
     vendor-prefixed/composer/installed.php

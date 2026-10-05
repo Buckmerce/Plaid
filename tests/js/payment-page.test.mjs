@@ -1,10 +1,10 @@
-// Behavioural tests for the built payment page script (assets/build/payment-page.js).
+// Behavioural tests for the built payment page script (assets/payment-page.js).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 
-const source = readFileSync( new URL( '../../assets/build/payment-page.js', import.meta.url ), 'utf8' );
+const source = readFileSync( new URL( '../../assets/payment-page.js', import.meta.url ), 'utf8' );
 const tick = async ( times = 5 ) => {
 	for ( let i = 0; i < times; i++ ) {
 		await new Promise( ( resolve ) => setImmediate( resolve ) );

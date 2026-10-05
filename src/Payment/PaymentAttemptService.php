@@ -32,7 +32,7 @@ use Buckmerce\Plaid\Support\SiteMarker;
  * Creates, reuses or safely replaces the single active Plaid Transfer Intent
  * of a WooCommerce order and issues Link tokens bound to it.
  *
- * Duplicate-transfer safety (docs/CONCURRENCY_IDEMPOTENCY.md, ADR-0003, ADR-0007):
+ * Duplicate-transfer safety:
  * - all work for one order runs under a connection-bound DatabaseMutex;
  * - intent creation is fenced by a durable reservation row (owner token + lease);
  * - money can only move for an intent that received a Link token, and Link
@@ -40,7 +40,7 @@ use Buckmerce\Plaid\Support\SiteMarker;
  * - an intent is replaced only when Plaid reports it FAILED, its transfer ended
  *   without funds, or no Link token issued for it can still be used;
  * - an order whose transfer was returned is never debited again through Transfer UI
- *   (ReturnRetryPolicy, ADR-0019); failures before money moved may be retried.
+ *   (ReturnRetryPolicy); failures before money moved may be retried.
  */
 final class PaymentAttemptService
 {
@@ -310,7 +310,7 @@ final class PaymentAttemptService
         $from = (string) $order->get_meta(OrderMeta::PAYMENT_STATE, true);
         if (PaymentState::INTENT_CREATING === $from) {
             // The reservation was reclaimable, so the previous creator is gone and its
-            // outcome is unknown. Record that before starting a new attempt (ADR-0007).
+            // outcome is unknown. Record that before starting a new attempt.
             $this->projector->transition($order, PaymentState::INTENT_UNCERTAIN, array('source' => 'checkout', 'failure_code' => 'abandoned_attempt'));
             $order = $this->reload($order->get_id());
             $from = (string) $order->get_meta(OrderMeta::PAYMENT_STATE, true);

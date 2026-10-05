@@ -44,7 +44,7 @@ function bmfp_configure(array $overrides = array()): void
     update_option('woocommerce_currency', 'USD');
 }
 
-/** The Plaid event stream of the configured credentials (environment + account, ADR-0018). */
+/** The Plaid event stream of the configured credentials (environment + account). */
 function bmfp_scope(): \Buckmerce\Plaid\Settings\AccountScope
 {
     return \Buckmerce\Plaid\Settings\Settings::load()->account_scope();

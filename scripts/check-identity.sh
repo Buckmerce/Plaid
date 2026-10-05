@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Identity gate. The plugin's only identity is Buckmerce (AGENTS.md §1): slug
+# Identity gate. The plugin's only identity is Buckmerce: slug
 # buckmerce-plaid, namespace Buckmerce\Plaid, prefixes buckmerce_plaid_ / bmfp_ / _bmfp_.
 # The pre-release working name and its short prefix must never come back — no aliases, hooks,
 # meta keys, table names, comments or documentation. This gate fails when a former identifier
@@ -43,7 +43,7 @@ else
     repo_files=$(find . -type f \
         -not -path './.git/*' -not -path './node_modules/*' -not -path './vendor/*' -not -path './dist/*' \
         -not -path './output/*' -not -path './.parcel-cache/*' -not -path './assets/*' -not -path './.idea/*' \
-        -not -path './docs/api/plaid-mirror/*' -not -name '.env' -not -name '*.zip' | sed 's|^\./||' | sort)
+        -not -name '.env' -not -name '*.zip' | sed 's|^\./||' | sort)
 fi
 scan 'repository' "$base_dir" "$repo_files"
 repo_count=$(wc -l <<<"$repo_files")
@@ -69,7 +69,7 @@ for archive in "$@"; do
 done
 
 if [[ "$failures" -gt 0 ]]; then
-    printf 'Identity check: %d problem(s). The canonical identity is listed in AGENTS.md §1.\n' "$failures" >&2
+    printf 'Identity check: %d problem(s). Use the Buckmerce namespace and prefixes.\n' "$failures" >&2
     exit 1
 fi
 printf 'Identity check passed: 0 former identifiers in %d repository files' "$repo_count"

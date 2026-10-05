@@ -1,9 +1,9 @@
 <?php
 
 /**
- * WordPress language-pack translations on a site that runs ONLY the release ZIP.
- * scripts/test-integration.sh installs a development test language pack outside the plugin and
- * sets WPLANG=ru_RU in wp-config.php. Proves that WordPress loads the external files, that
+ * Bundled translations on a site that runs ONLY the release ZIP.
+ * scripts/test-integration.sh exercises bundled PHP/MO catalogues, an external language pack and
+ * a string requested before `init`. Proves that WordPress loads the shipped files, that
  * every string is translated and still formats, and that payment logic does not depend on
  * English text. A translation loaded too early would log a PHP notice, which fails the run.
  */
@@ -22,13 +22,17 @@ use Buckmerce\Plaid\Settings\Settings;
 
 $domain = 'buckmerce-plaid';
 $locale = 'ru_RU';
-$languages = WP_LANG_DIR . '/plugins';
+$source = getenv('BMFP_I18N_SOURCE') ?: 'bundled';
+$languages = 'external' === $source ? WP_LANG_DIR . '/plugins' : BUCKMERCE_PLAID_DIR . 'languages';
 
-WP_CLI::log('The release ZIP excludes translations; the site has a separate language pack');
+WP_CLI::log('Translation source: ' . $source);
 bmfp_assert_same($locale, get_locale(), 'The site locale is ' . $locale . '.');
-bmfp_assert(! file_exists(WP_PLUGIN_DIR . '/buckmerce-plaid/languages'), 'The ZIP has no languages directory.');
+if ('external' !== $source) {
+    bmfp_assert(! is_file(WP_LANG_DIR . "/plugins/$domain-$locale.mo"), 'There is no external MO language pack.');
+    bmfp_assert(! is_file(WP_LANG_DIR . "/plugins/$domain-$locale.l10n.php"), 'There is no external PHP language pack.');
+}
 foreach (array("$domain-$locale.mo", "$domain-$locale.l10n.php") as $file) {
-    bmfp_assert(is_file($languages . '/' . $file), 'The site language pack contains ' . $file . '.');
+    bmfp_assert(is_file($languages . '/' . $file), 'The installed ZIP contains ' . $file . '.');
 }
 $compiled = include $languages . "/$domain-$locale.l10n.php";
 bmfp_assert(is_array($compiled) && is_array($compiled['messages'] ?? null), 'The compiled PHP translation is readable.');
@@ -36,15 +40,39 @@ bmfp_assert(is_array($compiled) && is_array($compiled['messages'] ?? null), 'The
 $messages = $compiled['messages'];
 bmfp_assert(count($messages) >= 400, 'The translation covers the whole plugin (' . count($messages) . ' strings).');
 
-WP_CLI::log('WordPress loads every string from the external language pack, and every translation still formats');
+if ('1' === getenv('BMFP_I18N_EARLY')) {
+    // scripts/test-integration.sh requested this string on after_setup_theme, the way another
+    // plugin does when it lists the payment gateways before `init`. WordPress 6.6 and 6.7 do not
+    // register a plugin's languages directory themselves, and an unanswered request leaves the
+    // text domain untranslated for the rest of the request.
+    WP_CLI::log('A string requested before init is translated from the bundled catalogue');
+    bmfp_assert_same($messages['Pay by Bank'] ?? null, $GLOBALS['bmfp_early_translation'] ?? null, 'The bundled catalogue is registered while the plugin loads.');
+}
+
+// Exercise WordPress's normal lazy loader, including its supported MO-format fallback.
+unload_textdomain($domain, true);
+if ('mo' === $source) {
+    add_filter('translation_file_format', static function (string $format, string $textdomain): string {
+        return 'buckmerce-plaid' === $textdomain ? 'mo' : $format;
+    }, 10, 2);
+}
+$loaded_files = array();
+add_filter('load_translation_file', static function (string $file, string $textdomain) use (&$loaded_files): string {
+    if ('buckmerce-plaid' === $textdomain) {
+        $loaded_files[] = wp_normalize_path($file);
+    }
+    return $file;
+}, 10, 2);
+
+WP_CLI::log('WordPress loads every string from the bundled catalogue, and every translation still formats');
 $cyrillic = 0;
-foreach ($messages as $source => $translation) {
+foreach ($messages as $msgid => $translation) {
     // Not a string literal on purpose: this walks the shipped catalogue, it is not a new string.
-    $translated = call_user_func('__', $source, $domain);
-    bmfp_assert_same($translation, $translated, 'WordPress translates: ' . substr((string) $source, 0, 60));
-    bmfp_assert('' !== trim($translation), 'Translated: ' . substr((string) $source, 0, 60));
+    $translated = call_user_func('__', $msgid, $domain);
+    bmfp_assert_same($translation, $translated, 'WordPress translates: ' . substr((string) $msgid, 0, 60));
+    bmfp_assert('' !== trim($translation), 'Translated: ' . substr((string) $msgid, 0, 60));
     $cyrillic += 1 === preg_match('/\p{Cyrillic}/u', $translation) ? 1 : 0;
-    preg_match_all('/%(?:(\d+)\$)?[sdf]/', (string) $source, $found);
+    preg_match_all('/%(?:(\d+)\$)?[sdf]/', (string) $msgid, $found);
     if (array() === $found[0]) {
         continue;
     }
@@ -55,11 +83,17 @@ foreach ($messages as $source => $translation) {
     } catch (\Throwable $exception) {
         $formatted = '';
     }
-    bmfp_assert('' !== $formatted && ! str_contains($formatted, '%s') && ! str_contains($formatted, '$s'), 'The translation formats with the arguments of: ' . substr((string) $source, 0, 60));
+    bmfp_assert('' !== $formatted && ! str_contains($formatted, '%s') && ! str_contains($formatted, '$s'), 'The translation formats with the arguments of: ' . substr((string) $msgid, 0, 60));
 }
 // Brand and protocol names (Buckmerce for Plaid, PHP, HTTPS, Client ID, …) stay as they are.
 bmfp_assert($cyrillic >= count($messages) - 20, 'All but a few proper names are Russian text (' . $cyrillic . ' of ' . count($messages) . ').');
-bmfp_assert(is_textdomain_loaded($domain), 'WordPress loaded the language-pack text domain just in time.');
+bmfp_assert(is_textdomain_loaded($domain), 'WordPress loaded the bundled text domain.');
+bmfp_assert(in_array(wp_normalize_path($languages . "/$domain-$locale" . ('mo' === $source ? '.mo' : '.l10n.php')), $loaded_files, true), 'WordPress loaded the expected catalogue file.');
+
+bmfp_assert(switch_to_locale('en_US'), 'The locale can switch to English.');
+bmfp_assert_same('Pay by Bank', call_user_func('__', 'Pay by Bank', $domain), 'English falls back to the source string.');
+restore_previous_locale();
+bmfp_assert_same($locale, get_locale(), 'The Russian locale is restored.');
 
 WP_CLI::log('Customer and merchant surfaces are Russian');
 delete_option(BMFP_TEST_SETTINGS_OPTION);

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Buckmerce\Plaid\Payment;
 
 /**
- * Buckmerce payment states (docs/STATE_MACHINE.md). NEW is represented by an
+ * Buckmerce payment states. NEW is represented by an
  * absent order meta value.
  */
 final class PaymentState

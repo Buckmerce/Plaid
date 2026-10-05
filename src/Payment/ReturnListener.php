@@ -6,7 +6,7 @@ namespace Buckmerce\Plaid\Payment;
 
 /**
  * Notified once when the current attempt's ACH debit is returned. The refund module uses
- * it to detect refunds issued for a payment that was then reversed (ADR-0016).
+ * it to detect refunds issued for a payment that was then reversed.
  */
 interface ReturnListener
 {

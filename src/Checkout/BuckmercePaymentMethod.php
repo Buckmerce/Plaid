@@ -32,8 +32,8 @@ final class BuckmercePaymentMethod extends AbstractPaymentMethodType
     public function get_payment_method_script_handles(): array
     {
         $handle = 'buckmerce-plaid-blocks';
-        wp_register_script($handle, BUCKMERCE_PLAID_URL . 'assets/build/blocks.js', array('wc-blocks-registry', 'wc-settings', 'wp-element', 'wp-html-entities', 'wp-i18n'), BUCKMERCE_PLAID_VERSION, true);
-        wp_set_script_translations($handle, 'buckmerce-plaid');
+        // The script holds no translatable text: get_payment_method_data() sends the translated title and description.
+        wp_register_script($handle, BUCKMERCE_PLAID_URL . 'assets/blocks.js', array('wc-blocks-registry', 'wc-settings', 'wp-element', 'wp-html-entities'), BUCKMERCE_PLAID_VERSION, true);
         return array($handle);
     }
 
@@ -45,7 +45,7 @@ final class BuckmercePaymentMethod extends AbstractPaymentMethodType
         return array(
             'title' => $settings->title(),
             'description' => $settings->description(),
-            'icon' => BUCKMERCE_PLAID_URL . 'assets/images/buckmerce-mark.svg',
+            'icon' => BUCKMERCE_PLAID_URL . 'assets/buckmerce-mark.svg',
             'supports' => array('products'),
             'available' => array() === GatewayAvailability::problems($settings, get_woocommerce_currency(), GatewayAvailability::site_uses_https()),
         );

@@ -15,7 +15,7 @@ use Buckmerce\Plaid\Settings\Settings;
 /**
  * Handles the browser's "Link finished" signal. The browser only triggers the
  * check; the result comes exclusively from Plaid /transfer/intent/get for the
- * intent stored on the order (ADR-0002). Safe to call repeatedly.
+ * intent stored on the order. Safe to call repeatedly.
  */
 final class PaymentCompletionService
 {

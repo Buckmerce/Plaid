@@ -18,7 +18,7 @@ use Buckmerce\Plaid\Settings\Settings;
  * current version, the explicit steps of each version run, schema_is_valid() verifies the
  * result, and only then is the version stored. Running install() twice is harmless.
  *
- * Schema 3 (ADR-0018) scopes Plaid event and refund identities by Plaid account:
+ * Schema 3 scopes Plaid event and refund identities by Plaid account:
  * UNIQUE (environment, account_fp, event_id) and UNIQUE (environment, account_fp, refund_id).
  * Rows written before schema 3 whose account cannot be proven keep their history in the
  * AccountScope::LEGACY scope instead of being attributed to a possibly wrong account.
@@ -320,7 +320,7 @@ final class Installer
 
     /**
      * Schema 1 rows predate the account fingerprint. They were created with the credentials
-     * configured at upgrade time, so that account is recorded for them (ADR-0015).
+     * configured at upgrade time, so that account is recorded for them.
      */
     private static function backfill_account_fingerprint(): void
     {

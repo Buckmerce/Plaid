@@ -1,0 +1,11 @@
+name: Set up WP-CLI
+description: Install and verify the pinned WP-CLI release.
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: |
+        bash scripts/install-wp-cli.sh "$RUNNER_TEMP/buckmerce-tools"
+        echo "$RUNNER_TEMP/buckmerce-tools" >> "$GITHUB_PATH"
+        # Called by its path: the PATH entry above applies to the steps that follow this one.
+        "$RUNNER_TEMP/buckmerce-tools/wp" --info

@@ -15,7 +15,7 @@ use Buckmerce\Plaid\Settings\Settings;
  * Projection is re-applied on duplicate evidence so a crash between the state
  * write and payment_complete() is repaired by the next replay.
  *
- * Returned payments keep their history (ADR-0012): the WooCommerce status becomes
+ * Returned payments keep their history: the WooCommerce status becomes
  * "failed" (unpaid, excluded from revenue, payable again by the customer), while the paid
  * date, transaction ID, transfer ID, notes and Plaid timestamps stay on the order.
  */
@@ -194,7 +194,7 @@ final class OrderPaymentProjector
         $code = (string) $order->get_meta(OrderMeta::RETURN_CODE, true);
         $retry = ReturnRetryPolicy::for_order($order);
         if ($retry->is_blocked()) {
-            // Plaid restricts reprocessing returned debits; Buckmerce never re-debits this order (ADR-0019).
+            // Plaid restricts reprocessing returned debits; Buckmerce never re-debits this order.
             $order->add_order_note(__('Buckmerce: this order will not be debited again by bank.', 'buckmerce-plaid') . ' ' . ReturnRetryPolicy::merchant_explanation($retry));
         }
         $exposure = null === $this->return_listener ? array('count' => 0, 'amount' => '0.00') : $this->return_listener->on_payment_returned($order, $transfer_id);
@@ -244,7 +244,7 @@ final class OrderPaymentProjector
         }
         if (null !== $order->get_date_paid('edit') && AttemptHistory::has_returned_attempt($order)) {
             // Re-payment after a return: the order is paid by this attempt. The earlier paid
-            // date stays in the attempt history (ADR-0012), not on the order.
+            // date stays in the attempt history, not on the order.
             $order->set_date_paid(time());
         }
         // WooCommerce decides processing vs completed and handles stock/emails.

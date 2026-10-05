@@ -37,7 +37,7 @@ if [[ "$VERSION" != "$HEADER_VERSION" || "$VERSION" != "$CONSTANT_VERSION" || "$
     fail "Version mismatch: requested=$VERSION header=$HEADER_VERSION BUCKMERCE_PLAID_VERSION=$CONSTANT_VERSION readme=$STABLE_TAG package.json=$PACKAGE_VERSION"
 fi
 
-for asset in assets/admin-settings.css assets/payment-page.css assets/build/blocks.js assets/build/payment-page.js assets/build/admin-settings.js assets/images/buckmerce-mark.svg; do
+for asset in assets/admin-settings.css assets/payment-page.css assets/blocks.js assets/payment-page.js assets/admin-settings.js assets/buckmerce-mark.svg; do
     [[ -f "$BASE_DIR/$asset" ]] || fail "Missing compiled asset $asset. Run 'npm run build' first."
 done
 if [[ ! -f "$BASE_DIR/vendor-prefixed/autoload.php" || ! -f "$BASE_DIR/vendor-prefixed/firebase/php-jwt/src/JWT.php" ]]; then

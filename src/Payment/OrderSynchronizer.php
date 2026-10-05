@@ -46,7 +46,7 @@ final class OrderSynchronizer
                 return self::RESULT_SKIPPED;
             }
             if (! OrderLocator::order_in_scope($order, $this->settings->account_scope())) {
-                // Only the Plaid account that created the attempt can read it (ADR-0015, ADR-0018).
+                // Only the Plaid account that created the attempt can read it.
                 return self::RESULT_SKIPPED;
             }
             $transfer_id = (string) $order->get_meta(OrderMeta::TRANSFER_ID, true);

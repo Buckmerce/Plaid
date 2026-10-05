@@ -30,7 +30,7 @@ use Buckmerce\Plaid\Support\Money;
 use Buckmerce\Plaid\Support\SiteMarker;
 
 /**
- * Native WooCommerce refunds through Plaid /transfer/refund/* (ADR-0016).
+ * Native WooCommerce refunds through Plaid /transfer/refund/*.
  *
  * Duplicate-refund safety:
  * - refund creation for one order is serialized by a database mutex;
@@ -382,7 +382,7 @@ final class RefundService implements ReturnListener
 
     /**
      * End of the refunded debit's monitoring: its unauthorized return window (+ buffer) from
-     * Plaid, or the conservative fallback when Plaid reported none (MonitoringPolicy, ADR-0014).
+     * Plaid, or the conservative fallback when Plaid reported none (MonitoringPolicy).
      */
     private function debit_horizon(RefundRecord $record): ?int
     {
@@ -404,7 +404,7 @@ final class RefundService implements ReturnListener
     public function sync(RefundRecord $record): void
     {
         if (! $record->scope()->equals($this->settings->account_scope())) {
-            // Only the Plaid account that created a refund can read it (ADR-0015, ADR-0018).
+            // Only the Plaid account that created a refund can read it.
             return;
         }
         if (RefundState::CREATING === $record->status && $record->lease_is_live()) {

@@ -164,7 +164,7 @@ final class PaymentLockStore
     }
 
     /**
-     * The order whose current attempt used this transfer with this Plaid account (ADR-0018).
+     * The order whose current attempt used this transfer with this Plaid account.
      * Plaid does not document identifiers as unique across clients, so a lookup never crosses
      * accounts; rows written before the account fingerprint existed (NULL) still match.
      *
@@ -190,7 +190,7 @@ final class PaymentLockStore
     public function due_for_reconciliation(string $environment, int $limit, string $account_fp = ''): array
     {
         global $wpdb;
-        // Only payments of the configured Plaid account can be read with its credentials (ADR-0015).
+        // Only payments of the configured Plaid account can be read with its credentials.
         $ids = $wpdb->get_col($wpdb->prepare(
             "SELECT order_id FROM %i
              WHERE environment = %s AND status = %s AND reconcile_after IS NOT NULL AND reconcile_after <= UTC_TIMESTAMP()
@@ -249,7 +249,7 @@ final class PaymentLockStore
     }
 
     /**
-     * Current attempts whose provider state can still change, per Plaid account (ADR-0015):
+     * Current attempts whose provider state can still change, per Plaid account:
      * money in flight, a pending authorization, or an open ACH return window, including
      * transfers under manual review (reconcile_after is kept until the window closes).
      *

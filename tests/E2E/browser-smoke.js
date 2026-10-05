@@ -367,7 +367,7 @@ async page => {
 	await axe( '.bmfp-order-panel', 'order payment panel (returned)' );
 	await page.context().clearCookies();
 
-	// ------------------------ no same-order bank debit after a return (ADR-0019)
+	// ------------------------ no same-order bank debit after a return
 	phase( 'blocked repayment after a return' );
 	const beforeRepay = await json( '/?bmfp_e2e_order=' + returningOrder );
 	assert( beforeRepay.needs_payment && beforeRepay.payment_state === 'returned', 'Precondition: a returned, unpaid order.' );

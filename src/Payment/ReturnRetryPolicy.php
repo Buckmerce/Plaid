@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Buckmerce\Plaid\Payment;
 
 /**
- * Whether a new bank debit may be originated for an order whose transfer was returned (ADR-0019).
+ * Whether a new bank debit may be originated for an order whose transfer was returned.
  *
- * Plaid (verified 2026-10-01, docs/api/PLAID_TRANSFER.md §2.11a): "If reprocessing a returned
+ * Plaid (verified 2026-10-01): "If reprocessing a returned
  * transfer, the description field [of /transfer/create] must be "Retry 1" or "Retry 2". You may
  * retry a transfer up to 2 times, within 180 days of creating the original transfer. Only
  * transfers that were returned with code R01 or R09 may be retried." R10 must never be
@@ -90,7 +90,7 @@ final class ReturnRetryPolicy
 
     /**
      * The order's attempts that created a transfer (archived attempts first, then the current
-     * one), oldest first. Archived attempts that moved money are never dropped (ADR-0017), so
+     * one), oldest first. Archived attempts that moved money are never dropped, so
      * the original returned transfer is always part of the lineage.
      *
      * @return list<array{transfer_id:string, state:string, return_code:string, created_at:string}>

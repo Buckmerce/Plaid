@@ -7,7 +7,7 @@ namespace Buckmerce\Plaid\Settings;
 use Buckmerce\Plaid\Plaid\PlaidEnvironment;
 
 /**
- * Identity of one Plaid event stream: environment + non-secret account fingerprint (ADR-0018).
+ * Identity of one Plaid event stream: environment + non-secret account fingerprint.
  *
  * /transfer/event/sync returns the events of the authenticated Plaid client. Event IDs, the
  * sync cursor, the payment epoch and refund identities therefore belong to one account in one

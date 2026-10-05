@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Schema 2 → 3 upgrade (ADR-0018) on a store with real history: completed, refunded and
+ * Schema 2 → 3 upgrade on a store with real history: completed, refunded and
  * returned payments, stored events, the per-environment cursor and payment epoch, locks with
  * account fingerprints and refund rows. No financial history may be lost, no remote object
  * duplicated, the new account-scoped cursor starts safely, and the migration is idempotent.

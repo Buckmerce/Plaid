@@ -13,7 +13,7 @@ final class PaymentLockStatus
     public const CREATING = 'creating';
     /** Plaid returned an intent and its ID is durably recorded in this row. */
     public const CREATED = 'created';
-    /** Outcome unknown. Safe to replace because an unknown intent can never receive a Link token (ADR-0007). */
+    /** Outcome unknown. Safe to replace because an unknown intent can never receive a Link token. */
     public const UNCERTAIN = 'uncertain';
     /** Plaid definitively rejected the create request. */
     public const FAILED = 'failed';

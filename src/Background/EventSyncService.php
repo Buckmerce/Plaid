@@ -14,8 +14,7 @@ use Buckmerce\Plaid\Settings\AccountScope;
 use Buckmerce\Plaid\Support\Decimal;
 
 /**
- * /transfer/event/sync ingestion for ONE Plaid event stream (environment + account, ADR-0018)
- * (docs/WEBHOOKS_AND_EVENTS.md):
+ * /transfer/event/sync ingestion for ONE Plaid event stream (environment + account):
  *
  *   fetch page → durably record every event → advance cursor → process rows
  *

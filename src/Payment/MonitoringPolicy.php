@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Buckmerce\Plaid\Payment;
 
 /**
- * When a payment's provider state must be re-read, and until when it is monitored at all
- * (ADR-0014). Pure: every input is explicit.
+ * When a payment's provider state must be re-read, and until when it is monitored at all.
+ * Pure: every input is explicit.
  *
  * Monitoring follows the Plaid transfer, never the WooCommerce order date:
  *  - an unused Transfer Intent is checked while a Link token for it can still be used;

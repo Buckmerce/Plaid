@@ -21,7 +21,7 @@ final class Settings
     /**
      * Plaid Transfer UI captures a consumer's authorization over the Internet, which is the
      * Nacha WEB entry class (https://plaid.com/docs/transfer/using-transfer-ui/). No other class is a
-     * valid description of a WooCommerce web checkout, so it is not configurable (ADR-0013).
+     * valid description of a WooCommerce web checkout, so it is not configurable.
      */
     public const ACH_CLASS = 'web';
 
@@ -96,19 +96,19 @@ final class Settings
         return $this->string('secret');
     }
 
-    /** Non-secret identity of the configured Plaid account (ADR-0015). */
+    /** Non-secret identity of the configured Plaid account. */
     public function account_fingerprint(): string
     {
         return AccountIdentity::fingerprint($this->client_id());
     }
 
-    /** The Plaid event stream Buckmerce reads with the configured credentials (ADR-0018). */
+    /** The Plaid event stream Buckmerce reads with the configured credentials. */
     public function account_scope(): AccountScope
     {
         return AccountScope::from_settings($this);
     }
 
-    /** Optional: only for Plaid Transfer accounts without Plaid Ledger (see ADR-0007). */
+    /** Optional: only for Plaid Transfer accounts without Plaid Ledger. */
     public function funding_account_id(): string
     {
         return $this->string('funding_account_id');
@@ -120,10 +120,10 @@ final class Settings
     }
 
     /**
-     * Transfer UI integration step 1 (docs/api/PLAID_TRANSFER.md §2.3): a Link customization with
+     * Transfer UI integration step 1: a Link customization with
      * Account Select "Enabled for one account", passed as link_customization_name. Both
      * environments fail closed without one, so Sandbox exercises the same Transfer UI shape as
-     * Production (ADR-0020); Plaid's unspecified default customization is never used.
+     * Production; Plaid's unspecified default customization is never used.
      */
     public function link_customization_required(): bool
     {

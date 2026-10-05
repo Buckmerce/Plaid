@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Background maintenance follows real operational work (ADR-0021): the recurring
+ * Background maintenance follows real operational work: the recurring
  * reconciliation runs while the gateway accepts payments or while payments, refunds, stored
  * events or a failed event sync of the configured Plaid account need it — never merely because
  * a payment once existed. Verified webhooks still trigger event sync when it is stopped.

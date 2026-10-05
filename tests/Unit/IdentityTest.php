@@ -24,7 +24,7 @@ use Buckmerce\Plaid\Settings\Settings;
 use PHPUnit\Framework\TestCase;
 
 /**
- * The canonical identity of the plugin (AGENTS.md §1). Every identifier a store, Plaid, WordPress
+ * The canonical identity of the plugin. Every identifier a store, Plaid, WordPress
  * or a release consumer can observe is asserted here, so an accidental rename — or the return of a
  * former working name or of the slug used before the WordPress.org identity — fails the unit
  * suite. The repository-wide scan for former identifiers is scripts/check-identity.sh; the same
@@ -200,7 +200,13 @@ final class IdentityTest extends TestCase
             }
         }
         self::assertGreaterThan(400, $calls, 'The translation calls of the runtime code were found.');
-        self::assertStringContainsString("i18n.__( text, '" . self::SLUG . "' )", self::read('resources/ts/blocks.ts'), 'The Checkout block script translates with the plugin text domain.');
+        // Scripts hold no translatable text: PHP sends every customer-facing string already translated
+        // (Checkout block: get_payment_method_data(); payment page and settings: inline configuration),
+        // so no script translation (JSON) files are needed and none can be missing.
+        foreach (glob(self::root() . '/resources/ts/*.ts') ?: array() as $script) {
+            self::assertDoesNotMatchRegularExpression('/\bwp\s*\.\s*i18n\b|\b(?:__|_n|_x|_nx)\s*\(/', (string) file_get_contents($script), basename($script) . ' must not translate in the browser.');
+        }
+        self::assertStringNotContainsString("'wp-i18n'", self::read('src/Checkout/BuckmercePaymentMethod.php'), 'The Checkout block script does not depend on wp-i18n.');
         self::assertStringContainsString("bmfp_i18n_domain=" . self::SLUG . "\n", self::read('scripts/lib/i18n.sh'), 'The translation tooling builds the plugin text domain.');
     }
 
@@ -272,7 +278,7 @@ final class IdentityTest extends TestCase
         $top_level = $entries[1];
         sort($top_level);
         self::assertSame(
-            array('LICENSE', 'assets', self::SLUG . '.php', 'composer.json', 'readme.txt', 'src', 'uninstall.php', 'vendor-prefixed'),
+            array('LICENSE', 'assets', self::SLUG . '.php', 'composer.json', 'languages', 'readme.txt', 'src', 'uninstall.php', 'vendor-prefixed'),
             $top_level,
             'The WordPress.org package has exactly these top-level entries; composer.json is shipped, vendor/ is not.'
         );
@@ -292,18 +298,25 @@ final class IdentityTest extends TestCase
         foreach (self::php_files('src') as $file) {
             $runtime[] = substr($file, strlen(self::root()) + 1);
         }
+        foreach (self::files('languages') as $file) {
+            $runtime[] = substr($file, strlen(self::root()) + 1);
+        }
+        foreach (array('admin-settings.css', 'payment-page.css', 'admin-settings.js', 'blocks.js', 'payment-page.js', 'buckmerce-mark.svg') as $asset) {
+            $runtime[] = 'assets/' . $asset;
+        }
+        $runtime[] = 'languages/buckmerce-plaid-es_ES-' . str_repeat('a', 32) . '.json';
         foreach ($runtime as $path) {
             self::assertTrue($allowed($path), 'Runtime file missing from the release allowlist: ' . $path);
         }
         // … and nothing of the development project is.
         $development = array(
             '.env', '.env.example', '.gitignore', '.phpunit.result.cache', '.github/workflows/quality.yml', '.idea/workspace.xml',
-            'AGENTS.md', 'CLAUDE.md', 'CHANGELOG.md', 'README.md', 'composer.lock', 'package.json', 'package-lock.json', 'tsconfig.json',
-            'phpunit.xml.dist', 'phpstan.neon', 'phpcs.xml.dist', 'tests/Unit/IdentityTest.php', 'docs/SECURITY.md', 'scripts/package.sh',
+            'private-notes.md', 'CHANGELOG.md', 'README.md', 'composer.lock', 'package.json', 'package-lock.json', 'tsconfig.json',
+            'phpunit.xml.dist', 'phpstan.neon', 'phpcs.xml.dist', 'tests/Unit/IdentityTest.php', 'scripts/package.sh',
             'resources/ts/blocks.ts', 'node_modules/parcel/package.json', 'vendor/autoload.php', 'vendor/firebase/php-jwt/src/JWT.php',
             'dist/' . self::SLUG . '-1.0.0.zip', self::SLUG . '.zip', 'output/report.json', 'src/Plugin.php.orig', 'src/.gitkeep', 'src/debug.log',
-            'assets/build/blocks.js.map', 'assets/build/extra.js', 'languages/buckmerce-plaid.pot', 'languages/buckmerce-plaid-ru_RU.po',
-            'languages/buckmerce-plaid-ru_RU.mo', 'languages/buckmerce-plaid-ru_RU.l10n.php', 'languages/other-domain-ru_RU.mo', 'languages/.gitkeep', 'dump.sql',
+            'assets/blocks.js.map', 'assets/extra.js', 'assets/nested/blocks.js', 'assets/nested/logo.svg',
+            'languages/other-domain-ru_RU.mo', 'languages/.gitkeep', 'languages/debug.php', 'languages/nested/catalogue.mo', 'dump.sql',
             'vendor-prefixed/firebase/php-jwt/README.md', 'vendor-prefixed/firebase/php-jwt/composer.json', 'vendor-prefixed/firebase/php-jwt/tests/JWTTest.php',
         );
         foreach ($development as $path) {
@@ -320,13 +333,13 @@ final class IdentityTest extends TestCase
     {
         // The slug used before the WordPress.org identity; assembled so that this file does not
         // contain it. Everything the release ZIP is built from is scanned: names and content,
-        // WordPress.org language packs and documentation are not shipped in the ZIP.
+        // Bundled translations are scanned alongside runtime code.
         $superseded = 'buckmerce-' . 'for-plaid';
         $files = array();
         foreach (array(self::SLUG . '.php', 'uninstall.php', 'readme.txt', 'composer.json', 'LICENSE') as $relative) {
             $files[] = self::root() . '/' . $relative;
         }
-        foreach (array('src', 'vendor-prefixed', 'assets') as $directory) {
+        foreach (array('src', 'vendor-prefixed', 'assets', 'languages') as $directory) {
             if (is_dir(self::root() . '/' . $directory)) {
                 $files = array_merge($files, self::files($directory));
             }

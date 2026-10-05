@@ -86,11 +86,20 @@ for hpos in no yes; do
     BUCKMERCE_PLAID_EXPECT_HPOS="$hpos" BUCKMERCE_PLAID_SITE="$site_dir" php "$base_dir/tests/Integration/concurrency.php"
 done
 
-# Simulate a WordPress.org language pack outside the ZIP. A translation loaded too early is logged.
-mkdir -p "$site_dir/wp-content/languages/plugins"
-cp "$base_dir/languages/buckmerce-plaid-ru_RU.mo" "$base_dir/languages/buckmerce-plaid-ru_RU.l10n.php" "$site_dir/wp-content/languages/plugins/"
+# Translations must work from the installed ZIP, without a separately downloaded language pack.
 "${wp_cli[@]}" config set WPLANG ru_RU >/dev/null
 "${wp_cli[@]}" eval-file "$base_dir/tests/Integration/wp-cli-i18n.php" --use-include
+BMFP_I18N_SOURCE=mo "${wp_cli[@]}" eval-file "$base_dir/tests/Integration/wp-cli-i18n.php" --use-include
+# Another plugin may ask for a Buckmerce string before `init` (for example by listing the payment gateways).
+BMFP_I18N_EARLY=1 "${wp_cli[@]}" \
+    --exec='WP_CLI::add_wp_hook("after_setup_theme", static function (): void { $GLOBALS["bmfp_early_translation"] = call_user_func("__", "Pay by Bank", "buckmerce-plaid"); });' \
+    eval-file "$base_dir/tests/Integration/wp-cli-i18n.php" --use-include
+# WordPress.org language packs keep priority over the bundled catalogue.
+mkdir -p "$site_dir/wp-content/languages/plugins"
+cp "$site_dir/wp-content/plugins/buckmerce-plaid/languages/buckmerce-plaid-ru_RU.mo" \
+    "$site_dir/wp-content/plugins/buckmerce-plaid/languages/buckmerce-plaid-ru_RU.l10n.php" \
+    "$site_dir/wp-content/languages/plugins/"
+BMFP_I18N_SOURCE=external "${wp_cli[@]}" eval-file "$base_dir/tests/Integration/wp-cli-i18n.php" --use-include
 "${wp_cli[@]}" config delete WPLANG >/dev/null
 
 # Update checks fail by design because the disposable site blocks external HTTP.

@@ -7,7 +7,7 @@ namespace Buckmerce\Plaid\Payment;
 use Buckmerce\Plaid\Settings\AccountScope;
 
 /**
- * Durable history of an order's payment attempts (ADR-0017).
+ * Durable history of an order's payment attempts.
  *
  * The current attempt lives in the order's _bmfp_* meta and the payment index. When a new
  * attempt replaces it (after a failure, a return or an unusable intent), the complete
@@ -94,7 +94,7 @@ final class AttemptHistory
     /**
      * Whether the order's attempt (current or archived) was made with the given Plaid account
      * and environment. Attempts recorded before the account fingerprint existed have none and
-     * are attributed to the configured account (ADR-0015).
+     * are attributed to the configured account.
      */
     public static function attempt_in_scope(\WC_Order $order, string $attempt_id, AccountScope $scope): bool
     {

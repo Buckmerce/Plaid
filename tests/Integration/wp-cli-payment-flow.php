@@ -191,7 +191,7 @@ bmfp_assert(! $returned->is_paid(), 'Returned payment is no longer paid.');
 bmfp_assert(null !== $returned->get_date_paid(), 'Original payment history is preserved.');
 $return_notes = array_values(array_filter(bmfp_notes($returned), static fn (string $note): bool => str_contains($note, 'ACH RETURN')));
 bmfp_assert(1 === count($return_notes) && str_contains($return_notes[0], 'R01'), 'Private return note with reason.');
-bmfp_assert(1 === bmfp_note_count($returned, 'will not be debited again by bank'), 'The merchant is told the order is not debited again (ADR-0019).');
+bmfp_assert(1 === bmfp_note_count($returned, 'will not be debited again by bank'), 'The merchant is told the order is not debited again.');
 $alerts = get_option('buckmerce_plaid_payment_alerts');
 bmfp_assert(is_array($alerts) && isset($alerts[$returned->get_id() . ':returned']), 'Admin alert recorded.');
 $mails = get_option('bmfp_test_mails');

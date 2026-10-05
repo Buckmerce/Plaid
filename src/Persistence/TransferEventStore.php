@@ -14,7 +14,7 @@ use Buckmerce\Plaid\Settings\AccountScope;
  * Durable idempotency store for Plaid transfer events.
  *
  * Identity is (environment, account_fp, event_id): event IDs are positions in ONE Plaid
- * account's stream (ADR-0018), so another account's event with the same ID is a different
+ * account's stream, so another account's event with the same ID is a different
  * event. Recording is INSERT IGNORE, so replays are harmless; processing uses an owner-token
  * lease so a crashed worker's event is reclaimed and an event can never be processed by two
  * workers. Every read and claim is limited to one account scope.
@@ -224,7 +224,7 @@ final class TransferEventStore
     /**
      * Events of this account that are not final yet: waiting, or deferred for a later retry
      * (backoff lease still running). They are operational work — maintenance must keep running
-     * until each one is processed, ignored or abandoned (ADR-0021).
+     * until each one is processed, ignored or abandoned.
      */
     public function has_backlog(AccountScope $scope): bool
     {

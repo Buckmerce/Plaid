@@ -10,7 +10,7 @@ use Buckmerce\Plaid\Payment\ReturnRetryPolicy;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Plaid's rules for reprocessing returned transfers (docs/api/PLAID_TRANSFER.md §2.12, ADR-0019):
+ * Plaid's rules for reprocessing returned transfers:
  * R01/R09 only, at most two retries, within 180 days of the original transfer, marked
  * "Retry 1"/"Retry 2" on /transfer/create. Transfer UI has no such marking, so Buckmerce 1.0
  * never re-debits a returned order.

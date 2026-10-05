@@ -17,6 +17,11 @@ cd "$base_dir"
 failures=0
 fail() { printf 'SOURCE AUDIT FAILED: %s\n' "$*" >&2; failures=$((failures + 1)); }
 
+# Compiled assets belong in the release ZIP and must always be generated from resources/.
+[[ -z "$(git ls-files -- assets)" ]] || fail 'assets/ contains tracked build output'
+git check-ignore --no-index -q assets/buckmerce-mark.svg || fail 'assets/ must be ignored by Git'
+[[ -z "$(git ls-files -ci --exclude-standard)" ]] || fail 'tracked files match ignore rules'
+
 forbidden='(^|/)(\.env(\.[A-Za-z0-9_-]+)?|\.idea|\.vscode|\.parcel-cache|\.cache|\.playwright-cli|node_modules|\.phpunit\.cache)(/|$)|^([^/]+/)?(vendor|output|test-results|playwright-report|coverage|dist)/|(^|/)\.phpunit\.result\.cache$|\.trace\.zip$|(^|/)trace\.zip$|\.(log|sql|sql\.gz|dump|sqlite3?|bak|swp|pem|key|p12|pfx)$|(^|/)(\.DS_Store|Thumbs\.db|auth\.json|credentials\.json|secrets\.json)$'
 allowed='(^|/)\.env\.example$'
 

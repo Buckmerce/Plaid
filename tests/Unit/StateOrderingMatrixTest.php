@@ -13,7 +13,7 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * Explicit expected decision for every provider-state ordering that events and reconciliation
- * can produce (docs/STATE_MACHINE.md §Ordering matrix): APPLY, NOOP, STALE or CONFLICT.
+ * can produce: APPLY, NOOP, STALE or CONFLICT.
  */
 final class StateOrderingMatrixTest extends TestCase
 {

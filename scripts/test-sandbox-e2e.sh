@@ -236,7 +236,7 @@ foreach ($expect as $amount => $want) {
     $failed = $failed || ! $ok;
 }
 if ($failed) { throw new RuntimeException("Real Plaid Sandbox lifecycle assertions failed."); }
-// The returned R01 payment is never debited again through Transfer UI (ADR-0019).
+// The returned R01 payment is never debited again through Transfer UI.
 $returned = wc_get_order((int) $orders["33.33"]);
 $decision = Buckmerce\Plaid\Payment\ReturnRetryPolicy::for_order($returned);
 $transfer = (string) $returned->get_meta("_bmfp_transfer_id", true);

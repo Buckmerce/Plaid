@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Buckmerce\Plaid\Settings;
 
 /**
- * Non-secret identity of a Plaid account (ADR-0015).
+ * Non-secret identity of a Plaid account.
  *
  * Plaid issues one client_id per team; the Sandbox and Production secrets both belong to
  * it, and rotating a secret keeps the client_id. Transfers are readable only by the client

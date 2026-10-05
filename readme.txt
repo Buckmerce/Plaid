@@ -128,7 +128,7 @@ Buckmerce collects no telemetry. Plaid identifiers and payment/refund states are
 
 Compiled JavaScript and CSS are built from public TypeScript and SCSS source:
 
-https://github.com/al5dy/buckmerce-plaid
+https://github.com/Buckmerce/Plaid
 
 The plugin bundles `firebase/php-jwt` under the BSD-3-Clause license for Plaid webhook JWT verification.
 

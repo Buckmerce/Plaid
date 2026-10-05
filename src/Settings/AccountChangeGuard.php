@@ -10,7 +10,7 @@ use Buckmerce\Plaid\Persistence\RefundStore;
 use Buckmerce\Plaid\Plaid\PlaidEnvironment;
 
 /**
- * Protects existing payments from Plaid account and environment changes (ADR-0015).
+ * Protects existing payments from Plaid account and environment changes.
  *
  * Transfers can only be read by the Plaid client that created them. Switching the Client ID
  * or the environment, or removing the secret, while Production payments or refunds can still

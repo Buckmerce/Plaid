@@ -8,13 +8,13 @@ namespace Buckmerce\Plaid\Refund;
  * When a refund must be re-read from Plaid (reconciliation), until when it is monitored.
  * Refund events are the primary channel; these checks recover missed events. Pure.
  *
- * Plaid documents no return window for refunds (docs/api/PLAID_TRANSFER.md §2.8: the refund
+ * Plaid documents no return window for refunds (the refund
  * object has no return-window field, and the refund guide gives none). A refund is an ACH credit
  * to the customer; Buckmerce therefore does not invent a network deadline and instead keeps a
  * settled refund under observation for as long as the refunded debit itself is monitored — until
  * Plaid's unauthorized return window of that debit closes (+ buffer), which is far longer than
  * the usual two-banking-day deadline for returning a credit — and at least SETTLED_DAILY_DAYS
- * after the refund was created (ADR-0021). The event stream keeps being read while any refund is
+ * after the refund was created. The event stream keeps being read while any refund is
  * monitored, so a late refund.returned event is also recorded.
  */
 final class RefundMonitoringPolicy

@@ -12,7 +12,7 @@ use Buckmerce\Plaid\Settings\Settings;
 use Buckmerce\Plaid\Support\Money;
 
 /**
- * Decides whether, and how much, a Buckmerce payment can be refunded (ADR-0016).
+ * Decides whether, and how much, a Buckmerce payment can be refunded.
  * Uses only local, authoritative-derived data: order meta written from Plaid responses
  * and the refund store. It never calls Plaid, so it can run on every admin page view.
  *

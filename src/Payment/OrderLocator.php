@@ -13,7 +13,7 @@ use Buckmerce\Plaid\Settings\Settings;
  * Finds the order of a Plaid identifier through Buckmerce's own payment index
  * (the reservation table). This works identically with HPOS and legacy order
  * storage and never relies on WooCommerce order meta queries. Lookups are limited to
- * the Plaid account whose event stream is being processed (ADR-0018).
+ * the Plaid account whose event stream is being processed.
  */
 final class OrderLocator
 {
@@ -39,7 +39,7 @@ final class OrderLocator
     /**
      * Whether the order's payment attempt was made with the given Plaid account. Orders written
      * before the account fingerprint existed carry none and are attributed to the configured
-     * account (ADR-0015); any other fingerprint belongs to another account's stream.
+     * account; any other fingerprint belongs to another account's stream.
      */
     public static function order_in_scope(\WC_Order $order, AccountScope $scope): bool
     {

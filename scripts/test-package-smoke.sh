@@ -135,10 +135,10 @@ smoke_store() {
         }
         if ($loaded < 20) { $fail("the plugin classes were not loaded"); }
         if (! class_exists("Buckmerce\\Plaid\\Vendor\\Firebase\\JWT\\JWT") || class_exists("Firebase\\JWT\\JWT", false)) { $fail("the bundled JWT library must be the prefixed copy of the ZIP"); }
-        foreach (array("assets/admin-settings.css", "assets/payment-page.css", "assets/build/admin-settings.js", "assets/build/blocks.js", "assets/build/payment-page.js", "assets/images/buckmerce-mark.svg", "composer.json") as $shipped) {
+        foreach (array("assets/admin-settings.css", "assets/payment-page.css", "assets/admin-settings.js", "assets/blocks.js", "assets/payment-page.js", "assets/buckmerce-mark.svg", "languages/buckmerce-plaid.pot", "languages/buckmerce-plaid-ru_RU.po", "languages/buckmerce-plaid-ru_RU.mo", "languages/buckmerce-plaid-ru_RU.l10n.php", "composer.json") as $shipped) {
             if (! is_readable(BUCKMERCE_PLAID_DIR . $shipped)) { $fail("missing shipped file " . $shipped); }
         }
-        foreach (array("tests", "docs", "scripts", "resources", "languages", "vendor", "node_modules", ".github", ".env", "package.json", "README.md") as $development) {
+        foreach (array("tests", "scripts", "resources", "vendor", "node_modules", ".github", ".env", "package.json", "README.md") as $development) {
             if (file_exists(BUCKMERCE_PLAID_DIR . $development)) { $fail("development file installed: " . $development); }
         }
         WP_CLI::success("Runtime checks passed for " . $version);

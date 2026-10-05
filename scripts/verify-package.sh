@@ -54,8 +54,8 @@ reject() {
 }
 reject 'hidden files' '(^|/)\.[^/]+'
 reject 'environment files' '(^|/)\.env[^/]*$'
-reject 'development directories' '(^|/)(tests?|docs|scripts|tools|resources|languages|node_modules|vendor|dist|output|coverage|test-results|playwright-report|build-src)(/|$)'
-reject 'development configuration' '(^|/)(composer\.lock|package(-lock)?\.json|tsconfig\.json|phpunit\.xml[^/]*|phpstan\.neon[^/]*|phpcs\.xml[^/]*|\.phpunit\.result\.cache|AGENTS\.md|CLAUDE\.md|README\.md|CHANGELOG\.md)$'
+reject 'development directories' '(^|/)(tests?|scripts|tools|resources|node_modules|vendor|dist|output|coverage|test-results|playwright-report|build-src)(/|$)'
+reject 'development configuration' '(^|/)(composer\.lock|package(-lock)?\.json|tsconfig\.json|phpunit\.xml[^/]*|phpstan\.neon[^/]*|phpcs\.xml[^/]*|\.phpunit\.result\.cache|README\.md|CHANGELOG\.md)$'
 reject 'nested archives' '\.(zip|tar|tgz|gz|bz2|xz|7z|rar|phar)$'
 reject 'logs, dumps, backups or temporary files' '\.(log|sql|dump|sqlite3?|db|bak|backup|orig|rej|tmp|temp|swp|swo)$|~$'
 reject 'source maps' '\.map$'
@@ -70,8 +70,12 @@ same() {
     [[ -f "$work/zip/$slug/$relative" ]] || fail "not packaged: $relative"
     cmp -s "$base_dir/$relative" "$work/zip/$slug/$relative" || fail "packaged $relative differs from the source tree (rebuild the ZIP)"
 }
+# Top-level files only: a directory matches no allowlist pattern. The source tree is not asked
+# what a directory is, because assets/ is generated and absent from a fresh checkout.
 for entry in "${bmfp_release_top_level[@]}"; do
-    [[ -d "$base_dir/$entry" ]] || same "$entry"
+    if bmfp_release_is_allowed "$entry"; then
+        same "$entry"
+    fi
 done
 while IFS= read -r source; do
     same "$source"
@@ -79,6 +83,8 @@ done < <(cd "$base_dir" && find src -type f -name '*.php' | LC_ALL=C sort)
 while IFS= read -r dependency; do
     bmfp_release_is_allowed "$dependency" && same "$dependency"
 done < <(cd "$base_dir" && find vendor-prefixed -type f | LC_ALL=C sort)
+diff -qr "$base_dir/languages" "$work/zip/$slug/languages" || fail 'packaged translations differ from languages/'
+[[ -z "$(find "$work/zip/$slug/assets" -mindepth 1 -type d -print -quit)" ]] || fail 'assets/ must not contain subdirectories'
 packaged_src=$(grep -c "^$slug/src/.*\.php$" <<<"$listing" || true)
 source_src=$(cd "$base_dir" && find src -type f -name '*.php' | wc -l)
 [[ "$packaged_src" -eq "$source_src" ]] || fail "src/ has $source_src PHP files but the ZIP has $packaged_src"

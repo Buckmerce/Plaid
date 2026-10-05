@@ -9,7 +9,7 @@ use Buckmerce\Plaid\Settings\AccountScope;
 use Buckmerce\Plaid\Support\Decimal;
 
 /**
- * /transfer/event/sync position of one Plaid event stream (environment + account, ADR-0018).
+ * /transfer/event/sync position of one Plaid event stream (environment + account).
  * It is advanced only after every event up to the new position is durably recorded in the
  * event store. A Plaid account that never synced here starts at 0; another account's cursor
  * is never used, and a previous account's cursor is kept for auditing.

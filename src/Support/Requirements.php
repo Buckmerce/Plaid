@@ -10,7 +10,7 @@ final class Requirements
      * WooCommerce 8.7.0 is the first release whose HPOS data store persists refund properties
      * changed after the refund was created (WooCommerce PR #44214). Earlier versions drop
      * WC_Order_Refund::set_refunded_payment(true) under HPOS, so a successful Plaid refund would
-     * not be recorded as refunded through the gateway (ADR-0022).
+     * not be recorded as refunded through the gateway.
      */
     public const MIN_WOOCOMMERCE = '8.7';
 

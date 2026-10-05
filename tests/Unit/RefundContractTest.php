@@ -16,7 +16,7 @@ use Buckmerce\Plaid\Refund\RefundState;
 use Buckmerce\Plaid\Tests\Support\FakePlaidClient;
 use PHPUnit\Framework\TestCase;
 
-/** Plaid refund, transfer-window and refund-event contracts (docs/api/PLAID_TRANSFER.md). */
+/** Plaid refund, transfer-window and refund-event contracts. */
 final class RefundContractTest extends TestCase
 {
     /** @return array<string, mixed> */

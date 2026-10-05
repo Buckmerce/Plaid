@@ -2,10 +2,10 @@
 
 /**
  * v1 lifecycle guarantees against real WordPress/WooCommerce and the Plaid double:
- * maintenance independent of the enabled switch (ADR-0014), return-window monitoring,
- * Plaid account/environment guard (ADR-0015), legal name, no re-debit after a return
- * (ADR-0019) with attempt history (ADR-0017), merchant cancel and manual-review actions,
- * Link customization in both environments (ADR-0020).
+ * maintenance independent of the enabled switch, return-window monitoring,
+ * Plaid account/environment guard, legal name, no re-debit after a return
+ * with attempt history, merchant cancel and manual-review actions,
+ * Link customization in both environments.
  */
 
 declare(strict_types=1);
@@ -275,7 +275,7 @@ bmfp_configure();
 bmfp_assert_same('sandbox', Settings::load()->environment_name(), 'Switching is allowed once nothing is monitored.');
 
 // ---------------------------------------------------------------------------------
-WP_CLI::log('Returned payment: explicit semantics, history kept, no same-order re-debit (ADR-0019)');
+WP_CLI::log('Returned payment: explicit semantics, history kept, no same-order re-debit');
 bmfp_reset_world();
 delete_option('bmfp_test_mails');
 $returned = bmfp_order('33.33');

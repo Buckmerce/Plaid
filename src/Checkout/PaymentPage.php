@@ -34,7 +34,7 @@ final class PaymentPage
 
     /**
      * WooCommerce order-pay form: Pay by Bank is not offered for an order whose bank payment was
-     * returned (ADR-0019), so tell the customer why instead of leaving them guessing.
+     * returned, so tell the customer why instead of leaving them guessing.
      *
      * @param mixed $order
      */
@@ -97,7 +97,7 @@ final class PaymentPage
     private function enqueue(\WC_Order $order, string $order_key): void
     {
         wp_enqueue_script('buckmerce-plaid-link', self::PLAID_LINK_SCRIPT, array(), null, true); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- Plaid requires loading Link from its CDN without modification.
-        wp_enqueue_script('buckmerce-plaid-payment', BUCKMERCE_PLAID_URL . 'assets/build/payment-page.js', array('buckmerce-plaid-link'), BUCKMERCE_PLAID_VERSION, true);
+        wp_enqueue_script('buckmerce-plaid-payment', BUCKMERCE_PLAID_URL . 'assets/payment-page.js', array('buckmerce-plaid-link'), BUCKMERCE_PLAID_VERSION, true);
         wp_enqueue_style('buckmerce-plaid-payment', BUCKMERCE_PLAID_URL . 'assets/payment-page.css', array(), BUCKMERCE_PLAID_VERSION);
         $config = array(
             'orderId' => $order->get_id(),

@@ -10,6 +10,7 @@
  * License: GPLv2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: buckmerce-plaid
+ * Domain Path: /languages
  * WC requires at least: 8.7
  * WC tested up to: 11.1
  *
@@ -51,6 +52,15 @@ add_action(
 		}
 	}
 );
+
+// Bundled translations (languages/). WordPress 6.8+ registers this directory from the plugin
+// headers while it loads plugins; WordPress 6.6 and 6.7 do not, so it is registered here, at the
+// same moment. Registering it later (on `init`) leaves the whole plugin untranslated for the
+// request whenever another plugin lists the payment gateways first. Nothing is loaded here:
+// WordPress reads the files on first use, and a WordPress.org language pack keeps priority.
+if ( isset( $GLOBALS['wp_textdomain_registry'] ) && $GLOBALS['wp_textdomain_registry'] instanceof WP_Textdomain_Registry ) {
+	$GLOBALS['wp_textdomain_registry']->set_custom_path( 'buckmerce-plaid', BUCKMERCE_PLAID_DIR . 'languages' );
+}
 
 register_activation_hook( __FILE__, array( '\\Buckmerce\\Plaid\\Persistence\\Installer', 'activate' ) );
 register_deactivation_hook( __FILE__, array( '\\Buckmerce\\Plaid\\Background\\Scheduler', 'unschedule_all' ) );

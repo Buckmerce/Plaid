@@ -12,12 +12,12 @@ use Buckmerce\Plaid\Settings\AccountScope;
 // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; refund reservations and compare-and-set updates must bypass object caches.
 
 /**
- * Durable record of every refund Buckmerce creates or discovers (ADR-0016).
+ * Durable record of every refund Buckmerce creates or discovers.
  *
  * - The idempotency key is unique: one intended refund can never get two rows, and the
  *   same key is what Plaid receives, so a retried create cannot create a second refund.
  * - One WooCommerce refund object maps to at most one row (unique wc_refund_id).
- * - A Plaid refund is identified by (environment, account_fp, refund_id) (ADR-0018): Plaid does
+ * - A Plaid refund is identified by (environment, account_fp, refund_id): Plaid does
  *   not document refund IDs as unique across clients, so one account's refund can never be
  *   matched, adopted or recorded as another account's. Schema-2 rows whose account is unknown
  *   (AccountScope::LEGACY) still match, so they are never recorded twice.
@@ -323,7 +323,7 @@ final class RefundStore
     }
 
     /**
-     * Refunds that may still change and must stay readable with this Plaid account (ADR-0015).
+     * Refunds that may still change and must stay readable with this Plaid account.
      * An empty fingerprint counts every account of the environment (legacy rows included).
      */
     public function open_count(string $environment, string $account_fp = ''): int

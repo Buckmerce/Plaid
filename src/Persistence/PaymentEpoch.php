@@ -8,7 +8,7 @@ use Buckmerce\Plaid\Settings\AccountScope;
 
 /**
  * The moment this store created its first Transfer Intent with one Plaid account in one
- * environment (ADR-0011, account-scoped by ADR-0018).
+ * environment.
  *
  * /transfer/event/sync returns the whole history of the Plaid account, which can belong to
  * other stores and integrations. An event older than the epoch cannot belong to a Buckmerce

@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Uninstall is deliberately conservative (docs/DATA_MODEL.md §8):
+ * Uninstall is deliberately conservative:
  * - Buckmerce scheduled actions are always removed;
  * - settings, event and refund history and tables are deleted only when the
  *   merchant enabled "Uninstall cleanup";

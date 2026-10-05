@@ -27,7 +27,7 @@ final class OrderMeta
     /** Merchant alert/email for the current attempt's ACH return was already sent. */
     public const RETURN_ALERTED = '_bmfp_return_alerted';
 
-    /** Non-secret identity of the Plaid account that created the current attempt (ADR-0015). */
+    /** Non-secret identity of the Plaid account that created the current attempt. */
     public const ACCOUNT_FINGERPRINT = '_bmfp_account_fingerprint';
     /** Provider timestamps (UTC ISO-8601) of the current transfer. */
     public const TRANSFER_CREATED_AT = '_bmfp_transfer_created_at';

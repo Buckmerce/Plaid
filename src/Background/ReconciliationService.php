@@ -16,7 +16,7 @@ use Buckmerce\Plaid\Settings\Settings;
 /**
  * Recovers from lost webhooks, interrupted workers and stale state using authoritative
  * Plaid reads. It maintains EXISTING payments and refunds, so it runs whether or not the
- * gateway currently accepts new payments (ADR-0014). Work per run is bounded and uses
+ * gateway currently accepts new payments. Work per run is bounded and uses
  * indexed queries only; it never scans WooCommerce orders.
  */
 final class ReconciliationService

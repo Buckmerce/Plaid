@@ -4,7 +4,7 @@
  *
  * It intercepts only sandbox.plaid.com / production.plaid.com requests through
  * WordPress' pre_http_request filter, validates request bodies against the
- * documented contracts (docs/api) and mirrors Plaid Sandbox behavior, including
+ * documented contracts and mirrors Plaid Sandbox behavior, including
  * the Plaid Ledger rejection of funding_account_id and the $11.11 / $22.22 /
  * $33.33 transfer scenarios. Like real Plaid clients, every client_id has its own
  * intents, transfers, refunds and transfer-event stream (event IDs start at 1 per
@@ -238,7 +238,7 @@ final class Buckmerce_Test_Plaid_Mock
             return self::error(400, 'INVALID_REQUEST', 'INVALID_FIELD', 'invalid link token request');
         }
         if ('' === (string) ($body['link_customization_name'] ?? '')) {
-            // Plaid itself would fall back to its default customization; Buckmerce must never rely on that (ADR-0020).
+            // Plaid itself would fall back to its default customization; Buckmerce must never rely on that.
             return self::error(400, 'INVALID_REQUEST', 'MISSING_FIELDS', 'test double: Buckmerce must always send link_customization_name');
         }
         if ('invalid_customization' === ($body['link_customization_name'] ?? '')) {

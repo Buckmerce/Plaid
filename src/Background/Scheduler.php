@@ -16,10 +16,10 @@ use Buckmerce\Plaid\Settings\Settings;
  * Action Scheduler integration. All actions are Buckmerce-owned and grouped under
  * buckmerce-plaid.
  *
- * Accepting new payments and maintaining existing ones are separate (ADR-0014): disabling
+ * Accepting new payments and maintaining existing ones are separate: disabling
  * the gateway only hides Pay by Bank at checkout. The recurring reconciliation keeps running
  * while Buckmerce can read Plaid and there is real work for the configured Plaid account:
- * monitored payments, open refunds, unprocessed events or a failed event sync (ADR-0021).
+ * monitored payments, open refunds, unprocessed events or a failed event sync.
  * When none remains it stops; a verified webhook still triggers event sync at any time.
  */
 final class Scheduler

@@ -9,7 +9,11 @@ require __DIR__ . '/helpers.php';
 use Automattic\WooCommerce\Utilities\FeaturesUtil;
 use Automattic\WooCommerce\Utilities\OrderUtil;
 use Buckmerce\Plaid\Background\Scheduler;
+use Buckmerce\Plaid\Checkout\BuckmercePaymentMethod;
+use Buckmerce\Plaid\Checkout\PaymentPage;
+use Buckmerce\Plaid\Gateway\BuckmerceGateway;
 use Buckmerce\Plaid\Persistence\Installer;
+use Buckmerce\Plaid\Plugin;
 use Buckmerce\Plaid\Settings\Settings;
 
 global $wpdb;
@@ -156,7 +160,46 @@ bmfp_assert(Installer::schema_is_valid() && '3' === get_option(Installer::OPTION
 bmfp_assert_same(Settings::load()->account_fingerprint(), (string) $wpdb->get_var("SELECT account_fp FROM {$locks_table} WHERE order_id = 987654321"), 'Existing payments are attributed to the configured Plaid account.');
 $wpdb->query("DELETE FROM {$locks_table} WHERE order_id = 987654321");
 
-// Only documented Buckmerce options exist (docs/DATA_MODEL.md §9).
+// Every stylesheet, script and image the plugin hands to WordPress is a file of the installed ZIP
+// and sits directly in assets/ (the directory has no subdirectories).
+$_GET['section'] = Settings::GATEWAY_ID;
+BuckmerceGateway::enqueue_admin_assets('woocommerce_page_wc-settings');
+unset($_GET['section']);
+( new Plugin() )->enqueue_order_styles('woocommerce_page_wc-orders');
+$block_method = new BuckmercePaymentMethod();
+bmfp_assert_same(array('buckmerce-plaid-blocks'), $block_method->get_payment_method_script_handles(), 'The Checkout block registers its script.');
+$enqueue_payment_page = new ReflectionMethod(PaymentPage::class, 'enqueue');
+$enqueue_payment_page->setAccessible(true);
+$enqueue_payment_page->invoke(new PaymentPage(), new WC_Order(), 'wc_order_assets');
+$asset_urls = array('gateway icon' => (string) $gateway->icon, 'Checkout block icon' => (string) $block_method->get_payment_method_data()['icon']);
+foreach (array('script' => wp_scripts(), 'style' => wp_styles()) as $kind => $dependencies) {
+    foreach ($dependencies->registered as $handle => $dependency) {
+        if (str_starts_with((string) $handle, 'buckmerce-plaid') && is_string($dependency->src) && str_starts_with($dependency->src, BUCKMERCE_PLAID_URL)) {
+            $asset_urls[$kind . ' ' . $handle] = $dependency->src;
+        }
+    }
+}
+$asset_files = array();
+foreach ($asset_urls as $label => $url) {
+    bmfp_assert(str_starts_with($url, BUCKMERCE_PLAID_URL), 'The ' . $label . ' is served from the plugin directory: ' . $url);
+    $relative = substr($url, strlen(BUCKMERCE_PLAID_URL));
+    bmfp_assert(1 === preg_match('~^assets/[a-z0-9]+(-[a-z0-9]+)*\.(css|js|svg|png|jpg|webp)$~', $relative), 'The ' . $label . ' sits directly in assets/: ' . $relative);
+    bmfp_assert(is_file(BUCKMERCE_PLAID_DIR . $relative), 'The ' . $label . ' is a file of the installed ZIP: ' . $relative);
+    $asset_files[] = $relative;
+}
+$asset_files = array_values(array_unique($asset_files));
+sort($asset_files);
+bmfp_assert_same(
+    array('assets/admin-settings.css', 'assets/admin-settings.js', 'assets/blocks.js', 'assets/buckmerce-mark.svg', 'assets/payment-page.css', 'assets/payment-page.js'),
+    $asset_files,
+    'Settings, order screens, Checkout block and payment page load every shipped asset.'
+);
+$installed_assets = array_map(static fn (string $path): string => 'assets/' . basename($path), glob(BUCKMERCE_PLAID_DIR . 'assets/*') ?: array());
+sort($installed_assets);
+bmfp_assert_same($asset_files, $installed_assets, 'The installed assets/ directory holds exactly the loaded files, with no subdirectory.');
+bmfp_assert_same('https://cdn.plaid.com/link/v2/stable/link-initialize.js', wp_scripts()->registered['buckmerce-plaid-link']->src ?? null, 'Plaid Link is loaded from Plaid, as Plaid requires.');
+
+// Only documented Buckmerce options exist.
 global $wpdb;
 $documented_options = array(
     'woocommerce_buckmerce_plaid_settings',
@@ -169,7 +212,7 @@ $documented_options = array(
     'buckmerce_plaid_last_webhook_rejection',
     'buckmerce_plaid_last_link_token_error',
 );
-// Per Plaid account (environment + 16-hex account fingerprint, ADR-0018).
+// Per Plaid account (environment + 16-hex account fingerprint).
 $scoped_option = '/^buckmerce_plaid_(event_cursor|first_intent_at|event_sync)_(sandbox|production)_[a-f0-9]{16}$/';
 $buckmerce_options = $wpdb->get_col($wpdb->prepare("SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s", 'buckmerce%', 'woocommerce_buckmerce%'));
 $undocumented = array_filter(array_diff($buckmerce_options, $documented_options), static fn (string $name): bool => 1 !== preg_match($scoped_option, $name));

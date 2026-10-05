@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Account-scoped Plaid event streams (ADR-0018) against real WordPress/WooCommerce and the
+ * Account-scoped Plaid event streams against real WordPress/WooCommerce and the
  * per-client Plaid double: a merchant legitimately switches Plaid accounts in one environment
  * after account A processed events 1..1000; account B's stream starts at 1 again. Cursors,
  * epochs, stored events, refund identities, diagnostics and webhooks must stay per account.

@@ -10,7 +10,7 @@ use Buckmerce\Plaid\Settings\Settings;
 
 /**
  * "Pay by Bank" column in the WooCommerce orders list (HPOS and legacy). Returned payments
- * keep the standard Failed status (ADR-0012); this column makes them — and payments in manual
+ * keep the standard Failed status; this column makes them — and payments in manual
  * review or still in the ACH return window — impossible to overlook in the list.
  */
 final class OrderListColumn

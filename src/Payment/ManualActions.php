@@ -15,7 +15,7 @@ use Buckmerce\Plaid\Plaid\TransferIntent\TransferIntentService;
 use Buckmerce\Plaid\Settings\Settings;
 
 /**
- * Explicit merchant actions on a payment (docs/RUNBOOKS.md). Each runs under the order's
+ * Explicit merchant actions on a payment. Each runs under the order's
  * payment mutex, re-reads Plaid first and never guesses: when Plaid's answer does not allow
  * the action, nothing changes.
  */
@@ -143,7 +143,7 @@ final class ManualActions
             return false;
         }
         if (ReturnRetryPolicy::for_order($order)->is_blocked()) {
-            // An earlier transfer of this order was returned: no new bank debit (ADR-0019).
+            // An earlier transfer of this order was returned: no new bank debit.
             return false;
         }
         if ('' === $intent_id) {

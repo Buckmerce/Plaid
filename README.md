@@ -1,6 +1,6 @@
 # Bank Payments via Plaid for WooCommerce
 
-[![Quality](https://github.com/al5dy/buckmerce-plaid/actions/workflows/quality.yml/badge.svg?branch=master)](https://github.com/al5dy/buckmerce-plaid/actions/workflows/quality.yml)
+[![Quality](https://github.com/Buckmerce/Plaid/actions/workflows/quality.yml/badge.svg?branch=master)](https://github.com/Buckmerce/Plaid/actions/workflows/quality.yml)
 ![PHP](https://img.shields.io/badge/PHP-8.1%E2%80%938.4-777BB4?logo=php&logoColor=white)
 ![WordPress](https://img.shields.io/badge/WordPress-6.6%2B-21759B?logo=wordpress&logoColor=white)
 ![WooCommerce](https://img.shields.io/badge/WooCommerce-8.7%2B-96588A?logo=woocommerce&logoColor=white)
@@ -790,12 +790,12 @@ resources/scss/
 resources/images/
 ```
 
-Generated release assets:
+Generated release assets (build output: ignored by Git, shipped only in the release ZIP, no subdirectories):
 
 ```text
-assets/build/
 assets/*.css
-assets/images/
+assets/*.js
+assets/*.svg
 ```
 
 Build:

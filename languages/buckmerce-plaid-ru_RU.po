@@ -1028,7 +1028,7 @@ msgid "Your payment needs review by the store. Please contact the store."
 msgstr "Ваш платёж должен проверить магазин. Пожалуйста, свяжитесь с магазином."
 
 #: src/Checkout/PaymentPage.php:123
-#: src/REST/RestRoutes.php:108
+#: src/REST/RestRoutes.php:107
 msgid "The bank payment could not be started. Please try again."
 msgstr "Не удалось начать банковский платёж. Пожалуйста, попробуйте снова."
 
@@ -1037,7 +1037,7 @@ msgid "The secure bank connection could not be loaded. Check your connection and
 msgstr "Не удалось загрузить защищённое подключение к банку. Проверьте соединение и попробуйте снова."
 
 #: src/Checkout/PaymentPage.php:125
-#: src/REST/RestRoutes.php:105
+#: src/REST/RestRoutes.php:104
 msgid "Pay by Bank is not available for this order right now. Please contact the store or choose another payment method."
 msgstr "Оплата через банк сейчас недоступна для этого заказа. Свяжитесь с магазином или выберите другой способ оплаты."
 
@@ -1046,8 +1046,8 @@ msgid "This order has no account holder name. Please contact the store."
 msgstr "В этом заказе не указано имя владельца счёта. Пожалуйста, свяжитесь с магазином."
 
 #: src/Checkout/PaymentPage.php:128
-#: src/REST/RestRoutes.php:93
-#: src/REST/RestRoutes.php:125
+#: src/REST/RestRoutes.php:92
+#: src/REST/RestRoutes.php:124
 msgid "Too many attempts. Please wait a few minutes and try again."
 msgstr "Слишком много попыток. Подождите несколько минут и попробуйте снова."
 
@@ -1764,21 +1764,21 @@ msgstr "Причина: %s"
 msgid "Warning: the original bank payment can still be returned by the customer's bank until about %s. If it is returned, you may lose both the payment and this refund; Buckmerce will alert you."
 msgstr "Внимание: банк покупателя ещё может вернуть исходный банковский платёж примерно до %s. Если платёж будет возвращён, вы можете потерять и платёж, и этот возврат средств; Buckmerce уведомит вас."
 
-#: src/REST/RestRoutes.php:81
-#: src/REST/RestRoutes.php:90
-#: src/REST/RestRoutes.php:122
+#: src/REST/RestRoutes.php:80
+#: src/REST/RestRoutes.php:89
+#: src/REST/RestRoutes.php:121
 msgid "This payment session is not valid."
 msgstr "Эта сессия оплаты недействительна."
 
-#: src/REST/RestRoutes.php:98
+#: src/REST/RestRoutes.php:97
 msgid "Your bank payment is being prepared. Please try again in a few seconds."
 msgstr "Ваш банковский платёж подготавливается. Повторите попытку через несколько секунд."
 
-#: src/REST/RestRoutes.php:100
+#: src/REST/RestRoutes.php:99
 msgid "If you cannot change it, please contact the store."
 msgstr "Если вы не можете это изменить, свяжитесь с магазином."
 
-#: src/REST/RestRoutes.php:133
+#: src/REST/RestRoutes.php:132
 msgid "The payment could not be confirmed. Please try again."
 msgstr "Не удалось подтвердить платёж. Пожалуйста, попробуйте снова."
 

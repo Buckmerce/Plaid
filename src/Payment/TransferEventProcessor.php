@@ -23,8 +23,8 @@ use Buckmerce\Plaid\Support\SiteMarker;
  * Applies one durable Plaid transfer event (fetched via /transfer/event/sync)
  * to its WooCommerce order. Idempotent: replays are NOOP/STALE in the state machine.
  *
- * Every correlation is limited to the Plaid account whose stream delivered the event
- * (ADR-0018): an order paid through another account is never changed by this event.
+ * Every correlation is limited to the Plaid account whose stream delivered the event.
+ * An order paid through another account is never changed by this event.
  */
 final class TransferEventProcessor
 {

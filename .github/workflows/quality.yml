@@ -38,15 +38,15 @@ env:
   # Throwaway password of the CI-only database service containers; not a secret.
   BUCKMERCE_PLAID_TEST_DB_PASSWORD: buckmerce-ci-only
   # vendor-prefixed/composer/InstalledVersions.php is copied from Composer's own runtime, so the
-  # committed prefixed tree is reproducible only with this exact Composer version (docs/CI_CD_RELEASE.md).
+  # committed prefixed tree is reproducible only with this exact Composer version.
   COMPOSER_VERSION: '2.10.3'
 
 jobs:
   composer-validation:
     name: Composer validation
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
@@ -63,29 +63,15 @@ jobs:
           untracked=$(git ls-files --others --exclude-standard -- vendor-prefixed)
           [[ -z "$untracked" ]] || { echo "::error::Generated but uncommitted files in vendor-prefixed/:"; echo "$untracked"; exit 1; }
 
-  docs-integrity:
-    name: Documentation integrity and source audit
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Mandatory engineering documentation is tracked
-        run: bash scripts/check-docs.sh
-      - name: The only identity is Buckmerce (no former identifier in any file name or content)
-        run: bash scripts/check-identity.sh
-      - name: The source archive distributes no credentials, .env files, traces, IDE state or caches
-        run: bash scripts/audit-source.sh
-
   php-syntax:
     name: PHP syntax (PHP ${{ matrix.php }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
         php: ['8.1', '8.4']
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '${{ matrix.php }}'
@@ -94,16 +80,16 @@ jobs:
 
   scripts-lint:
     name: Shell scripts (shellcheck)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: shellcheck -x -P SCRIPTDIR -S warning scripts/*.sh scripts/lib/*.sh
 
   phpcs:
     name: PHPCS
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
@@ -114,9 +100,9 @@ jobs:
 
   phpstan:
     name: PHPStan (level 6)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
@@ -127,7 +113,7 @@ jobs:
 
   phpunit:
     name: PHPUnit (PHP ${{ matrix.php }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     continue-on-error: ${{ matrix.experimental }}
     strategy:
       fail-fast: false
@@ -135,11 +121,11 @@ jobs:
         php: ['8.1', '8.2', '8.3', '8.4']
         experimental: [false]
         include:
-          # PHP 8.5 runs as an early-warning job; it is not claimed as supported (docs/CI_CD_RELEASE.md).
+          # PHP 8.5 runs as an early-warning job; it is not claimed as supported.
           - php: '8.5'
             experimental: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '${{ matrix.php }}'
@@ -150,15 +136,19 @@ jobs:
 
   dependency-audit:
     name: Dependency audit
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Source and credentials audit
+        run: bash scripts/audit-source.sh
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
           tools: composer:2.10.3
           coverage: none
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -172,19 +162,19 @@ jobs:
   dependency-review:
     name: Dependency review
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/dependency-review-action@v4
+      - uses: actions/checkout@v7
+      - uses: actions/dependency-review-action@v5
         with:
           fail-on-severity: high
 
   frontend-build:
     name: Front-end build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -193,10 +183,10 @@ jobs:
 
   typecheck:
     name: TypeScript typecheck
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -205,10 +195,10 @@ jobs:
 
   javascript-lint:
     name: JavaScript lint and tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -218,18 +208,19 @@ jobs:
 
   package:
     name: Package (build once, verify, hash)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       zip_name: ${{ steps.hash.outputs.zip_name }}
       zip_sha256: ${{ steps.hash.outputs.zip_sha256 }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
-          tools: wp-cli
+          tools: composer:2.10.3
           coverage: none
-      - uses: actions/setup-node@v4
+      - uses: ./.github/actions/setup-wp-cli
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -251,7 +242,7 @@ jobs:
           echo "zip_sha256=$(cut -d' ' -f1 "$zip.sha256")" >> "$GITHUB_OUTPUT"
           echo "### Release artifact" >> "$GITHUB_STEP_SUMMARY"
           echo "\`$(cat "$zip.sha256")\`" >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: buckmerce-plaid-zip
           path: |
@@ -263,12 +254,12 @@ jobs:
   package-smoke:
     name: Pristine install smoke (WP ${{ matrix.wordpress }}, WC ${{ matrix.woocommerce }}, PHP ${{ matrix.php }})
     needs: package
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
         include:
-          # Minimum supported stack (WooCommerce 8.7: ADR-0022) and the latest stable stack. Each
+          # Minimum supported stack (WooCommerce 8.7) and the latest stable stack. Each
           # runs a fresh HPOS store and a fresh legacy-storage store.
           - { php: '8.1', wordpress: '6.6', woocommerce: '8.7.0' }
           - { php: '8.4', wordpress: '7.1.2', woocommerce: '11.1.2' }
@@ -285,14 +276,15 @@ jobs:
       BUCKMERCE_PLAID_TEST_WP_VERSION: '${{ matrix.wordpress }}'
       BUCKMERCE_PLAID_TEST_WC_VERSION: '${{ matrix.woocommerce }}'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '${{ matrix.php }}'
           extensions: mysqli, mbstring, dom, gd
-          tools: wp-cli
+          tools: composer:2.10.3
           coverage: none
-      - uses: actions/download-artifact@v4
+      - uses: ./.github/actions/setup-wp-cli
+      - uses: actions/download-artifact@v8
         with:
           name: buckmerce-plaid-zip
           path: dist
@@ -301,19 +293,19 @@ jobs:
   source-package-parity:
     name: Source/package parity
     needs: package
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
           coverage: none
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
       - run: npm ci
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: buckmerce-plaid-zip
           path: dist
@@ -332,12 +324,12 @@ jobs:
   integration-mysql:
     name: Integration MySQL ${{ matrix.mysql }} (WP ${{ matrix.wordpress }}, WC ${{ matrix.woocommerce }}, PHP ${{ matrix.php }})
     needs: package
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
         include:
-          # Minimum supported (WooCommerce 8.7: ADR-0022), an intermediate combination and the latest stable stack.
+          # Minimum supported (WooCommerce 8.7), an intermediate combination and the latest stable stack.
           - { php: '8.1', wordpress: '6.6', woocommerce: '8.7.0', mysql: '8.0' }
           - { php: '8.3', wordpress: '6.8', woocommerce: '9.9.5', mysql: '8.0' }
           - { php: '8.2', wordpress: '7.1.2', woocommerce: '11.1.2', mysql: '8.4' }
@@ -355,14 +347,15 @@ jobs:
       BUCKMERCE_PLAID_TEST_WP_VERSION: '${{ matrix.wordpress }}'
       BUCKMERCE_PLAID_TEST_WC_VERSION: '${{ matrix.woocommerce }}'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '${{ matrix.php }}'
           extensions: mysqli, mbstring, dom, gd
-          tools: wp-cli
+          tools: composer:2.10.3
           coverage: none
-      - uses: actions/download-artifact@v4
+      - uses: ./.github/actions/setup-wp-cli
+      - uses: actions/download-artifact@v8
         with:
           name: buckmerce-plaid-zip
           path: dist
@@ -372,7 +365,7 @@ jobs:
   integration-mariadb:
     name: Integration MariaDB ${{ matrix.mariadb }} (WP ${{ matrix.wordpress }}, WC ${{ matrix.woocommerce }}, PHP ${{ matrix.php }})
     needs: package
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -392,14 +385,15 @@ jobs:
       BUCKMERCE_PLAID_TEST_WP_VERSION: '${{ matrix.wordpress }}'
       BUCKMERCE_PLAID_TEST_WC_VERSION: '${{ matrix.woocommerce }}'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '${{ matrix.php }}'
           extensions: mysqli, mbstring, dom, gd
-          tools: wp-cli
+          tools: composer:2.10.3
           coverage: none
-      - uses: actions/download-artifact@v4
+      - uses: ./.github/actions/setup-wp-cli
+      - uses: actions/download-artifact@v8
         with:
           name: buckmerce-plaid-zip
           path: dist
@@ -409,7 +403,7 @@ jobs:
   plugin-check:
     name: WordPress Plugin Check (release ZIP)
     needs: package
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     services:
       mysql:
         image: mysql:8.4
@@ -420,14 +414,15 @@ jobs:
         options: >-
           --health-cmd="mysqladmin ping --silent" --health-interval=10s --health-timeout=5s --health-retries=10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
           extensions: mysqli, mbstring, dom, gd
-          tools: wp-cli
+          tools: composer:2.10.3
           coverage: none
-      - uses: actions/download-artifact@v4
+      - uses: ./.github/actions/setup-wp-cli
+      - uses: actions/download-artifact@v8
         with:
           name: buckmerce-plaid-zip
           path: dist
@@ -438,7 +433,7 @@ jobs:
     # accessibility checks (axe-core, keyboard, focus) of Buckmerce-owned UI.
     name: Browser E2E (Classic + Blocks checkout, admin refunds, accessibility)
     needs: package
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     services:
       mysql:
         image: mysql:8.4
@@ -452,19 +447,20 @@ jobs:
       BUCKMERCE_PLAID_TEST_WP_VERSION: '7.1.2'
       BUCKMERCE_PLAID_TEST_WC_VERSION: '11.1.2'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
           extensions: mysqli, mbstring, dom, gd
-          tools: wp-cli
+          tools: composer:2.10.3
           coverage: none
-      - uses: actions/setup-node@v4
+      - uses: ./.github/actions/setup-wp-cli
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
       - run: npm ci
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: buckmerce-plaid-zip
           path: dist
@@ -475,7 +471,7 @@ jobs:
           echo '/tmp/core.%e.%p' | sudo tee /proc/sys/kernel/core_pattern >/dev/null
       - run: bash scripts/test-browser-e2e.sh
       - if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-output
           path: output/playwright
@@ -487,7 +483,7 @@ jobs:
     needs: package
     # Secrets are never exposed to forked pull requests.
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       # 'true' only when the gate really ran against Plaid Sandbox and passed; a green job that
       # skipped the gate (no secrets on a push/PR) reports 'false' and is never counted as executed.
@@ -516,17 +512,18 @@ jobs:
       BUCKMERCE_PLAID_TEST_WP_VERSION: '7.1.2'
       BUCKMERCE_PLAID_TEST_WC_VERSION: '11.1.2'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
           extensions: mysqli, mbstring, dom, gd
-          tools: wp-cli
+          tools: composer:2.10.3
           coverage: none
-      - uses: actions/setup-node@v4
+      - uses: ./.github/actions/setup-wp-cli
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: buckmerce-plaid-zip
           path: dist
@@ -564,7 +561,7 @@ jobs:
           fi
           exit "$status"
       - if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sandbox-output
           path: |
@@ -577,7 +574,6 @@ jobs:
     name: Quality Gate
     needs:
       - composer-validation
-      - docs-integrity
       - php-syntax
       - scripts-lint
       - phpcs
@@ -597,7 +593,7 @@ jobs:
       - browser-e2e
       - sandbox
     if: always()
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Every required job succeeded
         shell: bash
@@ -608,7 +604,7 @@ jobs:
         run: |
           echo "$RESULTS" | jq -r 'to_entries[] | "\(.key)=\(.value.result)"'
           echo "Real Plaid Sandbox executed: ${SANDBOX_EXECUTED:-false}"
-          for job in composer-validation docs-integrity php-syntax scripts-lint phpcs phpstan phpunit dependency-audit frontend-build typecheck javascript-lint package package-smoke source-package-parity integration-mysql integration-mariadb plugin-check browser-e2e; do
+          for job in composer-validation php-syntax scripts-lint phpcs phpstan phpunit dependency-audit frontend-build typecheck javascript-lint package package-smoke source-package-parity integration-mysql integration-mariadb plugin-check browser-e2e; do
             result=$(echo "$RESULTS" | jq -r --arg job "$job" '.[$job].result')
             [[ "$result" == success ]] || { echo "::error::$job: $result"; exit 1; }
           done

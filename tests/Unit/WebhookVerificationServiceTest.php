@@ -14,7 +14,7 @@ use Buckmerce\Plaid\Tests\Support\FakePlaidClient;
 use Buckmerce\Plaid\Vendor\Firebase\JWT\JWT;
 use PHPUnit\Framework\TestCase;
 
-/** Webhook security matrix (CLAUDE.md Task 55) against real ES256 signatures. */
+/** Webhook security matrix against real ES256 signatures. */
 final class WebhookVerificationServiceTest extends TestCase
 {
     private const KID = 'bfbd5111-8e33-4643-8ced-b2e642a72f3c';

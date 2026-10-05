@@ -37,7 +37,7 @@ final class BuckmerceGateway extends \WC_Payment_Gateway
         $this->method_description = __('Pay by Bank through Plaid Transfer. Customers authorize a one-time ACH debit in Plaid Transfer UI; orders are updated from verified Plaid transfer events, and refunds are sent back to the customer\'s bank through Plaid.', 'buckmerce-plaid');
         $this->has_fields = false;
         $this->supports = array('products', 'refunds');
-        $this->icon = BUCKMERCE_PLAID_URL . 'assets/images/buckmerce-mark.svg';
+        $this->icon = BUCKMERCE_PLAID_URL . 'assets/buckmerce-mark.svg';
         $this->init_form_fields();
         $this->init_settings();
         $this->title = $this->get_option('title', __('Pay by Bank', 'buckmerce-plaid'));
@@ -84,7 +84,7 @@ final class BuckmerceGateway extends \WC_Payment_Gateway
             return;
         }
         wp_enqueue_style('buckmerce-plaid-admin', BUCKMERCE_PLAID_URL . 'assets/admin-settings.css', array(), BUCKMERCE_PLAID_VERSION);
-        wp_enqueue_script('buckmerce-plaid-admin', BUCKMERCE_PLAID_URL . 'assets/build/admin-settings.js', array(), BUCKMERCE_PLAID_VERSION, true);
+        wp_enqueue_script('buckmerce-plaid-admin', BUCKMERCE_PLAID_URL . 'assets/admin-settings.js', array(), BUCKMERCE_PLAID_VERSION, true);
         wp_add_inline_script('buckmerce-plaid-admin', 'window.buckmercePlaidAdmin = ' . wp_json_encode(array('copied' => __('Webhook URL copied.', 'buckmerce-plaid'), 'copyFailed' => __('Select the URL and copy it manually.', 'buckmerce-plaid'))) . ';', 'before');
     }
 
@@ -219,7 +219,7 @@ final class BuckmerceGateway extends \WC_Payment_Gateway
         }
         $order = $this->order_being_paid();
         if (null !== $order && ReturnRetryPolicy::for_order($order)->is_blocked()) {
-            // A returned bank payment is never debited again through Transfer UI (ADR-0019), whichever
+            // A returned bank payment is never debited again through Transfer UI, whichever
             // payment method the order currently names (the customer may have tried another one since).
             return false;
         }
@@ -295,7 +295,7 @@ final class BuckmerceGateway extends \WC_Payment_Gateway
     }
 
     /**
-     * WooCommerce refund → Plaid /transfer/refund/create (ADR-0016). WooCommerce has already
+     * WooCommerce refund → Plaid /transfer/refund/create. WooCommerce has already
      * saved its refund object; on error it deletes it again and shows the message to the admin.
      *
      * @param int        $order_id

@@ -16,12 +16,12 @@ permissions:
 jobs:
   verify-tag:
     name: Verify tag and version metadata
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       version: ${{ steps.version.outputs.version }}
       prerelease: ${{ steps.version.outputs.prerelease }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
           fetch-tags: true
@@ -45,8 +45,6 @@ jobs:
           done
           # readme.txt is tracked and shipped in the ZIP; its changelog is the release changelog.
           grep -qxF "= $VERSION =" readme.txt || { echo "::error::readme.txt has no changelog section for $VERSION"; exit 1; }
-          grep -qE "^## \[?$VERSION\]?( |$)" CHANGELOG.md || { echo "::error::CHANGELOG.md has no section for $VERSION"; exit 1; }
-          bash scripts/check-docs.sh
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           [[ "$VERSION" == *-* ]] && echo "prerelease=true" >> "$GITHUB_OUTPUT" || echo "prerelease=false" >> "$GITHUB_OUTPUT"
 
@@ -61,12 +59,12 @@ jobs:
   release:
     name: Publish the tested ZIP
     needs: [verify-tag, quality]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
         with:
           name: buckmerce-plaid-zip
           path: dist
@@ -94,6 +92,6 @@ jobs:
           gh release create "$GITHUB_REF_NAME" \
             "dist/buckmerce-plaid-$VERSION.zip" \
             "dist/buckmerce-plaid-$VERSION.zip.sha256" \
-            --title "Buckmerce for Plaid $VERSION" \
+            --title "Plaid for WooCommerce $VERSION" \
             --notes "Release ZIP SHA-256: \`$SHA\` (built and tested once by the quality gate of this workflow run). See the changelog in readme.txt." \
             --verify-tag "${flags[@]}"

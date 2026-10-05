@@ -8,6 +8,11 @@
     "defaults",
     "not IE 11"
   ],
+  "adminStyles": "assets/admin-settings.css",
+  "paymentStyles": "assets/payment-page.css",
+  "blocksScript": "assets/blocks.js",
+  "paymentScript": "assets/payment-page.js",
+  "adminScript": "assets/admin-settings.js",
   "targets": {
     "adminStyles": {
       "source": "resources/scss/admin-settings.scss",
@@ -21,34 +26,34 @@
     },
     "blocksScript": {
       "source": "resources/ts/blocks.ts",
-      "distDir": "assets/build",
+      "distDir": "assets",
       "outputFormat": "global",
       "isLibrary": false,
       "sourceMap": false
     },
     "paymentScript": {
       "source": "resources/ts/payment-page.ts",
-      "distDir": "assets/build",
+      "distDir": "assets",
       "outputFormat": "global",
       "isLibrary": false,
       "sourceMap": false
     },
     "adminScript": {
       "source": "resources/ts/admin-settings.ts",
-      "distDir": "assets/build",
+      "distDir": "assets",
       "outputFormat": "global",
       "isLibrary": false,
       "sourceMap": false
     }
   },
   "scripts": {
-    "clean": "rm -rf assets/admin-settings.css assets/payment-page.css assets/build assets/images .parcel-cache",
+    "clean": "rm -rf assets .parcel-cache",
     "build:assets": "parcel build --no-content-hash --no-cache",
     "build:images": "bash scripts/copy-images.sh",
     "build": "npm run clean && npm run build:assets && npm run build:images",
     "watch": "parcel watch",
     "typecheck": "tsc --noEmit",
-    "lint": "npm run typecheck && node --check assets/build/blocks.js && node --check assets/build/payment-page.js && node --check assets/build/admin-settings.js",
+    "lint": "npm run typecheck && node --check assets/blocks.js && node --check assets/payment-page.js && node --check assets/admin-settings.js",
     "test": "npm run build && npm run lint && node --test tests/js/*.test.mjs",
     "test:e2e": "bash scripts/test-browser-e2e.sh",
     "test:integration": "bash scripts/test-integration.sh",

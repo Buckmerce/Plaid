@@ -69,7 +69,7 @@ final class RefundRecord
         );
     }
 
-    /** The Plaid account and environment that own this refund (ADR-0018). */
+    /** The Plaid account and environment that own this refund. */
     public function scope(): AccountScope
     {
         return new AccountScope($this->environment, $this->account_fp);

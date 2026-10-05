@@ -28,7 +28,7 @@ final class TransferIntentRequest
             'iso_currency_code' => $snapshot->currency,
             'description' => self::description($statement_descriptor),
             'network' => $network,
-            // Transfer UI is an Internet-authorized consumer debit: always WEB (ADR-0013).
+            // Transfer UI is an Internet-authorized consumer debit: always WEB.
             'ach_class' => Settings::ACH_CLASS,
             'user' => $user,
             // Correlation only: ASCII strings, no secrets and no personal data.
@@ -42,7 +42,7 @@ final class TransferIntentRequest
             $body['metadata']['bmfp_site'] = $site_marker;
         }
         if ('' !== $funding_account_id) {
-            // Only valid for accounts without Plaid Ledger (ADR-0007).
+            // Only valid for accounts without Plaid Ledger.
             $body['funding_account_id'] = $funding_account_id;
         }
         return $body;
