@@ -171,9 +171,12 @@ if [[ -n "$ngrok_domain" ]]; then
     printf '== Public HTTPS through ngrok: %s\n' "$base_url"
     bmfp_ngrok_start "$ngrok_domain" "$port" "$artifacts/ngrok.log"
     bmfp_wait_public "$base_url/wp-json/buckmerce-plaid/v1"
-    printf '== Catching up with the Plaid account event history\n'
-    gate catch-up
 fi
+# A new store reads the whole event history of the Plaid account, in bounded batches, and every run
+# of this gate adds to that history. It is read to its head before the gate starts (in both modes),
+# so the waits below only cover Plaid's delivery delay and never a backlog that grows with each run.
+printf '== Catching up with the Plaid account event history\n'
+gate catch-up
 
 config=$(BMFP_PRODUCTS="$products" BMFP_CHECKOUT="$checkout_url" BMFP_PUBLIC_HOST="$ngrok_domain" php -r 'echo rawurlencode(json_encode(array("products"=>json_decode(getenv("BMFP_PRODUCTS"),true),"checkout"=>getenv("BMFP_CHECKOUT"),"publicHost"=>getenv("BMFP_PUBLIC_HOST"),"blocksAmount"=>"11.11","exitAmount"=>"22.22","username"=>getenv("BUCKMERCE_PLAID_SANDBOX_USERNAME"),"password"=>getenv("BUCKMERCE_PLAID_SANDBOX_PASSWORD"))));')
 printf '== Plaid Transfer UI: $11.11 (Checkout block), $22.22 (after exiting Link once), $33.33 and a second $11.11 (Classic checkout)\n'

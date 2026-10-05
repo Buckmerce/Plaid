@@ -1,6 +1,7 @@
 <?php
 /**
- * Real Plaid Sandbox webhook gate, driven by scripts/test-sandbox-e2e.sh in public-URL (ngrok) mode.
+ * Real Plaid Sandbox webhook gate, driven by scripts/test-sandbox-e2e.sh. The catch-up step runs in
+ * both modes; the other steps need the public URL (ngrok) mode.
  * Runs inside the disposable Sandbox site: wp eval-file tests/E2E/sandbox-webhooks.php --use-include
  *
  * BMFP_STEP selects the step:
@@ -102,7 +103,8 @@ switch ($step) {
             ++$runs;
             WP_CLI::log(sprintf('  event sync run %d: %s', $runs, (string) wp_json_encode($result)));
             $check('failed' !== $result['status'], 'Historical event sync run ' . $runs . ' succeeded');
-        } while ($result['more'] && 'ok' === $result['status'] && $runs < 40);
+        } while ($result['more'] && 'ok' === $result['status'] && $runs < 200);
+        $check(! $result['more'], 'The Plaid account event history was read to its head (' . $runs . ' bounded runs)');
         foreach ($wpdb->get_results($wpdb->prepare('SELECT status, error_code, COUNT(*) AS n FROM %i GROUP BY status, error_code', $events_table), ARRAY_A) as $row) {
             WP_CLI::log(sprintf('  historical events: %-10s %-22s %d', $row['status'], (string) $row['error_code'], $row['n']));
         }
