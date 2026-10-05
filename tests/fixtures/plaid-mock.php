@@ -601,7 +601,9 @@ final class Buckmerce_Test_Plaid_Mock
         $key = openssl_pkey_new(array('curve_name' => 'prime256v1', 'private_key_type' => OPENSSL_KEYTYPE_EC));
         openssl_pkey_export($key, $pem);
         $details = openssl_pkey_get_details($key);
-        $b64 = static fn (string $bytes): string => rtrim(strtr(base64_encode($bytes), '+/', '-_'), '=');
+        // A JWK coordinate is the full 32 octets of P-256 (RFC 7518 §6.2.1.2), as Plaid sends it. OpenSSL
+        // returns the integer without its leading zero bytes (about one key in 130), so it is padded.
+        $b64 = static fn (string $bytes): string => rtrim(strtr(base64_encode(str_pad($bytes, 32, "\0", STR_PAD_LEFT)), '+/', '-_'), '=');
         $stored = array('pem' => $pem, 'jwk' => array('alg' => 'ES256', 'crv' => 'P-256', 'kid' => self::KID, 'kty' => 'EC', 'use' => 'sig', 'x' => $b64($details['ec']['x']), 'y' => $b64($details['ec']['y']), 'created_at' => time(), 'expired_at' => null));
         update_option(self::KEY, $stored, false);
         return $stored;

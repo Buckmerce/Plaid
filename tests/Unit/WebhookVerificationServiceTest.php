@@ -36,15 +36,25 @@ final class WebhookVerificationServiceTest extends TestCase
         \BuckmerceTestStore::reset();
     }
 
-    /** @return array{string, array<string, mixed>} */
-    private static function key_pair(string $kid): array
+    /**
+     * @param bool $leading_zero Only return a key one of whose coordinates starts with a zero byte.
+     * @return array{string, array<string, mixed>}
+     */
+    private static function key_pair(string $kid, bool $leading_zero = false): array
     {
-        $key = openssl_pkey_new(array('curve_name' => 'prime256v1', 'private_key_type' => OPENSSL_KEYTYPE_EC));
+        $attempts = 0;
+        do {
+            $key = openssl_pkey_new(array('curve_name' => 'prime256v1', 'private_key_type' => OPENSSL_KEYTYPE_EC));
+            $details = false === $key ? false : openssl_pkey_get_details($key);
+            $short = is_array($details) && (strlen($details['ec']['x']) < 32 || strlen($details['ec']['y']) < 32);
+        } while ($leading_zero && ! $short && ++$attempts < 20000);
         self::assertNotFalse($key);
-        openssl_pkey_export($key, $pem);
-        $details = openssl_pkey_get_details($key);
         self::assertIsArray($details);
-        $b64 = static fn (string $bytes): string => rtrim(strtr(base64_encode($bytes), '+/', '-_'), '=');
+        self::assertTrue(! $leading_zero || $short, 'A key with a leading zero coordinate byte was generated.');
+        openssl_pkey_export($key, $pem);
+        // A JWK coordinate is the full 32 octets of P-256 (RFC 7518 §6.2.1.2), as Plaid sends it. OpenSSL
+        // returns the integer without its leading zero bytes (about one key in 130), so it is padded.
+        $b64 = static fn (string $bytes): string => rtrim(strtr(base64_encode(str_pad($bytes, 32, "\0", STR_PAD_LEFT)), '+/', '-_'), '=');
         return array((string) $pem, array(
             'alg' => 'ES256', 'crv' => 'P-256', 'kid' => $kid, 'kty' => 'EC', 'use' => 'sig',
             'x' => $b64($details['ec']['x']), 'y' => $b64($details['ec']['y']), 'created_at' => 1560466150, 'expired_at' => null,
@@ -93,6 +103,19 @@ final class WebhookVerificationServiceTest extends TestCase
         $service->verify(self::BODY, self::jwt(self::BODY));
         self::assertSame(array('/webhook_verification_key/get'), $client->paths(), 'The verification key is fetched once and cached.');
         self::assertSame(array('key_id' => self::KID), $client->calls[0]['body']);
+    }
+
+    public function test_key_with_a_leading_zero_coordinate_is_accepted(): void
+    {
+        // About one P-256 key in 130 has a coordinate that starts with a zero byte. A JWK carries all
+        // 32 octets of it, and the webhook must verify exactly like with any other key.
+        [$pem, $jwk] = self::key_pair(self::KID, true);
+        foreach (array('x', 'y') as $coordinate) {
+            self::assertSame(43, strlen($jwk[$coordinate]), 'A P-256 JWK coordinate is 32 octets (43 base64url characters).');
+        }
+        [$service] = $this->service($jwk);
+        $body = $service->verify(self::BODY, self::jwt(self::BODY, array(), $pem));
+        self::assertSame('TRANSFER_EVENTS_UPDATE', $body['webhook_code']);
     }
 
     public function test_signature_from_another_key_is_rejected(): void
