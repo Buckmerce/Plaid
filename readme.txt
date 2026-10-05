@@ -138,8 +138,7 @@ The plugin bundles `firebase/php-jwt` under the BSD-3-Clause license for Plaid w
 2. Pay by Bank available as a native payment method in WooCommerce checkout, including the Checkout Block.
 3. The Buckmerce payment page showing the order total, Sandbox indicator and “Connect bank and pay” action before Plaid opens.
 4. The WooCommerce order panel with payment attempt, Plaid Transfer Intent, transfer status, return windows, refunds and merchant actions.
-5. Native WooCommerce refund workflow with Buckmerce tracking Plaid refund status and remaining refundable amount.
-6. Buckmerce diagnostics with environment, webhook status, background processing, event synchronization and a sanitized support report.
+5. Buckmerce diagnostics with environment, webhook status, background processing, event synchronization and a sanitized support report.
 
 == Changelog ==
 
