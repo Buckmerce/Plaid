@@ -2,7 +2,8 @@ name: Release
 
 # A tag can only publish the ZIP that the complete quality pipeline built and tested in this
 # same workflow run: quality.yml builds it once, records its SHA-256, runs every gate on it
-# (including the real Plaid Sandbox gate, required here), and this job publishes that file
+# (including the real Plaid Sandbox gate, required here, and with security advisories and an
+# outdated "Tested up to" blocking instead of warning), and this job publishes that file
 # after re-checking the hash. Nothing is rebuilt after testing.
 
 on:
@@ -54,6 +55,7 @@ jobs:
     uses: ./.github/workflows/quality.yml
     with:
       require_sandbox: true
+      release: true
     secrets: inherit
 
   release:
