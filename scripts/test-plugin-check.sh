@@ -55,6 +55,20 @@ printf '%s\n' "$report"
 # No allowlist: the plugin name ("Buckmerce – Bank Payments via Plaid for WooCommerce") follows the
 # "for WooCommerce" naming pattern, so Plugin Check must report no ERROR and no WARNING at all.
 findings=$(grep -E '^[0-9]+,[0-9]+,(ERROR|WARNING),' <<<"$report" || true)
+# One finding depends on the day of the run and not on the commit: Plugin Check compares
+# "Tested up to" with the WordPress release that is current right now, so it appears by itself when
+# a new WordPress version ships. A release must not carry it (strict, the default); on pushes and
+# pull requests (BUCKMERCE_PLAID_EXTERNAL_CHECKS=warn) it is reported and does not fail the run.
+if [[ "${BUCKMERCE_PLAID_EXTERNAL_CHECKS:-strict}" == warn ]]; then
+    outdated='^[0-9]+,[0-9]+,(ERROR|WARNING),outdated_tested_upto_header,'
+    if grep -qE "$outdated" <<<"$findings"; then
+        findings=$(grep -vE "$outdated" <<<"$findings" || true)
+        printf 'Plugin Check: "Tested up to" in readme.txt is behind the current WordPress release. Not blocking here; it blocks a release.\n' >&2
+        if [[ -n "${GITHUB_ACTIONS:-}" ]]; then
+            printf '::warning title=Tested up to::readme.txt "Tested up to" is behind the current WordPress release. Test the plugin with it and update the header before the next release.\n'
+        fi
+    fi
+fi
 if [[ -n "$findings" ]]; then
     printf 'Plugin Check reported findings:\n%s\n' "$findings" >&2
     exit 1

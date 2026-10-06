@@ -1,0 +1,18 @@
+# Security updates only. open-pull-requests-limit: 0 turns the routine version-update pull requests
+# off; Dependabot security updates (a repository setting) are not limited by it and open a pull
+# request with the fixed lock file as soon as an advisory is published for a locked dependency.
+#
+# A Composer pull request that changes a runtime dependency needs vendor-prefixed/ regenerated
+# (composer install) before the "Composer validation" job accepts it.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+  - package-ecosystem: composer
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0

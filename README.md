@@ -879,6 +879,8 @@ The repository includes:
 
 GitHub Actions runs the quality matrix for pushes and pull requests and builds the release artifact from the tested commit.
 
+Every tool and platform version in that pipeline is pinned, so a red run means the commit itself is broken. Two checks depend on the day of the run instead: known security advisories (`bash scripts/audit-dependencies.sh`) and Plugin Check comparing `Tested up to` with the current WordPress release. They warn on pushes and pull requests and block a release. A scheduled workflow audits the locked dependencies of `master` every day, and Dependabot opens security-update pull requests.
+
 ---
 
 ## Privacy and external services

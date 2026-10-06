@@ -2,6 +2,11 @@ name: Quality
 
 # The complete release-quality pipeline. It runs on pushes and pull requests and is also
 # called by release.yml, which publishes the exact ZIP built and tested here (by SHA-256).
+#
+# On pushes and pull requests a red run means the commit itself is broken: every tool, WordPress
+# and WooCommerce version is pinned. The two checks whose result depends on the day of the run —
+# published security advisories and the current WordPress release ("Tested up to") — only warn
+# there; they block a release, and dependency-audit.yml audits master every day.
 
 on:
   push:
@@ -15,6 +20,10 @@ on:
     inputs:
       require_sandbox:
         description: Fail when the real Plaid Sandbox gate cannot run (release builds).
+        type: boolean
+        default: false
+      release:
+        description: Release build. Security advisories and an outdated "Tested up to" block the pipeline instead of warning.
         type: boolean
         default: false
     outputs:
@@ -37,6 +46,10 @@ env:
   BUCKMERCE_PLAID_TEST_DB_USER: root
   # Throwaway password of the CI-only database service containers; not a secret.
   BUCKMERCE_PLAID_TEST_DB_PASSWORD: buckmerce-ci-only
+  # strict: security advisories and an outdated "Tested up to" fail the run (releases). warn: they
+  # are reported as warnings (pushes and pull requests). Read by scripts/audit-dependencies.sh and
+  # scripts/test-plugin-check.sh.
+  BUCKMERCE_PLAID_EXTERNAL_CHECKS: ${{ inputs.release && 'strict' || 'warn' }}
   # vendor-prefixed/composer/InstalledVersions.php is copied from Composer's own runtime, so the
   # committed prefixed tree is reproducible only with this exact Composer version.
   COMPOSER_VERSION: '2.10.3'
@@ -152,12 +165,8 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - name: Composer runtime dependencies (shipped in the ZIP)
-        run: composer audit --locked --no-dev
-      - name: Composer development dependencies
-        run: composer audit --locked
-      - name: npm dependencies (build toolchain of the shipped assets)
-        run: npm audit --audit-level=high
+      - name: Known vulnerabilities in the locked Composer and npm dependencies (blocking for a release, a warning otherwise)
+        run: bash scripts/audit-dependencies.sh
 
   frontend-build:
     name: Front-end build
@@ -454,7 +463,8 @@ jobs:
         with:
           name: buckmerce-plaid-zip
           path: dist
-      - run: npx --yes --package @playwright/cli playwright-cli install-browser chromium
+      - name: Install the browser of the pinned Playwright CLI
+        run: bash scripts/install-playwright-browser.sh
       - name: Allow core dumps of the PHP server (a crash is reported with a backtrace)
         run: |
           sudo apt-get install -y -qq gdb >/dev/null
@@ -517,7 +527,8 @@ jobs:
         with:
           name: buckmerce-plaid-zip
           path: dist
-      - run: npx --yes --package @playwright/cli playwright-cli install-browser chromium
+      - name: Install the browser of the pinned Playwright CLI
+        run: bash scripts/install-playwright-browser.sh
       - name: Install ngrok
         if: env.NGROK_AUTHTOKEN != '' && env.BUCKMERCE_PLAID_NGROK_DOMAIN != ''
         run: |

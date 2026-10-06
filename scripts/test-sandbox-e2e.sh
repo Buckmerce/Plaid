@@ -56,7 +56,7 @@ database_created=false
 server_pid=''
 session="bmfp-sandbox-${task_id,,}"
 wp_cli=(wp --path="$site_dir" --no-color)
-playwright_cli=(npx --yes --package @playwright/cli playwright-cli --session "$session")
+playwright_cli=(npx --yes --package "$bmfp_playwright_cli_package" playwright-cli --session "$session")
 artifacts="$base_dir/output/playwright"
 
 # What a CI log needs to explain a failed run: the web server's state and logs. The server log holds

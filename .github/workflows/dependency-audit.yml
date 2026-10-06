@@ -1,0 +1,35 @@
+name: Dependency audit (daily)
+
+# Known-vulnerability audit of the locked dependencies of master, every day. A new advisory is
+# about the dependencies and not about a commit, so it fails here — in its own run — and not in
+# the Quality pipeline of whatever was pushed that day. Quality runs the same script as a warning
+# on pushes and pull requests and as a blocking gate for a release.
+
+on:
+  schedule:
+    - cron: '23 4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dependency-audit
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    name: Known vulnerabilities in the locked dependencies
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: composer:2.10.3
+          coverage: none
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Composer runtime, Composer development and npm dependencies (any advisory fails)
+        run: bash scripts/audit-dependencies.sh
