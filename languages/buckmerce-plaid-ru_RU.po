@@ -1802,5 +1802,5 @@ msgstr "Здоровье"
 
 #. Plugin Name of the plugin
 #: buckmerce-plaid.php
-msgid "Plaid Payments for WooCommerce"
-msgstr "Plaid Payments for WooCommerce"
+msgid "Buckmerce – Bank Payments via Plaid for WooCommerce"
+msgstr "Buckmerce – Bank Payments via Plaid for WooCommerce"

@@ -52,7 +52,7 @@ fi
 report=$("${wp_cli[@]}" plugin check buckmerce-plaid --format=csv --include-experimental 2>&1 || true)
 printf '%s\n' "$report"
 
-# No allowlist: the plugin name ("Plaid Payments for WooCommerce") follows the
+# No allowlist: the plugin name ("Buckmerce – Bank Payments via Plaid for WooCommerce") follows the
 # "for WooCommerce" naming pattern, so Plugin Check must report no ERROR and no WARNING at all.
 findings=$(grep -E '^[0-9]+,[0-9]+,(ERROR|WARNING),' <<<"$report" || true)
 # One finding depends on the day of the run and not on the commit: Plugin Check compares
