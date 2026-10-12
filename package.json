@@ -2,7 +2,7 @@
   "name": "buckmerce-plaid",
   "version": "1.0.1",
   "private": true,
-  "description": "Plaid Payments for WooCommerce (front-end build).",
+  "description": "Buckmerce – Bank Payments via Plaid for WooCommerce (front-end build).",
   "license": "GPL-2.0-or-later",
   "browserslist": [
     "defaults",
