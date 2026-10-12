@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: Plaid Payments for WooCommerce
+ * Plugin Name: Buckmerce – Bank Payments via Plaid for WooCommerce
  * Description: Secure Pay by Bank payments for WooCommerce using Plaid.
  * Version: 1.0.1
  * Requires at least: 6.6

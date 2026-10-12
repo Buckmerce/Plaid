@@ -1,4 +1,4 @@
-=== Plaid Payments for WooCommerce ===
+=== Buckmerce – Bank Payments via Plaid for WooCommerce ===
 Contributors: al5dy
 Tags: woocommerce, plaid, ach, pay by bank, bank transfer
 Requires at least: 6.6
