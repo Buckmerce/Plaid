@@ -131,7 +131,7 @@ async page => {
 	await login( 'bmfp_admin', 'local-test-password' );
 	await page.goto( baseUrl + '/wp-admin/admin.php?page=wc-settings&tab=checkout&section=buckmerce_plaid', { waitUntil: 'load' } );
 	const settingsHtml = await page.content();
-	assert( settingsHtml.includes( 'Buckmerce for Plaid' ), 'Settings screen renders.' );
+	assert( settingsHtml.includes( 'Plaid Payments' ), 'Settings screen renders.' );
 	assert( ! settingsHtml.includes( 'browser-sandbox-secret-value' ), 'The stored secret is never rendered.' );
 	assert( await page.locator( '#woocommerce_buckmerce_plaid_secret' ).getAttribute( 'type' ) === 'password', 'Secret input is a password field.' );
 	assert( ( await page.locator( '#woocommerce_buckmerce_plaid_secret' ).inputValue() ) === '', 'Secret input is empty.' );
@@ -344,7 +344,7 @@ async page => {
 	await page.locator( 'button.refund-items' ).click();
 	await page.locator( '#refund_amount' ).fill( '5.00' );
 	const refundButton = page.locator( 'button.do-api-refund' );
-	assert( ( await refundButton.textContent() ).includes( 'via Buckmerce for Plaid' ), 'WooCommerce offers an automatic refund through the gateway.' );
+	assert( ( await refundButton.textContent() ).includes( 'via Plaid Payments' ), 'WooCommerce offers an automatic refund through the gateway.' );
 	// WooCommerce asks "Are you sure…?" with window.confirm(). A native dialog would end the
 	// playwright-cli run (it reports a "Modal state" instead of continuing), so the merchant's
 	// confirmation is given in the page itself.

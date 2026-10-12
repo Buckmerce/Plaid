@@ -1,6 +1,6 @@
 {
   "name": "al5dy/buckmerce-plaid",
-  "description": "Buckmerce – Bank Payments via Plaid for WooCommerce (Pay by Bank through Plaid Transfer).",
+  "description": "Plaid Payments for WooCommerce (Pay by Bank through Plaid Transfer).",
   "type": "wordpress-plugin",
   "license": "GPL-2.0-or-later",
   "require": {

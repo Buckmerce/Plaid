@@ -70,7 +70,7 @@ final class ManualActions
             $cancelled = 'cancelled' === $transfer->status;
             $order->add_order_note(sprintf(
                 /* translators: 1: Plaid transfer ID, 2: user ID, 3: Plaid transfer status */
-                $cancelled ? __('Buckmerce: transfer %1$s cancelled at Plaid by user #%2$d before it was sent to the bank.', 'buckmerce-plaid') : __('Buckmerce: transfer %1$s could not be cancelled (user #%2$d); Plaid reports it as %3$s.', 'buckmerce-plaid'),
+                $cancelled ? __('Plaid Payments: transfer %1$s cancelled at Plaid by user #%2$d before it was sent to the bank.', 'buckmerce-plaid') : __('Plaid Payments: transfer %1$s could not be cancelled (user #%2$d); Plaid reports it as %3$s.', 'buckmerce-plaid'),
                 $transfer_id,
                 $user_id,
                 $transfer->status
@@ -114,7 +114,7 @@ final class ManualActions
                 OrderPersistence::save($order, array(OrderMeta::PAYMENT_STATE => null, OrderMeta::TRANSFER_INTENT_ID => null));
                 if (! $order->is_paid() && $order->has_status('on-hold')) {
                     // The review put the unpaid order on hold; the merchant now lets the customer pay it.
-                    $order->update_status('pending', __('Buckmerce: order reopened for payment after manual review.', 'buckmerce-plaid'));
+                    $order->update_status('pending', __('Plaid Payments: order reopened for payment after manual review.', 'buckmerce-plaid'));
                 }
                 $result = 'released';
             }
@@ -122,7 +122,7 @@ final class ManualActions
             $order->save();
             $order->add_order_note(sprintf(
                 /* translators: 1: decision code, 2: user ID */
-                'released' === $result ? __('Buckmerce: manual review resolved (%1$s) by user #%2$d. The unused payment attempt was released; the customer can pay again.', 'buckmerce-plaid') : __('Buckmerce: manual review resolved (%1$s) by user #%2$d. Automatic processing of this payment stays stopped.', 'buckmerce-plaid'),
+                'released' === $result ? __('Plaid Payments: manual review resolved (%1$s) by user #%2$d. The unused payment attempt was released; the customer can pay again.', 'buckmerce-plaid') : __('Plaid Payments: manual review resolved (%1$s) by user #%2$d. Automatic processing of this payment stays stopped.', 'buckmerce-plaid'),
                 $decision,
                 $user_id
             ));
@@ -161,7 +161,7 @@ final class ManualActions
     {
         $fresh = wc_get_order($order->get_id());
         if (! $fresh instanceof \WC_Order || Settings::GATEWAY_ID !== $fresh->get_payment_method()) {
-            throw new PaymentException('The order is not a Buckmerce order.');
+            throw new PaymentException('The order is not a Plaid Payments order.');
         }
         return $fresh;
     }

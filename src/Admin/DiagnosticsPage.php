@@ -22,7 +22,7 @@ use Buckmerce\Plaid\REST\WebhookController;
 use Buckmerce\Plaid\Settings\Settings;
 
 /**
- * WooCommerce → Buckmerce diagnostics. Configuration booleans, health timestamps and
+ * WooCommerce → Plaid Health. Configuration booleans, health timestamps and
  * operational counts from indexed Buckmerce tables — never secrets, never customer data,
  * never a Plaid call on page view.
  */
@@ -42,7 +42,7 @@ final class DiagnosticsPage
 
     public function menu(): void
     {
-        add_submenu_page('woocommerce', __('Buckmerce diagnostics', 'buckmerce-plaid'), __('Buckmerce diagnostics', 'buckmerce-plaid'), 'manage_woocommerce', self::PAGE_SLUG, array($this, 'render'));
+        add_submenu_page('woocommerce', __('Plaid Health', 'buckmerce-plaid'), __('Plaid Health', 'buckmerce-plaid'), 'manage_woocommerce', self::PAGE_SLUG, array($this, 'render'));
     }
 
     /** @return array<string, string> */
@@ -79,8 +79,8 @@ final class DiagnosticsPage
             __('WP-Cron disabled (DISABLE_WP_CRON)', 'buckmerce-plaid') => defined('DISABLE_WP_CRON') && DISABLE_WP_CRON ? $yes : $no,
             __('Background maintenance active', 'buckmerce-plaid') => Scheduler::maintenance_active($settings) ? $yes : $no,
             __('Reconciliation scheduled', 'buckmerce-plaid') => function_exists('as_has_scheduled_action') && as_has_scheduled_action(Scheduler::RECONCILE_HOOK, array(), Scheduler::GROUP) ? $yes : $no,
-            __('Overdue Buckmerce jobs (>30 min)', 'buckmerce-plaid') => (string) ConfigurationStatus::stalled_actions(),
-            __('Failed Buckmerce jobs (7 days)', 'buckmerce-plaid') => (string) ConfigurationStatus::failed_actions(),
+            __('Overdue Plaid Payments jobs (>30 min)', 'buckmerce-plaid') => (string) ConfigurationStatus::stalled_actions(),
+            __('Failed Plaid Payments jobs (7 days)', 'buckmerce-plaid') => (string) ConfigurationStatus::failed_actions(),
             __('Database schema', 'buckmerce-plaid') => $schema_ok ? sprintf(/* translators: %s: schema version */ __('Valid (version %s)', 'buckmerce-plaid'), (string) get_option(Installer::OPTION, '')) : __('INVALID', 'buckmerce-plaid'),
             __('Gateway enabled (new payments)', 'buckmerce-plaid') => $settings->enabled() ? $yes : $no,
             __('Plaid environment', 'buckmerce-plaid') => $environment,
@@ -151,7 +151,7 @@ final class DiagnosticsPage
         $report = self::report();
         $test_url = wp_nonce_url(admin_url('admin-post.php?action=' . ConnectionTester::ACTION), ConnectionTester::ACTION);
         $result = get_transient(ConnectionTester::TRANSIENT_PREFIX . get_current_user_id());
-        echo '<div class="wrap"><h1>' . esc_html__('Buckmerce for Plaid — diagnostics', 'buckmerce-plaid') . ' <span class="bmfp-badge bmfp-badge--' . esc_attr($settings->is_production() ? 'production' : 'sandbox') . '">' . esc_html($settings->is_production() ? __('Production', 'buckmerce-plaid') : __('Sandbox', 'buckmerce-plaid')) . '</span></h1>';
+        echo '<div class="wrap"><h1>' . esc_html__('Plaid Health', 'buckmerce-plaid') . ' <span class="bmfp-badge bmfp-badge--' . esc_attr($settings->is_production() ? 'production' : 'sandbox') . '">' . esc_html($settings->is_production() ? __('Production', 'buckmerce-plaid') : __('Sandbox', 'buckmerce-plaid')) . '</span></h1>';
         if (is_array($result)) {
             echo '<div class="notice ' . esc_attr('connected' === ($result['status'] ?? '') ? 'notice-success' : 'notice-error') . '"><p>' . esc_html(ConnectionTester::message($result)) . '</p></div>';
         }

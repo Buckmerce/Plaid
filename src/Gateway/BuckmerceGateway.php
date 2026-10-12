@@ -33,7 +33,7 @@ final class BuckmerceGateway extends \WC_Payment_Gateway
     public function __construct()
     {
         $this->id = Settings::GATEWAY_ID;
-        $this->method_title = __('Buckmerce for Plaid', 'buckmerce-plaid');
+        $this->method_title = __('Plaid Payments', 'buckmerce-plaid');
         $this->method_description = __('Pay by Bank through Plaid Transfer. Customers authorize a one-time ACH debit in Plaid Transfer UI; orders are updated from verified Plaid transfer events, and refunds are sent back to the customer\'s bank through Plaid.', 'buckmerce-plaid');
         $this->has_fields = false;
         $this->supports = array('products', 'refunds');
@@ -62,10 +62,10 @@ final class BuckmerceGateway extends \WC_Payment_Gateway
             'statement_descriptor' => array('title' => __('Bank statement description', 'buckmerce-plaid'), 'type' => 'text', 'default' => Settings::DEFAULT_STATEMENT_DESCRIPTOR, 'custom_attributes' => array('maxlength' => (string) Settings::STATEMENT_DESCRIPTOR_MAX, 'autocomplete' => 'off'), 'description' => __('Shown on the customer\'s bank statement after the company name Plaid has on file. Use a stable word that describes the purpose, such as PAYMENT or ORDER: recognizable descriptions reduce "unrecognized payment" disputes and returns. Letters, digits and spaces only, at most 10 characters; never put order numbers or personal data here.', 'buckmerce-plaid')),
             'network' => array('title' => __('Payment network', 'buckmerce-plaid'), 'type' => 'select', 'default' => 'same-day-ach', 'options' => array('same-day-ach' => __('Same Day ACH', 'buckmerce-plaid'), 'ach' => __('Standard ACH', 'buckmerce-plaid')), 'description' => __('Same Day ACH payments made after Plaid\'s cutoff are sent as Standard ACH automatically.', 'buckmerce-plaid')),
             'confirmation_state' => array('title' => __('Mark order paid when', 'buckmerce-plaid'), 'type' => 'select', 'default' => 'funds_available', 'options' => array('funds_available' => __('Funds are available (recommended)', 'buckmerce-plaid'), 'settled' => __('Transfer is settled', 'buckmerce-plaid')), 'description' => __('Until then orders stay On hold. ACH debits can still be returned later; returns are always recorded and flagged.', 'buckmerce-plaid')),
-            'background' => array('title' => __('Background processing', 'buckmerce-plaid'), 'type' => 'title', 'description' => __('Buckmerce follows every bank payment until its ACH return window closes, using verified Plaid webhooks, Plaid transfer events and a reconciliation job every 15 minutes (WooCommerce Action Scheduler). This cannot be turned off while payments exist.', 'buckmerce-plaid')),
+            'background' => array('title' => __('Background processing', 'buckmerce-plaid'), 'type' => 'title', 'description' => __('Plaid Payments follows every bank payment until its ACH return window closes, using verified Plaid webhooks, Plaid transfer events and a reconciliation job every 15 minutes (WooCommerce Action Scheduler). This cannot be turned off while payments exist.', 'buckmerce-plaid')),
             'advanced' => array('title' => __('Advanced and logging', 'buckmerce-plaid'), 'type' => 'title'),
             'debug' => array('title' => __('Debug logging', 'buckmerce-plaid'), 'type' => 'checkbox', 'label' => __('Write redacted debug logs (WooCommerce → Status → Logs)', 'buckmerce-plaid'), 'default' => 'no'),
-            'delete_data_on_uninstall' => array('title' => __('Uninstall cleanup', 'buckmerce-plaid'), 'type' => 'checkbox', 'label' => __('Delete Buckmerce settings, event and refund history and tables when the plugin is deleted', 'buckmerce-plaid'), 'default' => 'no', 'description' => __('Order payment records stay on the orders for auditing. Leave this off while payments may still be returned.', 'buckmerce-plaid')),
+            'delete_data_on_uninstall' => array('title' => __('Uninstall cleanup', 'buckmerce-plaid'), 'type' => 'checkbox', 'label' => __('Delete Plaid Payments settings, event and refund history and tables when the plugin is deleted', 'buckmerce-plaid'), 'default' => 'no', 'description' => __('Order payment records stay on the orders for auditing. Leave this off while payments may still be returned.', 'buckmerce-plaid')),
         );
     }
 
@@ -319,7 +319,7 @@ final class BuckmerceGateway extends \WC_Payment_Gateway
             return new \WP_Error('buckmerce_refund_unavailable', __('Pay by Bank refunds are unavailable because the Plaid connection is not configured.', 'buckmerce-plaid'));
         } catch (BuckmerceException $exception) {
             ( new Logger() )->log('error', 'refund_failed_unexpectedly', array('order_id' => $order->get_id(), 'error_code' => Logger::fingerprint($exception->getMessage())));
-            return new \WP_Error('buckmerce_refund_failed', __('The refund could not be processed. No refund was sent to Plaid; see the Buckmerce logs.', 'buckmerce-plaid'));
+            return new \WP_Error('buckmerce_refund_failed', __('The refund could not be processed. No refund was sent to Plaid; see the Plaid Payments logs.', 'buckmerce-plaid'));
         }
         return $outcome->ok ? true : new \WP_Error('buckmerce_refund_failed', $outcome->message);
     }

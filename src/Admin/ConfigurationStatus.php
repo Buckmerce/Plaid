@@ -101,7 +101,7 @@ final class ConfigurationStatus
     {
         $checks = array();
         $has_scheduler = function_exists('as_has_scheduled_action') && function_exists('as_get_scheduled_actions');
-        $checks[] = array('id' => 'action_scheduler', 'result' => $has_scheduler ? self::PASS : self::FAIL, 'label' => __('Action Scheduler available', 'buckmerce-plaid'), 'help' => $has_scheduler ? '' : __('Buckmerce cannot follow payments without WooCommerce Action Scheduler.', 'buckmerce-plaid'));
+        $checks[] = array('id' => 'action_scheduler', 'result' => $has_scheduler ? self::PASS : self::FAIL, 'label' => __('Action Scheduler available', 'buckmerce-plaid'), 'help' => $has_scheduler ? '' : __('Plaid Payments cannot follow payments without WooCommerce Action Scheduler.', 'buckmerce-plaid'));
         $active = Scheduler::maintenance_active($settings);
         if ($has_scheduler && $active) {
             $scheduled = as_has_scheduled_action(Scheduler::RECONCILE_HOOK, array(), Scheduler::GROUP);
@@ -114,15 +114,15 @@ final class ConfigurationStatus
                 'label' => __('Background jobs running on time', 'buckmerce-plaid'),
                 'help' => $stalled > 0
                     ? ($cron_disabled
-                        ? __('Buckmerce jobs are overdue and WP-Cron is disabled (DISABLE_WP_CRON). Configure a server cron job that runs wp-cron.php or `wp action-scheduler run` every minute.', 'buckmerce-plaid')
-                        : __('Buckmerce jobs are overdue. WP-Cron runs only when the site gets visits; configure a server cron job for reliable payment updates.', 'buckmerce-plaid'))
+                        ? __('Plaid Payments jobs are overdue and WP-Cron is disabled (DISABLE_WP_CRON). Configure a server cron job that runs wp-cron.php or `wp action-scheduler run` every minute.', 'buckmerce-plaid')
+                        : __('Plaid Payments jobs are overdue. WP-Cron runs only when the site gets visits; configure a server cron job for reliable payment updates.', 'buckmerce-plaid'))
                     : ($cron_disabled ? __('WP-Cron is disabled; a server cron job must run the scheduled actions.', 'buckmerce-plaid') : ''),
             );
         }
         $error = EventSyncService::health($settings->account_scope())['last_error'];
         if (isset($error['at'])) {
             $permanent = 'permanent' === ($error['category'] ?? '');
-            $checks[] = array('id' => 'event_sync', 'result' => self::WARN, 'label' => __('Last Plaid event sync failed', 'buckmerce-plaid'), 'help' => $permanent ? __('Plaid rejected the request: check the credentials with “Test connection”.', 'buckmerce-plaid') : __('Buckmerce retries automatically with backoff.', 'buckmerce-plaid'));
+            $checks[] = array('id' => 'event_sync', 'result' => self::WARN, 'label' => __('Last Plaid event sync failed', 'buckmerce-plaid'), 'help' => $permanent ? __('Plaid rejected the request: check the credentials with “Test connection”.', 'buckmerce-plaid') : __('Plaid Payments retries automatically with backoff.', 'buckmerce-plaid'));
         }
         if (! $settings->can_reach_plaid() && Installer::schema_is_valid()) {
             $open = ( new PaymentLockStore() )->monitored($settings->environment_name())['count'];

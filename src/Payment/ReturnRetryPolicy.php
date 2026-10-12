@@ -136,7 +136,7 @@ final class ReturnRetryPolicy
             ReturnRetryDecision::BLOCK_WINDOW_EXPIRED => __('Plaid allows retries only within 180 days of the original transfer. Collect this payment another way.', 'buckmerce-plaid'),
             ReturnRetryDecision::BLOCK_UNSUPPORTED_FLOW => sprintf(
                 /* translators: %s: ACH return code R01 or R09 */
-                __('Return code %s could be retried under Plaid\'s rules only as a marked retry ("Retry 1"/"Retry 2") of the original transfer, which Plaid Transfer UI does not support. Buckmerce therefore never debits this order again automatically. Contact the customer and collect the payment another way.', 'buckmerce-plaid'),
+                __('Return code %s could be retried under Plaid\'s rules only as a marked retry ("Retry 1"/"Retry 2") of the original transfer, which Plaid Transfer UI does not support. Plaid Payments therefore never debits this order again automatically. Contact the customer and collect the payment another way.', 'buckmerce-plaid'),
                 $decision->return_code
             ),
             default => '',

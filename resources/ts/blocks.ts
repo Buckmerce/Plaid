@@ -1,9 +1,9 @@
 /**
- * Checkout Blocks registration for Buckmerce for Plaid.
+ * Checkout Blocks registration for Plaid Payments.
  *
  * Presentation only: the order is created by WooCommerce and payment
  * initiation happens server-side in the gateway's process_payment(), exactly
- * as in Classic Checkout. The bank connection itself runs on the Buckmerce
+ * as in Classic Checkout. The bank connection itself runs on the Plaid
  * payment page after the redirect.
  */
 

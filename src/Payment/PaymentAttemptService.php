@@ -155,7 +155,7 @@ final class PaymentAttemptService
     private function ensure_active_intent(\WC_Order $order, DatabaseMutex $mutex): string
     {
         if (Settings::GATEWAY_ID !== $order->get_payment_method()) {
-            throw new PaymentException('The order does not use Buckmerce.');
+            throw new PaymentException('The order does not use Plaid Payments.');
         }
         $state = (string) $order->get_meta(OrderMeta::PAYMENT_STATE, true);
         if (PaymentState::MANUAL_REVIEW === $state) {
@@ -430,7 +430,7 @@ final class PaymentAttemptService
         OrderPersistence::save($order, array(OrderMeta::PAYMENT_STATE => null, OrderMeta::TRANSFER_INTENT_ID => null, OrderMeta::TRANSFER_ID => null));
         $order->add_order_note(sprintf(
             /* translators: 1: Plaid Transfer Intent ID, 2: reason code */
-            __('Buckmerce: previous bank payment attempt retired (intent %1$s, %2$s). Its details are kept in the payment history; a new attempt may start.', 'buckmerce-plaid'),
+            __('Plaid Payments: previous bank payment attempt retired (intent %1$s, %2$s). Its details are kept in the payment history; a new attempt may start.', 'buckmerce-plaid'),
             $intent_id,
             $reason
         ));

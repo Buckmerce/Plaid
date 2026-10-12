@@ -1,12 +1,14 @@
 <?php
 /**
- * Plugin Name: Buckmerce – Bank Payments via Plaid for WooCommerce
+ * Plugin Name: Plaid Payments for WooCommerce
  * Description: Secure Pay by Bank payments for WooCommerce using Plaid.
- * Version: 1.0.0
+ * Version: 1.0.1
  * Requires at least: 6.6
  * Requires PHP: 8.1
  * Requires Plugins: woocommerce
- * Author: al5dy
+ * Author: Anton Lokotkov
+ * Author URI: https://lokotkov.dev/
+ * Plugin URI: https://github.com/Buckmerce/Plaid
  * License: GPLv2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: buckmerce-plaid
@@ -19,7 +21,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'BUCKMERCE_PLAID_VERSION', '1.0.0' );
+define( 'BUCKMERCE_PLAID_VERSION', '1.0.1' );
 define( 'BUCKMERCE_PLAID_FILE', __FILE__ );
 define( 'BUCKMERCE_PLAID_DIR', plugin_dir_path( __FILE__ ) );
 define( 'BUCKMERCE_PLAID_URL', plugin_dir_url( __FILE__ ) );

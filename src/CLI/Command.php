@@ -14,7 +14,7 @@ use Buckmerce\Plaid\REST\RestRoutes;
 use Buckmerce\Plaid\Settings\Settings;
 
 /**
- * Operational commands for Buckmerce for Plaid. Output never contains secrets.
+ * Operational commands for Plaid Payments. Output never contains secrets.
  */
 final class Command
 {
@@ -116,7 +116,7 @@ final class Command
     {
         $order = wc_get_order(absint($args[0] ?? 0));
         if (! $order instanceof \WC_Order || Settings::GATEWAY_ID !== $order->get_payment_method()) {
-            \WP_CLI::error('Not a Buckmerce order.');
+            \WP_CLI::error('Not a Plaid Payments order.');
         }
         try {
             $container = new Container();
@@ -146,7 +146,7 @@ final class Command
     {
         $order = wc_get_order(absint($args[0] ?? 0));
         if (! $order instanceof \WC_Order || Settings::GATEWAY_ID !== $order->get_payment_method()) {
-            \WP_CLI::error('Not a Buckmerce order.');
+            \WP_CLI::error('Not a Plaid Payments order.');
         }
         $refunds = ( new Container() )->refunds();
         foreach ($refunds->for_order($order) as $record) {

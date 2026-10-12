@@ -33,7 +33,7 @@ use PHPUnit\Framework\TestCase;
 final class IdentityTest extends TestCase
 {
     private const SLUG = 'buckmerce-plaid';
-    private const PLUGIN_NAME = 'Buckmerce – Bank Payments via Plaid for WooCommerce';
+    private const PLUGIN_NAME = 'Plaid Payments for WooCommerce';
 
     private static function root(): string
     {

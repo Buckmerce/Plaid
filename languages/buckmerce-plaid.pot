@@ -1,22 +1,27 @@
-# Copyright (C) 2026 al5dy
+# Copyright (C) 2026 Anton Lokotkov
 # This file is distributed under the GPLv2 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Buckmerce – Bank Payments via Plaid for WooCommerce 1.0.0\n"
+"Project-Id-Version: Plaid Payments for WooCommerce 1.0.1\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/buckmerce-plaid\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-02T20:20:37+02:00\n"
+"POT-Creation-Date: 2026-10-12T08:33:27+02:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: buckmerce-plaid\n"
 
 #. Plugin Name of the plugin
 #: buckmerce-plaid.php
-msgid "Buckmerce – Bank Payments via Plaid for WooCommerce"
+msgid "Plaid Payments for WooCommerce"
+msgstr ""
+
+#. Plugin URI of the plugin
+#: buckmerce-plaid.php
+msgid "https://github.com/Buckmerce/Plaid"
 msgstr ""
 
 #. Description of the plugin
@@ -26,7 +31,12 @@ msgstr ""
 
 #. Author of the plugin
 #: buckmerce-plaid.php
-msgid "al5dy"
+msgid "Anton Lokotkov"
+msgstr ""
+
+#. Author URI of the plugin
+#: buckmerce-plaid.php
+msgid "https://lokotkov.dev/"
 msgstr ""
 
 #: src/Admin/AdminNotices.php:36
@@ -124,7 +134,7 @@ msgid "Action Scheduler available"
 msgstr ""
 
 #: src/Admin/ConfigurationStatus.php:104
-msgid "Buckmerce cannot follow payments without WooCommerce Action Scheduler."
+msgid "Plaid Payments cannot follow payments without WooCommerce Action Scheduler."
 msgstr ""
 
 #: src/Admin/ConfigurationStatus.php:108
@@ -141,11 +151,11 @@ msgid "Background jobs running on time"
 msgstr ""
 
 #: src/Admin/ConfigurationStatus.php:117
-msgid "Buckmerce jobs are overdue and WP-Cron is disabled (DISABLE_WP_CRON). Configure a server cron job that runs wp-cron.php or `wp action-scheduler run` every minute."
+msgid "Plaid Payments jobs are overdue and WP-Cron is disabled (DISABLE_WP_CRON). Configure a server cron job that runs wp-cron.php or `wp action-scheduler run` every minute."
 msgstr ""
 
 #: src/Admin/ConfigurationStatus.php:118
-msgid "Buckmerce jobs are overdue. WP-Cron runs only when the site gets visits; configure a server cron job for reliable payment updates."
+msgid "Plaid Payments jobs are overdue. WP-Cron runs only when the site gets visits; configure a server cron job for reliable payment updates."
 msgstr ""
 
 #: src/Admin/ConfigurationStatus.php:119
@@ -161,7 +171,7 @@ msgid "Plaid rejected the request: check the credentials with “Test connection
 msgstr ""
 
 #: src/Admin/ConfigurationStatus.php:125
-msgid "Buckmerce retries automatically with backoff."
+msgid "Plaid Payments retries automatically with backoff."
 msgstr ""
 
 #. translators: %d: number of payments
@@ -288,7 +298,8 @@ msgid "No Plaid Ledger was found: enter your Funding Account ID from the Plaid D
 msgstr ""
 
 #: src/Admin/DiagnosticsPage.php:45
-msgid "Buckmerce diagnostics"
+#: src/Admin/DiagnosticsPage.php:154
+msgid "Plaid Health"
 msgstr ""
 
 #: src/Admin/DiagnosticsPage.php:52
@@ -358,11 +369,11 @@ msgid "Background maintenance active"
 msgstr ""
 
 #: src/Admin/DiagnosticsPage.php:82
-msgid "Overdue Buckmerce jobs (>30 min)"
+msgid "Overdue Plaid Payments jobs (>30 min)"
 msgstr ""
 
 #: src/Admin/DiagnosticsPage.php:83
-msgid "Failed Buckmerce jobs (7 days)"
+msgid "Failed Plaid Payments jobs (7 days)"
 msgstr ""
 
 #: src/Admin/DiagnosticsPage.php:84
@@ -540,10 +551,6 @@ msgid "Events of previous accounts or schema 2 (audit only)"
 msgstr ""
 
 #: src/Admin/DiagnosticsPage.php:154
-msgid "Buckmerce for Plaid — diagnostics"
-msgstr ""
-
-#: src/Admin/DiagnosticsPage.php:154
 #: src/Gateway/BuckmerceGateway.php:176
 msgid "Production"
 msgstr ""
@@ -623,7 +630,7 @@ msgid "Awaiting authorization"
 msgstr ""
 
 #: src/Admin/OrderMetaBox.php:57
-msgid "Buckmerce state"
+msgid "Payment state"
 msgstr ""
 
 #: src/Admin/OrderMetaBox.php:58
@@ -736,7 +743,7 @@ msgstr ""
 #: src/Admin/OrderMetaBox.php:81
 #: src/Gateway/BuckmerceGateway.php:36
 #: src/Plugin.php:104
-msgid "Buckmerce for Plaid"
+msgid "Plaid Payments"
 msgstr ""
 
 #: src/Admin/OrderMetaBox.php:94
@@ -825,7 +832,7 @@ msgid "The payment is being processed right now. Try again in a moment."
 msgstr ""
 
 #: src/Admin/OrderMetaBox.php:200
-msgid "Plaid could not be reached or returned an error. See the Buckmerce logs."
+msgid "Plaid could not be reached or returned an error. See the Plaid Payments logs."
 msgstr ""
 
 #: src/Admin/OrderMetaBox.php:211
@@ -857,7 +864,7 @@ msgid "This payment cannot be released: Plaid shows it may still be authorized o
 msgstr ""
 
 #: src/Admin/OrderMetaBox.php:239
-msgid "The review could not be recorded. See the Buckmerce logs."
+msgid "The review could not be recorded. See the Plaid Payments logs."
 msgstr ""
 
 #: src/Admin/OrderMetaBox.php:247
@@ -865,19 +872,19 @@ msgid "You are not allowed to manage payments."
 msgstr ""
 
 #: src/Admin/OrderMetaBox.php:253
-msgid "The order is not a Buckmerce order."
+msgid "The order is not a Plaid Payments order."
 msgstr ""
 
 #: src/Admin/SiteHealth.php:27
-msgid "Buckmerce for Plaid configuration"
+msgid "Plaid Payments configuration"
 msgstr ""
 
 #: src/Admin/SiteHealth.php:28
-msgid "Buckmerce for Plaid background processing"
+msgid "Plaid Payments background processing"
 msgstr ""
 
 #: src/Admin/SiteHealth.php:40
-msgid "Buckmerce for Plaid is not in use"
+msgid "Plaid Payments is not in use"
 msgstr ""
 
 #: src/Admin/SiteHealth.php:40
@@ -885,15 +892,15 @@ msgid "The gateway is disabled and no bank payment or refund of the configured P
 msgstr ""
 
 #: src/Admin/SiteHealth.php:43
-msgid "Buckmerce for Plaid configuration is incomplete"
+msgid "Plaid Payments configuration is incomplete"
 msgstr ""
 
 #: src/Admin/SiteHealth.php:44
-msgid "Buckmerce for Plaid needs attention"
+msgid "Plaid Payments needs attention"
 msgstr ""
 
 #: src/Admin/SiteHealth.php:45
-msgid "Buckmerce for Plaid is disabled for new payments"
+msgid "Plaid Payments is disabled for new payments"
 msgstr ""
 
 #: src/Admin/SiteHealth.php:45
@@ -901,7 +908,7 @@ msgid "Existing bank payments are still monitored."
 msgstr ""
 
 #: src/Admin/SiteHealth.php:46
-msgid "Buckmerce for Plaid is configured"
+msgid "Plaid Payments is configured"
 msgstr ""
 
 #: src/Admin/SiteHealth.php:46
@@ -913,15 +920,15 @@ msgid "Sandbox is ready for test payments."
 msgstr ""
 
 #: src/Admin/SiteHealth.php:59
-msgid "Buckmerce cannot follow bank payments in the background"
+msgid "Plaid Payments cannot follow bank payments in the background"
 msgstr ""
 
 #: src/Admin/SiteHealth.php:62
-msgid "Buckmerce background processing needs attention"
+msgid "Plaid Payments background processing needs attention"
 msgstr ""
 
 #: src/Admin/SiteHealth.php:65
-msgid "Buckmerce background processing is idle"
+msgid "Plaid Payments background processing is idle"
 msgstr ""
 
 #: src/Admin/SiteHealth.php:65
@@ -929,7 +936,7 @@ msgid "No bank payments need monitoring."
 msgstr ""
 
 #: src/Admin/SiteHealth.php:67
-msgid "Buckmerce background processing is healthy"
+msgid "Plaid Payments background processing is healthy"
 msgstr ""
 
 #: src/Admin/SiteHealth.php:67
@@ -941,7 +948,7 @@ msgid "Payments"
 msgstr ""
 
 #: src/Admin/SiteHealth.php:88
-msgid "Open Buckmerce diagnostics"
+msgid "Open Plaid Health"
 msgstr ""
 
 #: src/Checkout/PaymentPage.php:54
@@ -1187,7 +1194,7 @@ msgid "Background processing"
 msgstr ""
 
 #: src/Gateway/BuckmerceGateway.php:65
-msgid "Buckmerce follows every bank payment until its ACH return window closes, using verified Plaid webhooks, Plaid transfer events and a reconciliation job every 15 minutes (WooCommerce Action Scheduler). This cannot be turned off while payments exist."
+msgid "Plaid Payments follows every bank payment until its ACH return window closes, using verified Plaid webhooks, Plaid transfer events and a reconciliation job every 15 minutes (WooCommerce Action Scheduler). This cannot be turned off while payments exist."
 msgstr ""
 
 #: src/Gateway/BuckmerceGateway.php:66
@@ -1207,7 +1214,7 @@ msgid "Uninstall cleanup"
 msgstr ""
 
 #: src/Gateway/BuckmerceGateway.php:68
-msgid "Delete Buckmerce settings, event and refund history and tables when the plugin is deleted"
+msgid "Delete Plaid Payments settings, event and refund history and tables when the plugin is deleted"
 msgstr ""
 
 #: src/Gateway/BuckmerceGateway.php:68
@@ -1280,7 +1287,7 @@ msgid "Pay by Bank refunds are unavailable because the Plaid connection is not c
 msgstr ""
 
 #: src/Gateway/BuckmerceGateway.php:322
-msgid "The refund could not be processed. No refund was sent to Plaid; see the Buckmerce logs."
+msgid "The refund could not be processed. No refund was sent to Plaid; see the Plaid Payments logs."
 msgstr ""
 
 #: src/Gateway/GatewayAvailability.php:84
@@ -1310,29 +1317,29 @@ msgstr ""
 #. translators: 1: Plaid transfer ID, 2: user ID, 3: Plaid transfer status
 #: src/Payment/ManualActions.php:73
 #, php-format
-msgid "Buckmerce: transfer %1$s cancelled at Plaid by user #%2$d before it was sent to the bank."
+msgid "Plaid Payments: transfer %1$s cancelled at Plaid by user #%2$d before it was sent to the bank."
 msgstr ""
 
 #. translators: 1: Plaid transfer ID, 2: user ID, 3: Plaid transfer status
 #: src/Payment/ManualActions.php:73
 #, php-format
-msgid "Buckmerce: transfer %1$s could not be cancelled (user #%2$d); Plaid reports it as %3$s."
+msgid "Plaid Payments: transfer %1$s could not be cancelled (user #%2$d); Plaid reports it as %3$s."
 msgstr ""
 
 #: src/Payment/ManualActions.php:117
-msgid "Buckmerce: order reopened for payment after manual review."
+msgid "Plaid Payments: order reopened for payment after manual review."
 msgstr ""
 
 #. translators: 1: decision code, 2: user ID
 #: src/Payment/ManualActions.php:125
 #, php-format
-msgid "Buckmerce: manual review resolved (%1$s) by user #%2$d. The unused payment attempt was released; the customer can pay again."
+msgid "Plaid Payments: manual review resolved (%1$s) by user #%2$d. The unused payment attempt was released; the customer can pay again."
 msgstr ""
 
 #. translators: 1: decision code, 2: user ID
 #: src/Payment/ManualActions.php:125
 #, php-format
-msgid "Buckmerce: manual review resolved (%1$s) by user #%2$d. Automatic processing of this payment stays stopped."
+msgid "Plaid Payments: manual review resolved (%1$s) by user #%2$d. Automatic processing of this payment stays stopped."
 msgstr ""
 
 #. translators: 1: site name, 2: alert subject
@@ -1360,7 +1367,7 @@ msgstr ""
 #. translators: 1: order number, 2: reason code
 #: src/Payment/OrderPaymentProjector.php:170
 #, php-format
-msgid "Buckmerce stopped automatic processing of the bank payment for order #%1$s (%2$s). No order was fulfilled automatically. Open the order to see the Plaid identifiers and decide how to proceed."
+msgid "Plaid Payments stopped automatic processing of the bank payment for order #%1$s (%2$s). No order was fulfilled automatically. Open the order to see the Plaid identifiers and decide how to proceed."
 msgstr ""
 
 #: src/Payment/OrderPaymentProjector.php:189
@@ -1368,13 +1375,13 @@ msgid "ACH return received: the bank payment was reversed. The original payment 
 msgstr ""
 
 #: src/Payment/OrderPaymentProjector.php:198
-msgid "Buckmerce: this order will not be debited again by bank."
+msgid "Plaid Payments: this order will not be debited again by bank."
 msgstr ""
 
 #. translators: 1: refunded amount, 2: ACH return code
 #: src/Payment/OrderPaymentProjector.php:205
 #, php-format
-msgid "Buckmerce: CRITICAL — the bank payment was returned (%2$s) after refunds of $%1$s were issued. The customer may have received this money twice. Contact the customer before taking further action."
+msgid "Plaid Payments: CRITICAL — the bank payment was returned (%2$s) after refunds of $%1$s were issued. The customer may have received this money twice. Contact the customer before taking further action."
 msgstr ""
 
 #. translators: %s: order number
@@ -1413,15 +1420,15 @@ msgid "Transfer ID: %s."
 msgstr ""
 
 #: src/Payment/OrderPaymentProjector.php:264
-msgid "Buckmerce: Plaid Transfer Intent created. Waiting for the customer to authorize the bank payment."
+msgid "Plaid Payments: Plaid Transfer Intent created. Waiting for the customer to authorize the bank payment."
 msgstr ""
 
 #: src/Payment/OrderPaymentProjector.php:266
-msgid "Buckmerce: bank payment authorization in progress."
+msgid "Plaid Payments: bank payment authorization in progress."
 msgstr ""
 
 #: src/Payment/OrderPaymentProjector.php:268
-msgid "Buckmerce: bank payment authorization failed or was declined"
+msgid "Plaid Payments: bank payment authorization failed or was declined"
 msgstr ""
 
 #: src/Payment/OrderPaymentProjector.php:268
@@ -1429,103 +1436,103 @@ msgid "The customer can retry."
 msgstr ""
 
 #: src/Payment/OrderPaymentProjector.php:270
-msgid "Buckmerce: the Transfer Intent request had an unknown outcome. No Link token was issued for it, so it cannot move money; a retry creates a new intent."
+msgid "Plaid Payments: the Transfer Intent request had an unknown outcome. No Link token was issued for it, so it cannot move money; a retry creates a new intent."
 msgstr ""
 
 #: src/Payment/OrderPaymentProjector.php:272
-msgid "Buckmerce: Plaid transfer created."
+msgid "Plaid Payments: Plaid transfer created."
 msgstr ""
 
 #: src/Payment/OrderPaymentProjector.php:274
-msgid "Buckmerce: transfer pending."
+msgid "Plaid Payments: transfer pending."
 msgstr ""
 
 #: src/Payment/OrderPaymentProjector.php:276
-msgid "Buckmerce: transfer posted to the ACH network."
+msgid "Plaid Payments: transfer posted to the ACH network."
 msgstr ""
 
 #: src/Payment/OrderPaymentProjector.php:278
-msgid "Buckmerce: transfer settled."
+msgid "Plaid Payments: transfer settled."
 msgstr ""
 
 #: src/Payment/OrderPaymentProjector.php:280
-msgid "Buckmerce: funds available. The customer's bank can still return the payment within the ACH return windows; Buckmerce keeps monitoring it."
+msgid "Plaid Payments: funds available. The customer's bank can still return the payment within the ACH return windows; Plaid Payments keeps monitoring it."
 msgstr ""
 
 #: src/Payment/OrderPaymentProjector.php:282
-msgid "Buckmerce: transfer failed; no funds were moved"
+msgid "Plaid Payments: transfer failed; no funds were moved"
 msgstr ""
 
 #: src/Payment/OrderPaymentProjector.php:284
-msgid "Buckmerce: transfer cancelled."
+msgid "Plaid Payments: transfer cancelled."
 msgstr ""
 
 #: src/Payment/OrderPaymentProjector.php:286
-msgid "Buckmerce: ACH RETURN — the bank payment was returned and the funds reversed"
+msgid "Plaid Payments: ACH RETURN — the bank payment was returned and the funds reversed"
 msgstr ""
 
 #: src/Payment/OrderPaymentProjector.php:288
-msgid "Buckmerce: payment requires manual review"
+msgid "Plaid Payments: payment requires manual review"
 msgstr ""
 
 #. translators: %s: payment state
 #: src/Payment/OrderPaymentProjector.php:290
 #, php-format
-msgid "Buckmerce: payment state changed to %s."
+msgid "Plaid Payments: payment state changed to %s."
 msgstr ""
 
 #. translators: 1: order number, 2: ACH return code
 #: src/Payment/PaymentAlerts.php:92
 #, php-format
-msgid "Buckmerce: the bank payment for order #%1$s was RETURNED (%2$s). The funds were reversed."
+msgid "Plaid Payments: the bank payment for order #%1$s was RETURNED (%2$s). The funds were reversed."
 msgstr ""
 
 #. translators: 1: order number, 2: ACH return code
 #: src/Payment/PaymentAlerts.php:94
 #, php-format
-msgid "Buckmerce: the bank payment for order #%1$s was RETURNED (%2$s) AFTER a refund was issued. The customer may have received the money twice; you may lose both the payment and the refund. Review the order now."
+msgid "Plaid Payments: the bank payment for order #%1$s was RETURNED (%2$s) AFTER a refund was issued. The customer may have received the money twice; you may lose both the payment and the refund. Review the order now."
 msgstr ""
 
 #. translators: 1: refund amount, 2: order number, 3: failure code
 #: src/Payment/PaymentAlerts.php:96
 #, php-format
-msgid "Buckmerce: the refund of %1$s for order #%2$s FAILED at Plaid (%3$s). The customer did not receive it. Delete the WooCommerce refund record and refund again if needed."
+msgid "Plaid Payments: the refund of %1$s for order #%2$s FAILED at Plaid (%3$s). The customer did not receive it. Delete the WooCommerce refund record and refund again if needed."
 msgstr ""
 
 #. translators: 1: refund amount, 2: order number, 3: ACH return code
 #: src/Payment/PaymentAlerts.php:98
 #, php-format
-msgid "Buckmerce: the refund of %1$s for order #%2$s was RETURNED by the customer's bank (%3$s). The customer did not receive it; contact the customer."
+msgid "Plaid Payments: the refund of %1$s for order #%2$s was RETURNED by the customer's bank (%3$s). The customer did not receive it; contact the customer."
 msgstr ""
 
 #. translators: 1: refund amount, 2: order number
 #: src/Payment/PaymentAlerts.php:100
 #, php-format
-msgid "Buckmerce: Plaid did not confirm the refund of %1$s for order #%2$s. Do not refund this order again: Buckmerce is verifying the refund with Plaid."
+msgid "Plaid Payments: Plaid did not confirm the refund of %1$s for order #%2$s. Do not refund this order again: Plaid Payments is verifying the refund with Plaid."
 msgstr ""
 
 #. translators: 1: refund amount, 2: order number
 #: src/Payment/PaymentAlerts.php:102
 #, php-format
-msgid "Buckmerce: the refund of %1$s for order #%2$s was cancelled because the original bank payment was returned."
+msgid "Plaid Payments: the refund of %1$s for order #%2$s was cancelled because the original bank payment was returned."
 msgstr ""
 
 #. translators: 1: refund amount, 2: order number
 #: src/Payment/PaymentAlerts.php:104
 #, php-format
-msgid "Buckmerce: a refund of %1$s for order #%2$s was created outside WooCommerce (for example in the Plaid Dashboard). Record it in WooCommerce as a manual refund."
+msgid "Plaid Payments: a refund of %1$s for order #%2$s was created outside WooCommerce (for example in the Plaid Dashboard). Record it in WooCommerce as a manual refund."
 msgstr ""
 
 #. translators: 1: order number, 2: reason code
 #: src/Payment/PaymentAlerts.php:106
 #, php-format
-msgid "Buckmerce: order #%1$s requires manual payment review (%2$s)."
+msgid "Plaid Payments: order #%1$s requires manual payment review (%2$s)."
 msgstr ""
 
 #. translators: 1: Plaid Transfer Intent ID, 2: reason code
 #: src/Payment/PaymentAttemptService.php:433
 #, php-format
-msgid "Buckmerce: previous bank payment attempt retired (intent %1$s, %2$s). Its details are kept in the payment history; a new attempt may start."
+msgid "Plaid Payments: previous bank payment attempt retired (intent %1$s, %2$s). Its details are kept in the payment history; a new attempt may start."
 msgstr ""
 
 #. translators: %s: ACH return code such as R10
@@ -1545,7 +1552,7 @@ msgstr ""
 #. translators: %s: ACH return code R01 or R09
 #: src/Payment/ReturnRetryPolicy.php:139
 #, php-format
-msgid "Return code %s could be retried under Plaid's rules only as a marked retry (\"Retry 1\"/\"Retry 2\") of the original transfer, which Plaid Transfer UI does not support. Buckmerce therefore never debits this order again automatically. Contact the customer and collect the payment another way."
+msgid "Return code %s could be retried under Plaid's rules only as a marked retry (\"Retry 1\"/\"Retry 2\") of the original transfer, which Plaid Transfer UI does not support. Plaid Payments therefore never debits this order again automatically. Contact the customer and collect the payment another way."
 msgstr ""
 
 #: src/Payment/ReturnRetryPolicy.php:149
@@ -1553,7 +1560,7 @@ msgid "Your bank returned the earlier bank payment for this order, so Pay by Ban
 msgstr ""
 
 #: src/Plugin.php:33
-msgid "Buckmerce for Plaid could not create or verify its database tables. Pay by Bank stays disabled until this is fixed; try deactivating and reactivating the plugin."
+msgid "Plaid Payments could not create or verify its database tables. Pay by Bank stays disabled until this is fixed; try deactivating and reactivating the plugin."
 msgstr ""
 
 #: src/Plugin.php:92
@@ -1561,7 +1568,7 @@ msgid "Settings"
 msgstr ""
 
 #: src/Plugin.php:93
-msgid "Diagnostics"
+msgid "Health"
 msgstr ""
 
 #: src/Plugin.php:105
@@ -1644,13 +1651,13 @@ msgid "Another refund for this order is being processed. Wait a moment, reload t
 msgstr ""
 
 #: src/Refund/RefundService.php:196
-msgid "Plaid created the refund, but it could not be recorded. Do not refund again; see the Buckmerce alert on this order."
+msgid "Plaid created the refund, but it could not be recorded. Do not refund again; see the Plaid Payments alert on this order."
 msgstr ""
 
 #. translators: 1: refund amount, 2: Plaid error code
 #: src/Refund/RefundService.php:222
 #, php-format
-msgid "Buckmerce: Plaid rejected a refund of $%1$s (%2$s). No money was moved."
+msgid "Plaid Payments: Plaid rejected a refund of $%1$s (%2$s). No money was moved."
 msgstr ""
 
 #. translators: 1: Plaid error code, 2: Plaid error explanation
@@ -1662,35 +1669,35 @@ msgstr ""
 #. translators: %s: refund amount
 #: src/Refund/RefundService.php:245
 #, php-format
-msgid "Buckmerce: Plaid did not confirm a refund of $%s (the request timed out or Plaid was unavailable). Buckmerce will check Plaid and record the refund automatically if it was created. Do not refund this order again until then."
+msgid "Plaid Payments: Plaid did not confirm a refund of $%s (the request timed out or Plaid was unavailable). Plaid Payments will check Plaid and record the refund automatically if it was created. Do not refund this order again until then."
 msgstr ""
 
 #: src/Refund/RefundService.php:248
-msgid "Plaid did not confirm the refund. Do not refund this order again: Buckmerce is checking with Plaid and will record the refund automatically if Plaid created it."
+msgid "Plaid did not confirm the refund. Do not refund this order again: Plaid Payments is checking with Plaid and will record the refund automatically if Plaid created it."
 msgstr ""
 
 #. translators: %s: refund amount and Plaid refund ID
 #: src/Refund/RefundService.php:326
 #, php-format
-msgid "Buckmerce: refund %s was sent to the customer's bank."
+msgid "Plaid Payments: refund %s was sent to the customer's bank."
 msgstr ""
 
 #. translators: %s: refund amount and Plaid refund ID
 #: src/Refund/RefundService.php:330
 #, php-format
-msgid "Buckmerce: refund %s settled at the customer's bank."
+msgid "Plaid Payments: refund %s settled at the customer's bank."
 msgstr ""
 
 #. translators: 1: refund amount and Plaid refund ID, 2: failure code
 #: src/Refund/RefundService.php:337
 #, php-format
-msgid "Buckmerce: REFUND RETURNED — refund %1$s was returned by the customer's bank (%2$s). The customer did not receive it; the money is back in your Plaid balance."
+msgid "Plaid Payments: REFUND RETURNED — refund %1$s was returned by the customer's bank (%2$s). The customer did not receive it; the money is back in your Plaid balance."
 msgstr ""
 
 #. translators: 1: refund amount and Plaid refund ID, 2: failure code
 #: src/Refund/RefundService.php:337
 #, php-format
-msgid "Buckmerce: REFUND FAILED — refund %1$s failed at Plaid (%2$s). No money reached the customer. The WooCommerce refund record does not reflect a completed refund."
+msgid "Plaid Payments: REFUND FAILED — refund %1$s failed at Plaid (%2$s). No money reached the customer. The WooCommerce refund record does not reflect a completed refund."
 msgstr ""
 
 #. translators: 1: order number
@@ -1708,13 +1715,13 @@ msgstr ""
 #. translators: %s: refund amount and Plaid refund ID
 #: src/Refund/RefundService.php:359
 #, php-format
-msgid "Buckmerce: refund %s was cancelled before it was sent. The customer will not receive it."
+msgid "Plaid Payments: refund %s was cancelled before it was sent. The customer will not receive it."
 msgstr ""
 
 #. translators: %s: refund amount
 #: src/Refund/RefundService.php:366
 #, php-format
-msgid "Buckmerce: the unconfirmed refund of $%s was not created at Plaid. No money was moved; you can refund again."
+msgid "Plaid Payments: the unconfirmed refund of $%s was not created at Plaid. No money was moved; you can refund again."
 msgstr ""
 
 #: src/Refund/RefundService.php:478
@@ -1724,19 +1731,19 @@ msgstr ""
 #. translators: 1: refund amount, 2: Plaid refund ID
 #: src/Refund/RefundService.php:495
 #, php-format
-msgid "Buckmerce: Plaid confirmed the refund of $%1$s (refund ID %2$s) that had timed out. It is now recorded."
+msgid "Plaid Payments: Plaid confirmed the refund of $%1$s (refund ID %2$s) that had timed out. It is now recorded."
 msgstr ""
 
 #. translators: 1: refund amount, 2: Plaid refund ID
 #: src/Refund/RefundService.php:527
 #, php-format
-msgid "Buckmerce: a refund of $%1$s (refund ID %2$s) was created outside WooCommerce, for example in the Plaid Dashboard. It counts toward the refundable amount. Record it in WooCommerce as a manual refund if it is not recorded yet."
+msgid "Plaid Payments: a refund of $%1$s (refund ID %2$s) was created outside WooCommerce, for example in the Plaid Dashboard. It counts toward the refundable amount. Record it in WooCommerce as a manual refund if it is not recorded yet."
 msgstr ""
 
 #. translators: 1: Plaid refund ID, 2: Plaid error code
 #: src/Refund/RefundService.php:559
 #, php-format
-msgid "Buckmerce: the pending refund %1$s could not be cancelled after the payment was returned (%2$s)."
+msgid "Plaid Payments: the pending refund %1$s could not be cancelled after the payment was returned (%2$s)."
 msgstr ""
 
 #: src/Refund/RefundService.php:615
@@ -1750,7 +1757,7 @@ msgstr ""
 #. translators: 1: refund amount, 2: Plaid refund ID
 #: src/Refund/RefundService.php:634
 #, php-format
-msgid "Buckmerce: refund of $%1$s submitted to Plaid (refund ID %2$s). The customer usually receives it within a few business days."
+msgid "Plaid Payments: refund of $%1$s submitted to Plaid (refund ID %2$s). The customer usually receives it within a few business days."
 msgstr ""
 
 #. translators: %s: refund reason
@@ -1762,7 +1769,7 @@ msgstr ""
 #. translators: %s: date
 #: src/Refund/RefundService.php:647
 #, php-format
-msgid "Warning: the original bank payment can still be returned by the customer's bank until about %s. If it is returned, you may lose both the payment and this refund; Buckmerce will alert you."
+msgid "Warning: the original bank payment can still be returned by the customer's bank until about %s. If it is returned, you may lose both the payment and this refund; Plaid Payments will alert you."
 msgstr ""
 
 #: src/REST/RestRoutes.php:80
@@ -1786,15 +1793,15 @@ msgstr ""
 #. translators: 1: number of open payments, 2: number of open refunds
 #: src/Settings/AccountChangeGuard.php:104
 #, php-format
-msgid "Buckmerce kept the previous Plaid environment, Client ID and Secret: %1$d Production payment(s) and %2$d refund(s) are still monitored for ACH returns or refund outcomes, and only the Plaid account that created them can read them. Other settings were saved. You can rotate the secret of the same Client ID at any time; switch accounts after Buckmerce diagnostics show no monitored payments."
+msgid "Plaid Payments kept the previous Plaid environment, Client ID and Secret: %1$d Production payment(s) and %2$d refund(s) are still monitored for ACH returns or refund outcomes, and only the Plaid account that created them can read them. Other settings were saved. You can rotate the secret of the same Client ID at any time; switch accounts after Plaid Health shows no monitored payments."
 msgstr ""
 
 #. translators: 1: number of open payments, 2: number of open refunds
 #: src/Settings/AccountChangeGuard.php:110
 #, php-format
-msgid "Buckmerce: %1$d open Sandbox payment(s) and %2$d refund(s) of the previous Plaid account/environment are no longer monitored. Sandbox moves no real money."
+msgid "Plaid Payments: %1$d open Sandbox payment(s) and %2$d refund(s) of the previous Plaid account/environment are no longer monitored. Sandbox moves no real money."
 msgstr ""
 
 #: src/Support/Requirements.php:34
-msgid "Buckmerce for Plaid requires PHP 8.1+ with the OpenSSL extension, WordPress 6.6+, and WooCommerce 8.7+."
+msgid "Plaid Payments requires PHP 8.1+ with the OpenSSL extension, WordPress 6.6+, and WooCommerce 8.7+."
 msgstr ""
