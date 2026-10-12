@@ -55,7 +55,7 @@ reject() {
 reject 'hidden files' '(^|/)\.[^/]+'
 reject 'environment files' '(^|/)\.env[^/]*$'
 reject 'development directories' '(^|/)(tests?|scripts|tools|resources|node_modules|vendor|dist|output|coverage|test-results|playwright-report|build-src)(/|$)'
-reject 'development configuration' '(^|/)(composer\.lock|package(-lock)?\.json|tsconfig\.json|phpunit\.xml[^/]*|phpstan\.neon[^/]*|phpcs\.xml[^/]*|\.phpunit\.result\.cache|README\.md|CHANGELOG\.md)$'
+reject 'development configuration' '(^|/)(composer\.lock|package(-lock)?\.json|tsconfig\.json|phpunit\.xml[^/]*|phpstan\.neon[^/]*|phpcs\.xml[^/]*|\.phpunit\.result\.cache|README\.md)$'
 reject 'nested archives' '\.(zip|tar|tgz|gz|bz2|xz|7z|rar|phar)$'
 reject 'logs, dumps, backups or temporary files' '\.(log|sql|dump|sqlite3?|db|bak|backup|orig|rej|tmp|temp|swp|swo)$|~$'
 reject 'source maps' '\.map$'
