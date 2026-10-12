@@ -311,7 +311,7 @@ final class IdentityTest extends TestCase
         // … and nothing of the development project is.
         $development = array(
             '.env', '.env.example', '.gitignore', '.phpunit.result.cache', '.github/workflows/quality.yml', '.idea/workspace.xml',
-            'private-notes.md', 'CHANGELOG.md', 'README.md', 'composer.lock', 'package.json', 'package-lock.json', 'tsconfig.json',
+            'private-notes.md', 'README.md', 'composer.lock', 'package.json', 'package-lock.json', 'tsconfig.json',
             'phpunit.xml.dist', 'phpstan.neon', 'phpcs.xml.dist', 'tests/Unit/IdentityTest.php', 'scripts/package.sh',
             'resources/ts/blocks.ts', 'node_modules/parcel/package.json', 'vendor/autoload.php', 'vendor/firebase/php-jwt/src/JWT.php',
             'dist/' . self::SLUG . '-1.0.0.zip', self::SLUG . '.zip', 'output/report.json', 'src/Plugin.php.orig', 'src/.gitkeep', 'src/debug.log',
