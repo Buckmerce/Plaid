@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<ruleset name="Buckmerce for Plaid">
+<ruleset name="Plaid Payments for WooCommerce">
   <description>Quality checks for project-owned PHP.</description>
   <file>src</file>
   <file>uninstall.php</file>

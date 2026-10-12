@@ -1,4 +1,4 @@
-# Bank Payments via Plaid for WooCommerce
+# Plaid Payments for WooCommerce
 
 [![Quality](https://github.com/Buckmerce/Plaid/actions/workflows/quality.yml/badge.svg?branch=master)](https://github.com/Buckmerce/Plaid/actions/workflows/quality.yml)
 ![PHP](https://img.shields.io/badge/PHP-8.1%E2%80%938.4-777BB4?logo=php&logoColor=white)
@@ -7,13 +7,11 @@
 ![Plaid](https://img.shields.io/badge/Plaid-Transfer-000000)
 ![License](https://img.shields.io/badge/license-GPL--2.0--or--later-blue)
 
-**Buckmerce** is a WooCommerce payment gateway for one-time US bank payments through **Plaid Transfer UI**.
+**Plaid Payments** is a WooCommerce payment gateway for one-time US bank payments through **Plaid Transfer UI**.
 
-The customer chooses **Pay by Bank**, connects a bank through Plaid Link, selects an account and authorizes an ACH debit. Buckmerce keeps the server authoritative, follows the payment through the Plaid Transfer lifecycle, reconciles missed events, projects the result into WooCommerce, supports native refunds, and continues monitoring for ACH returns after the order is paid.
+The customer chooses **Pay by Bank**, connects a bank through Plaid Link, selects an account and authorizes an ACH debit. Plaid Payments keeps the server authoritative, follows the payment through the Plaid Transfer lifecycle, reconciles missed events, projects the result into WooCommerce, supports native refunds, and continues monitoring for ACH returns after the order is paid.
 
 This repository contains the complete human-readable PHP, TypeScript and SCSS source plus the build and test tooling used to produce the WordPress.org release ZIP.
-
-> Buckmerce is an independent third-party integration. It is not developed, endorsed or supported by Plaid Inc., WooCommerce or Automattic.
 
 ---
 
@@ -64,7 +62,7 @@ Install the release ZIP as a normal WordPress plugin and activate it with WooCom
 Open:
 
 ```text
-WooCommerce → Settings → Payments → Buckmerce for Plaid
+WooCommerce → Settings → Payments → Plaid Payments
 ```
 
 ### 2. Configure Plaid credentials
@@ -80,7 +78,7 @@ Start with Sandbox and enter:
 - Client ID
 - Sandbox Secret
 
-Buckmerce never renders the stored Secret back into the settings field. Saving an empty Secret preserves the existing value; removing it is an explicit action.
+Plaid Payments never renders the stored Secret back into the settings field. Saving an empty Secret preserves the existing value; removing it is an explicit action.
 
 ### 3. Create the Link customization
 
@@ -90,7 +88,7 @@ In the same Plaid environment create and publish a Link customization with:
 Account Select = Enabled for one account
 ```
 
-Use the same language as the WooCommerce store and enter the customization name in Buckmerce.
+Use the same language as the WooCommerce store and enter the customization name in Plaid Payments.
 
 The Link customization is required in both Sandbox and Production.
 
@@ -102,7 +100,7 @@ Only Plaid Transfer accounts without Ledger should provide a Funding Account ID.
 
 ### 5. Configure the webhook
 
-Buckmerce displays the site-specific endpoint:
+Plaid Payments displays the site-specific endpoint:
 
 ```text
 https://example.com/wp-json/buckmerce-plaid/v1/webhook
@@ -135,7 +133,7 @@ WooCommerce
    │
    │ process_payment()
    ▼
-Buckmerce payment reservation
+Plaid Payments payment reservation
    │
    │ /transfer/intent/create
    ▼
@@ -147,7 +145,7 @@ Plaid Link / Transfer UI
    │
    │ customer connects bank and authorizes
    ▼
-Buckmerce /complete
+Plaid Payments /complete
    │
    │ /transfer/intent/get
    │ /transfer/get
@@ -163,13 +161,13 @@ pending → posted → settled → funds_available
 
 The browser is intentionally not authoritative. A successful Plaid Link callback means the UI flow completed; it does **not** mean the WooCommerce order is paid.
 
-Buckmerce re-reads the Transfer Intent and Transfer from Plaid and verifies the server-side snapshot before projecting state into WooCommerce.
+Plaid Payments re-reads the Transfer Intent and Transfer from Plaid and verifies the server-side snapshot before projecting state into WooCommerce.
 
 ---
 
 ## Payment creation
 
-For each new payment attempt Buckmerce creates an immutable server-side snapshot containing the authoritative order data, including:
+For each new payment attempt Plaid Payments creates an immutable server-side snapshot containing the authoritative order data, including:
 
 - WooCommerce order ID
 - amount
@@ -210,11 +208,11 @@ Parallel tabs, repeated completion requests and double clicks should not create 
 
 The gateway participates as a normal `WC_Payment_Gateway`.
 
-Before payment begins, Buckmerce validates that the billing first and last name can represent the bank account holder's legal name.
+Before payment begins, Plaid Payments validates that the billing first and last name can represent the bank account holder's legal name.
 
 ### Checkout Blocks
 
-Buckmerce registers a WooCommerce Blocks payment method and uses the same server-side gateway implementation and order lifecycle.
+Plaid Payments registers a WooCommerce Blocks payment method and uses the same server-side gateway implementation and order lifecycle.
 
 ### HPOS
 
@@ -303,7 +301,7 @@ The merchant can choose whether `payment_complete()` occurs when Plaid reports:
 
 ## ACH returns
 
-Buckmerce continues monitoring completed bank payments through the applicable return-monitoring period.
+Plaid Payments continues monitoring completed bank payments through the applicable return-monitoring period.
 
 When a payment is returned, the plugin records the return information and surfaces it operationally:
 
@@ -317,7 +315,7 @@ When a payment is returned, the plugin records the return information and surfac
 
 A returned payment is **not automatically debited again** through Transfer UI.
 
-Plaid has specific retry semantics for certain ACH return codes when using direct transfer creation. The 1.0 Transfer UI flow does not express those retry markers, so Buckmerce refuses a new bank debit for the returned order instead of risking an invalid reprocessing attempt.
+Plaid has specific retry semantics for certain ACH return codes when using direct transfer creation. The 1.0 Transfer UI flow does not express those retry markers, so Plaid Payments refuses a new bank debit for the returned order instead of risking an invalid reprocessing attempt.
 
 Payments that failed before money moved can start a fresh payment attempt.
 
@@ -325,7 +323,7 @@ Payments that failed before money moved can start a fresh payment attempt.
 
 ## Refunds
 
-Buckmerce implements WooCommerce automatic refunds through Plaid Transfer.
+Plaid Payments implements WooCommerce automatic refunds through Plaid Transfer.
 
 Supported behavior includes:
 
@@ -468,7 +466,7 @@ Plaid `request_id` values are retained for support correlation.
 
 ## Background processing
 
-Buckmerce uses WooCommerce **Action Scheduler**.
+Plaid Payments uses WooCommerce **Action Scheduler**.
 
 Action group:
 
@@ -507,7 +505,7 @@ Disabling the payment gateway does not abandon existing payment maintenance. Onc
 
 ## Persistence model
 
-Buckmerce owns three operational tables:
+Plaid Payments owns three operational tables:
 
 ```text
 {prefix}buckmerce_plaid_events
@@ -568,7 +566,7 @@ A Plaid Client ID/environment combination is part of the operational identity.
 
 Event streams, cursors, payment epochs and refund identities are scoped so an event from one Plaid account cannot be mistaken for an event with the same numeric ID from another account.
 
-Buckmerce also refuses a dangerous Plaid account/environment switch while monitored Production work still depends on the old credentials.
+Plaid Payments also refuses a dangerous Plaid account/environment switch while monitored Production work still depends on the old credentials.
 
 This protects long-running ACH return and refund monitoring from accidental credential replacement.
 
@@ -701,7 +699,7 @@ Warnings/errors are available for operational failures; debug/info entries are c
 
 ## WP-CLI
 
-Buckmerce registers:
+Plaid Payments registers:
 
 ```bash
 wp buckmerce-plaid status
@@ -885,7 +883,7 @@ Every tool and platform version in that pipeline is pinned, so a red run means t
 
 ## Privacy and external services
 
-Buckmerce uses Plaid to perform bank-payment functionality.
+Plaid Payments uses Plaid to perform bank-payment functionality.
 
 Server-to-server data sent to Plaid can include:
 
@@ -915,7 +913,7 @@ Plaid Terms: https://plaid.com/legal/
 
 Plaid Privacy Policy: https://plaid.com/legal/#end-user-privacy-policy
 
-Buckmerce itself does not require a license key, subscription, paid feature unlock, trial timer or usage quota.
+Plaid Payments itself does not require a license key, subscription, paid feature unlock, trial timer or usage quota.
 
 ---
 
@@ -946,8 +944,6 @@ Keeping these boundaries explicit reduces ambiguity in payment semantics and kee
 
 ## License
 
-Buckmerce is licensed under **GPL-2.0-or-later**.
+Plaid Payments is licensed under **GPL-2.0-or-later**.
 
 The bundled `firebase/php-jwt` library is distributed under **BSD-3-Clause**.
-
-Plaid, WooCommerce and WordPress trademarks belong to their respective owners.

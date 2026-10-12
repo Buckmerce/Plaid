@@ -30,7 +30,7 @@ final class Plugin
                 // Fail closed: without verified idempotency tables no payment may start.
                 add_action('admin_notices', static function (): void {
                     if (current_user_can('manage_woocommerce')) {
-                        echo '<div class="notice notice-error"><p>' . esc_html__('Buckmerce for Plaid could not create or verify its database tables. Pay by Bank stays disabled until this is fixed; try deactivating and reactivating the plugin.', 'buckmerce-plaid') . '</p></div>';
+                        echo '<div class="notice notice-error"><p>' . esc_html__('Plaid Payments could not create or verify its database tables. Pay by Bank stays disabled until this is fixed; try deactivating and reactivating the plugin.', 'buckmerce-plaid') . '</p></div>';
                     }
                 });
                 return;
@@ -90,7 +90,7 @@ final class Plugin
     {
         if (current_user_can('manage_woocommerce')) {
             $links['bmfp_settings'] = '<a href="' . esc_url(BuckmerceGateway::settings_url()) . '">' . esc_html__('Settings', 'buckmerce-plaid') . '</a>';
-            $links['bmfp_diagnostics'] = '<a href="' . esc_url(DiagnosticsPage::url()) . '">' . esc_html__('Diagnostics', 'buckmerce-plaid') . '</a>';
+            $links['bmfp_diagnostics'] = '<a href="' . esc_url(DiagnosticsPage::url()) . '">' . esc_html__('Health', 'buckmerce-plaid') . '</a>';
         }
         return $links;
     }
@@ -101,7 +101,7 @@ final class Plugin
             return;
         }
         wp_add_privacy_policy_content(
-            __('Buckmerce for Plaid', 'buckmerce-plaid'),
+            __('Plaid Payments', 'buckmerce-plaid'),
             '<p>' . esc_html__('When a customer chooses Pay by Bank, this store sends the order amount, a short order description, the customer’s billing name and email address, and internal order references to Plaid Inc. to create the payment. The customer connects their bank and authorizes the payment inside Plaid’s interface; bank login credentials are never shared with this store. Plaid processes this data under its own terms and privacy policy (https://plaid.com/legal/). The store keeps Plaid payment identifiers and statuses on the order for accounting and dispute handling.', 'buckmerce-plaid') . '</p>'
         );
     }

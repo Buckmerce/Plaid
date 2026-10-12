@@ -54,7 +54,7 @@ final class OrderMetaBox
         $records = $refunds->for_order($order);
         $eligibility = $refunds->eligibility($order);
         $rows = array(
-            __('Buckmerce state', 'buckmerce-plaid') => $state,
+            __('Payment state', 'buckmerce-plaid') => $state,
             __('Environment', 'buckmerce-plaid') => $meta(OrderMeta::ENVIRONMENT),
             __('Payment attempt', 'buckmerce-plaid') => null !== $snapshot ? $snapshot->attempt_id : '',
             __('Attempt created', 'buckmerce-plaid') => null !== $snapshot ? $snapshot->created_at : '',
@@ -78,7 +78,7 @@ final class OrderMetaBox
             __('Plaid request ID', 'buckmerce-plaid') => $meta(OrderMeta::REQUEST_ID),
             __('Refunded through Plaid', 'buckmerce-plaid') => array() === $records ? '' : '$' . $eligibility->refunded . ($eligibility->allowed ? ' · ' . sprintf(/* translators: %s: amount */ __('$%s refundable', 'buckmerce-plaid'), $eligibility->remaining) : ''),
         );
-        echo '<div class="bmfp-order-panel" style="clear:both;padding-top:12px"><h3>' . esc_html__('Buckmerce for Plaid', 'buckmerce-plaid') . '</h3>';
+        echo '<div class="bmfp-order-panel" style="clear:both;padding-top:12px"><h3>' . esc_html__('Plaid Payments', 'buckmerce-plaid') . '</h3>';
         $notice_key = 'bmfp_sync_notice_' . get_current_user_id() . '_' . $order->get_id();
         $notice = get_transient($notice_key);
         if (is_array($notice) && isset($notice['type'], $notice['message'])) {
@@ -197,7 +197,7 @@ final class OrderMetaBox
             $notice = array('type' => 'error', 'message' => __('The payment is being processed right now. Try again in a moment.', 'buckmerce-plaid'));
         } catch (\Throwable $exception) {
             ( new Logger() )->log('warning', 'manual_sync_failed', array('order_id' => $order->get_id(), 'error_code' => Logger::fingerprint($exception->getMessage())));
-            $notice = array('type' => 'error', 'message' => __('Plaid could not be reached or returned an error. See the Buckmerce logs.', 'buckmerce-plaid'));
+            $notice = array('type' => 'error', 'message' => __('Plaid could not be reached or returned an error. See the Plaid Payments logs.', 'buckmerce-plaid'));
         }
         $this->finish($order, $notice);
     }
@@ -236,7 +236,7 @@ final class OrderMetaBox
             };
         } catch (\Throwable $exception) {
             ( new Logger() )->log('warning', 'manual_review_action_failed', array('order_id' => $order->get_id(), 'error_code' => Logger::fingerprint($exception->getMessage())));
-            $notice = array('type' => 'error', 'message' => __('The review could not be recorded. See the Buckmerce logs.', 'buckmerce-plaid'));
+            $notice = array('type' => 'error', 'message' => __('The review could not be recorded. See the Plaid Payments logs.', 'buckmerce-plaid'));
         }
         $this->finish($order, $notice);
     }
@@ -250,7 +250,7 @@ final class OrderMetaBox
         check_admin_referer($action . '_' . $order_id);
         $order = wc_get_order($order_id);
         if (! $order instanceof \WC_Order || Settings::GATEWAY_ID !== $order->get_payment_method()) {
-            wp_die(esc_html__('The order is not a Buckmerce order.', 'buckmerce-plaid'), '', array('response' => 404));
+            wp_die(esc_html__('The order is not a Plaid Payments order.', 'buckmerce-plaid'), '', array('response' => 404));
         }
         return $order;
     }

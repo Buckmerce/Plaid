@@ -62,9 +62,9 @@ bmfp_assert_same('https://' . $public_host . '/wp-json/buckmerce-plaid/v1/webhoo
 $fails('fire-sandbox-webhook --url=https://' . $public_host . '/webhook', 'must be a public HTTPS URL');
 
 WP_CLI::log('Invalid arguments end with exit status 1');
-$fails('sync-order 999999999', 'Not a Buckmerce order.');
-$fails('sync-order not-a-number', 'Not a Buckmerce order.');
-$fails('refunds 999999999', 'Not a Buckmerce order.');
+$fails('sync-order 999999999', 'Not a Plaid Payments order.');
+$fails('sync-order not-a-number', 'Not a Plaid Payments order.');
+$fails('refunds 999999999', 'Not a Plaid Payments order.');
 $fails('simulate-refund refund-1 refund.exploded', 'Usage: wp buckmerce-plaid simulate-refund');
 $fails('simulate-refund refund_1! refund.posted', 'Usage: wp buckmerce-plaid simulate-refund');
 $fails('fire-sandbox-webhook --webhook-url=http://' . $public_host . '/webhook', 'must be a public HTTPS URL');

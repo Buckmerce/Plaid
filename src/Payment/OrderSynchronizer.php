@@ -38,7 +38,7 @@ final class OrderSynchronizer
         return DatabaseMutex::with(DatabaseMutex::payment_resource($order->get_id()), function () use ($order): string {
             $order = wc_get_order($order->get_id());
             if (! $order instanceof \WC_Order || Settings::GATEWAY_ID !== $order->get_payment_method()) {
-                throw new PaymentException('The order is not a Buckmerce order.');
+                throw new PaymentException('The order is not a Plaid Payments order.');
             }
             $snapshot = PaymentSnapshot::from_json((string) $order->get_meta(OrderMeta::PAYMENT_SNAPSHOT, true));
             $intent_id = (string) $order->get_meta(OrderMeta::TRANSFER_INTENT_ID, true);

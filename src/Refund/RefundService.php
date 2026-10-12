@@ -193,7 +193,7 @@ final class RefundService implements ReturnListener
                 // The reservation was changed by another worker; never report an unrecorded refund as done.
                 $this->logger->log('error', 'refund_record_conflict', array('order_id' => $order->get_id(), 'refund_id' => $refund->id));
                 $this->alerts->add($order, PaymentAlerts::REFUND_UNCERTAIN, 'record_conflict', (string) $record->id, $record->amount);
-                return RefundOutcome::error(__('Plaid created the refund, but it could not be recorded. Do not refund again; see the Buckmerce alert on this order.', 'buckmerce-plaid'));
+                return RefundOutcome::error(__('Plaid created the refund, but it could not be recorded. Do not refund again; see the Plaid Payments alert on this order.', 'buckmerce-plaid'));
             }
         }
         $created = $this->store->find($record->id) ?? $record;
@@ -219,7 +219,7 @@ final class RefundService implements ReturnListener
         $this->logger->log('warning', 'refund_rejected', array('order_id' => $order->get_id(), 'transfer_id' => $record->transfer_id, 'error_code' => $exception->safe_code(), 'request_id' => $exception->request_id()));
         $order->add_order_note(sprintf(
             /* translators: 1: refund amount, 2: Plaid error code */
-            __('Buckmerce: Plaid rejected a refund of $%1$s (%2$s). No money was moved.', 'buckmerce-plaid'),
+            __('Plaid Payments: Plaid rejected a refund of $%1$s (%2$s). No money was moved.', 'buckmerce-plaid'),
             $record->amount,
             strtoupper($exception->safe_code())
         ));
@@ -242,10 +242,10 @@ final class RefundService implements ReturnListener
         $this->logger->log('error', 'refund_uncertain', array('order_id' => $order->get_id(), 'transfer_id' => $record->transfer_id, 'error_code' => $code, 'request_id' => $request_id));
         $order->add_order_note(sprintf(
             /* translators: %s: refund amount */
-            __('Buckmerce: Plaid did not confirm a refund of $%s (the request timed out or Plaid was unavailable). Buckmerce will check Plaid and record the refund automatically if it was created. Do not refund this order again until then.', 'buckmerce-plaid'),
+            __('Plaid Payments: Plaid did not confirm a refund of $%s (the request timed out or Plaid was unavailable). Plaid Payments will check Plaid and record the refund automatically if it was created. Do not refund this order again until then.', 'buckmerce-plaid'),
             $record->amount
         ));
-        return RefundOutcome::error(__('Plaid did not confirm the refund. Do not refund this order again: Buckmerce is checking with Plaid and will record the refund automatically if Plaid created it.', 'buckmerce-plaid'), $record);
+        return RefundOutcome::error(__('Plaid did not confirm the refund. Do not refund this order again: Plaid Payments is checking with Plaid and will record the refund automatically if Plaid created it.', 'buckmerce-plaid'), $record);
     }
 
     /**
@@ -323,18 +323,18 @@ final class RefundService implements ReturnListener
         switch ($to) {
             case RefundState::POSTED:
                 /* translators: %s: refund amount and Plaid refund ID */
-                $order->add_order_note(sprintf(__('Buckmerce: refund %s was sent to the customer\'s bank.', 'buckmerce-plaid'), $label));
+                $order->add_order_note(sprintf(__('Plaid Payments: refund %s was sent to the customer\'s bank.', 'buckmerce-plaid'), $label));
                 break;
             case RefundState::SETTLED:
                 /* translators: %s: refund amount and Plaid refund ID */
-                $order->add_order_note(sprintf(__('Buckmerce: refund %s settled at the customer\'s bank.', 'buckmerce-plaid'), $label));
+                $order->add_order_note(sprintf(__('Plaid Payments: refund %s settled at the customer\'s bank.', 'buckmerce-plaid'), $label));
                 break;
             case RefundState::FAILED:
             case RefundState::RETURNED:
                 $returned = RefundState::RETURNED === $to;
                 $order->add_order_note(sprintf(
                     /* translators: 1: refund amount and Plaid refund ID, 2: failure code */
-                    $returned ? __('Buckmerce: REFUND RETURNED — refund %1$s was returned by the customer\'s bank (%2$s). The customer did not receive it; the money is back in your Plaid balance.', 'buckmerce-plaid') : __('Buckmerce: REFUND FAILED — refund %1$s failed at Plaid (%2$s). No money reached the customer. The WooCommerce refund record does not reflect a completed refund.', 'buckmerce-plaid'),
+                    $returned ? __('Plaid Payments: REFUND RETURNED — refund %1$s was returned by the customer\'s bank (%2$s). The customer did not receive it; the money is back in your Plaid balance.', 'buckmerce-plaid') : __('Plaid Payments: REFUND FAILED — refund %1$s failed at Plaid (%2$s). No money reached the customer. The WooCommerce refund record does not reflect a completed refund.', 'buckmerce-plaid'),
                     $label,
                     '' === $code ? '—' : $code
                 ));
@@ -356,14 +356,14 @@ final class RefundService implements ReturnListener
                 break;
             case RefundState::CANCELLED:
                 /* translators: %s: refund amount and Plaid refund ID */
-                $order->add_order_note(sprintf(__('Buckmerce: refund %s was cancelled before it was sent. The customer will not receive it.', 'buckmerce-plaid'), $label));
+                $order->add_order_note(sprintf(__('Plaid Payments: refund %s was cancelled before it was sent. The customer will not receive it.', 'buckmerce-plaid'), $label));
                 $this->alerts->add($order, PaymentAlerts::REFUND_CANCELLED, $code, (string) $record->id, $record->amount);
                 do_action('buckmerce_plaid_refund_cancelled', $order, $record->refund_id);
                 break;
             case RefundState::VOID:
                 $this->alerts->dismiss($order->get_id() . ':' . PaymentAlerts::REFUND_UNCERTAIN . ':' . $record->id);
                 /* translators: %s: refund amount */
-                $order->add_order_note(sprintf(__('Buckmerce: the unconfirmed refund of $%s was not created at Plaid. No money was moved; you can refund again.', 'buckmerce-plaid'), $record->amount));
+                $order->add_order_note(sprintf(__('Plaid Payments: the unconfirmed refund of $%s was not created at Plaid. No money was moved; you can refund again.', 'buckmerce-plaid'), $record->amount));
                 break;
         }
         if (RefundState::UNCERTAIN === $from && ! in_array($to, array(RefundState::UNCERTAIN, RefundState::VOID), true)) {
@@ -492,7 +492,7 @@ final class RefundService implements ReturnListener
         }
         $order->add_order_note(sprintf(
             /* translators: 1: refund amount, 2: Plaid refund ID */
-            __('Buckmerce: Plaid confirmed the refund of $%1$s (refund ID %2$s) that had timed out. It is now recorded.', 'buckmerce-plaid'),
+            __('Plaid Payments: Plaid confirmed the refund of $%1$s (refund ID %2$s) that had timed out. It is now recorded.', 'buckmerce-plaid'),
             $record->amount,
             $refund->id
         ));
@@ -524,7 +524,7 @@ final class RefundService implements ReturnListener
         $this->alerts->add($order, PaymentAlerts::EXTERNAL_REFUND, '', (string) $record->id, $record->amount);
         $order->add_order_note(sprintf(
             /* translators: 1: refund amount, 2: Plaid refund ID */
-            __('Buckmerce: a refund of $%1$s (refund ID %2$s) was created outside WooCommerce, for example in the Plaid Dashboard. It counts toward the refundable amount. Record it in WooCommerce as a manual refund if it is not recorded yet.', 'buckmerce-plaid'),
+            __('Plaid Payments: a refund of $%1$s (refund ID %2$s) was created outside WooCommerce, for example in the Plaid Dashboard. It counts toward the refundable amount. Record it in WooCommerce as a manual refund if it is not recorded yet.', 'buckmerce-plaid'),
             $record->amount,
             $refund->id
         ));
@@ -556,7 +556,7 @@ final class RefundService implements ReturnListener
                     $this->logger->log('warning', 'refund_cancel_failed', array('order_id' => $order->get_id(), 'refund_id' => $record->refund_id, 'error_code' => $exception->safe_code()));
                     $order->add_order_note(sprintf(
                         /* translators: 1: Plaid refund ID, 2: Plaid error code */
-                        __('Buckmerce: the pending refund %1$s could not be cancelled after the payment was returned (%2$s).', 'buckmerce-plaid'),
+                        __('Plaid Payments: the pending refund %1$s could not be cancelled after the payment was returned (%2$s).', 'buckmerce-plaid'),
                         $record->refund_id,
                         strtoupper($exception->safe_code())
                     ));
@@ -631,7 +631,7 @@ final class RefundService implements ReturnListener
     {
         $note = sprintf(
             /* translators: 1: refund amount, 2: Plaid refund ID */
-            __('Buckmerce: refund of $%1$s submitted to Plaid (refund ID %2$s). The customer usually receives it within a few business days.', 'buckmerce-plaid'),
+            __('Plaid Payments: refund of $%1$s submitted to Plaid (refund ID %2$s). The customer usually receives it within a few business days.', 'buckmerce-plaid'),
             $record->amount,
             $refund->id
         );
@@ -644,7 +644,7 @@ final class RefundService implements ReturnListener
             if (time() < $unauthorized_end) {
                 $note .= ' ' . sprintf(
                     /* translators: %s: date */
-                    __('Warning: the original bank payment can still be returned by the customer\'s bank until about %s. If it is returned, you may lose both the payment and this refund; Buckmerce will alert you.', 'buckmerce-plaid'),
+                    __('Warning: the original bank payment can still be returned by the customer\'s bank until about %s. If it is returned, you may lose both the payment and this refund; Plaid Payments will alert you.', 'buckmerce-plaid'),
                     gmdate('Y-m-d', $unauthorized_end)
                 );
             }

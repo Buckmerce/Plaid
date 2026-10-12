@@ -167,7 +167,7 @@ final class Installer
             dbDelta($refunds_sql);
             self::migrate_account_scope();
             if (! self::schema_is_valid()) {
-                throw new PersistenceException('Buckmerce database schema verification failed.');
+                throw new PersistenceException('Plaid Payments database schema verification failed.');
             }
             self::backfill_account_fingerprint();
             if ('' !== $previous && version_compare($previous, '3', '<')) {

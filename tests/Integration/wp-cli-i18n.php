@@ -85,7 +85,7 @@ foreach ($messages as $msgid => $translation) {
     }
     bmfp_assert('' !== $formatted && ! str_contains($formatted, '%s') && ! str_contains($formatted, '$s'), 'The translation formats with the arguments of: ' . substr((string) $msgid, 0, 60));
 }
-// Brand and protocol names (Buckmerce for Plaid, PHP, HTTPS, Client ID, …) stay as they are.
+// Brand and protocol names (Plaid Payments, PHP, HTTPS, Client ID, …) stay as they are.
 bmfp_assert($cyrillic >= count($messages) - 20, 'All but a few proper names are Russian text (' . $cyrillic . ' of ' . count($messages) . ').');
 bmfp_assert(is_textdomain_loaded($domain), 'WordPress loaded the bundled text domain.');
 bmfp_assert(in_array(wp_normalize_path($languages . "/$domain-$locale" . ('mo' === $source ? '.mo' : '.l10n.php')), $loaded_files, true), 'WordPress loaded the expected catalogue file.');
@@ -127,8 +127,8 @@ $sync = ( new Buckmerce\Plaid\Container() )->event_sync()->run();
 bmfp_assert_same('ok', $sync['status'], 'Transfer events are synchronised.');
 $paid = bmfp_reload($order);
 bmfp_assert(PaymentState::FUNDS_AVAILABLE === $paid->get_meta(OrderMeta::PAYMENT_STATE, true) && $paid->is_paid(), 'The order is paid from verified Plaid events.');
-bmfp_assert(bmfp_note_count($paid, 'Buckmerce: средства доступны') >= 1, 'Order notes are written in Russian.');
-bmfp_assert(0 === bmfp_note_count($paid, 'Buckmerce: funds available'), 'No English note is written when a translation exists.');
+bmfp_assert(bmfp_note_count($paid, 'Plaid Payments: средства доступны') >= 1, 'Order notes are written in Russian.');
+bmfp_assert(0 === bmfp_note_count($paid, 'Plaid Payments: funds available'), 'No English note is written when a translation exists.');
 
 bmfp_configure();
 WP_CLI::success('Buckmerce translation suite passed (' . $locale . ', ' . count($messages) . ' strings).');

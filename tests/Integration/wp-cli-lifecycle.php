@@ -400,11 +400,11 @@ bmfp_assert(1 <= count(AttemptHistory::all(bmfp_reload($no_transfer))), 'The rel
 // ---------------------------------------------------------------------------------
 WP_CLI::log('Diagnostics are operational and never expose secrets');
 as_schedule_single_action(time() - 3 * HOUR_IN_SECONDS, Scheduler::RECONCILE_CONTINUE_HOOK, array(), Scheduler::GROUP);
-bmfp_assert(ConfigurationStatus::stalled_actions() >= 1, 'Overdue Buckmerce jobs are detected.');
+bmfp_assert(ConfigurationStatus::stalled_actions() >= 1, 'Overdue Plaid Payments jobs are detected.');
 $status = ConfigurationStatus::evaluate(Settings::load());
 bmfp_assert_same(ConfigurationStatus::ATTENTION, $status['level'], 'Stalled background processing requires attention.');
 $report = DiagnosticsPage::report();
-foreach (array('Monitored bank payments', 'Payments in manual review', 'Refunds pending (in flight/unconfirmed)', 'Event backlog (waiting to be processed)', 'Link customization configured', 'Overdue Buckmerce jobs (>30 min)', 'WP-Cron disabled (DISABLE_WP_CRON)', 'Last verified webhook') as $label) {
+foreach (array('Monitored bank payments', 'Payments in manual review', 'Refunds pending (in flight/unconfirmed)', 'Event backlog (waiting to be processed)', 'Link customization configured', 'Overdue Plaid Payments jobs (>30 min)', 'WP-Cron disabled (DISABLE_WP_CRON)', 'Last verified webhook') as $label) {
     bmfp_assert(array_key_exists($label, $report), 'Diagnostics row: ' . $label);
 }
 bmfp_assert((int) $report['Monitored bank payments'] >= 1, 'Monitored payments counted.');
